@@ -3,12 +3,12 @@ from dataclasses import dataclass
 import pytest
 from pydantic import BaseModel
 
-from blacksheep.server.controllers import Controller, RoutesRegistry
-from blacksheep.server.rendering.jinja2 import get_template_name
-from blacksheep.server.responses import view, view_async
-from blacksheep.settings.html import html_settings
-from blacksheep.testing.helpers import get_example_scope
-from blacksheep.testing.messages import MockReceive, MockSend
+from dreaming_electric_sheep.server.controllers import Controller, RoutesRegistry
+from dreaming_electric_sheep.server.rendering.jinja2 import get_template_name
+from dreaming_electric_sheep.server.responses import view, view_async
+from dreaming_electric_sheep.settings.html import html_settings
+from dreaming_electric_sheep.testing.helpers import get_example_scope
+from dreaming_electric_sheep.testing.messages import MockReceive, MockSend
 from tests.utils.application import FakeApplication
 
 

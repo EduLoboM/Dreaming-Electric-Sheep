@@ -20,12 +20,12 @@ Scenarios covered
 
 import pytest
 
-from blacksheep import Response
-from blacksheep.server.application import Application
-from blacksheep.server.responses import redirect
-from blacksheep.server.routing import Router, URLResolver
-from blacksheep.testing.helpers import get_example_scope
-from blacksheep.testing.messages import MockReceive, MockSend
+from dreaming_electric_sheep import Response
+from dreaming_electric_sheep.server.application import Application
+from dreaming_electric_sheep.server.responses import redirect
+from dreaming_electric_sheep.server.routing import Router, URLResolver
+from dreaming_electric_sheep.testing.helpers import get_example_scope
+from dreaming_electric_sheep.testing.messages import MockReceive, MockSend
 from tests.utils.application import FakeApplication
 
 # ---------------------------------------------------------------------------
@@ -284,7 +284,7 @@ async def test_url_resolver_unit_with_explicit_root_path():
     Unit test: construct a URLResolver directly, set scope["root_path"] on the
     request, and verify url_for prepends the external base.
     """
-    from blacksheep.messages import Request
+    from dreaming_electric_sheep.messages import Request
 
     router = Router()
 
@@ -306,7 +306,7 @@ async def test_url_resolver_unit_no_root_path():
     Unit test: when scope["root_path"] is absent or empty, url_for returns the
     plain path from Router.url_for (which already includes any router prefix).
     """
-    from blacksheep.messages import Request
+    from dreaming_electric_sheep.messages import Request
 
     router = Router(prefix="/v2")
 

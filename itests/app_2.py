@@ -16,11 +16,11 @@ from openapidocs.v3 import Response as ResponseDoc
 from openapidocs.v3 import Schema
 from pydantic import BaseModel
 
-from blacksheep import Response, TextContent, WebSocket
-from blacksheep.server import Application
-from blacksheep.server.authentication import AuthenticationHandler
-from blacksheep.server.authorization import Policy, Requirement, auth
-from blacksheep.server.bindings import (
+from dreaming_electric_sheep import Response, TextContent, WebSocket
+from dreaming_electric_sheep.server import Application
+from dreaming_electric_sheep.server.authentication import AuthenticationHandler
+from dreaming_electric_sheep.server.authorization import Policy, Requirement, auth
+from dreaming_electric_sheep.server.bindings import (
     FromCookie,
     FromForm,
     FromHeader,
@@ -28,10 +28,10 @@ from blacksheep.server.bindings import (
     FromQuery,
     FromServices,
 )
-from blacksheep.server.bindings.dates import parse_datetime
-from blacksheep.server.compression import use_gzip_compression
-from blacksheep.server.controllers import APIController
-from blacksheep.server.openapi.common import (
+from dreaming_electric_sheep.server.bindings.dates import parse_datetime
+from dreaming_electric_sheep.server.compression import use_gzip_compression
+from dreaming_electric_sheep.server.controllers import APIController
+from dreaming_electric_sheep.server.openapi.common import (
     ContentInfo,
     EndpointDocs,
     HeaderInfo,
@@ -41,10 +41,10 @@ from blacksheep.server.openapi.common import (
     ResponseExample,
     ResponseInfo,
 )
-from blacksheep.server.openapi.ui import ReDocUIProvider
-from blacksheep.server.openapi.v3 import OpenAPIHandler
-from blacksheep.server.responses import text
-from blacksheep.server.routing import RoutesRegistry
+from dreaming_electric_sheep.server.openapi.ui import ReDocUIProvider
+from dreaming_electric_sheep.server.openapi.v3 import OpenAPIHandler
+from dreaming_electric_sheep.server.responses import text
+from dreaming_electric_sheep.server.routing import RoutesRegistry
 from itests.utils import CrashTest
 
 os.environ["APP_SHOW_ERROR_DETAILS"] = "0"

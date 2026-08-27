@@ -1,9 +1,9 @@
 from dataclasses import dataclass
 
-from blacksheep.server.responses import ok
-from blacksheep.server.routing import Router
-from blacksheep.testing.helpers import get_example_scope
-from blacksheep.testing.messages import MockReceive, MockSend
+from dreaming_electric_sheep.server.responses import ok
+from dreaming_electric_sheep.server.routing import Router
+from dreaming_electric_sheep.testing.helpers import get_example_scope
+from dreaming_electric_sheep.testing.messages import MockReceive, MockSend
 from tests.utils.application import FakeApplication
 
 

@@ -3,8 +3,8 @@ from pathlib import Path
 
 import pytest
 
-from blacksheep.contents import MultiPartFormData
-from blacksheep.multipart import (
+from dreaming_electric_sheep.contents import MultiPartFormData
+from dreaming_electric_sheep.multipart import (
     FormPart,
     _remove_last_crlf,
     parse_multipart,

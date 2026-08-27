@@ -1,6 +1,6 @@
 import pytest
 
-from blacksheep import Header, Headers
+from dreaming_electric_sheep import Header, Headers
 
 
 @pytest.mark.parametrize(

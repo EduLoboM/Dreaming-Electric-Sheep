@@ -29,7 +29,7 @@ def load_results(
 ):
     """Load all benchmark results from the directory"""
     results = []
-    for filename in glob.glob(f"{results_dir}/blacksheep_perf_*.json"):
+    for filename in glob.glob(f"{results_dir}/dreaming_electric_sheep_perf_*.json"):
         with open(filename, "r") as f:
             data = json.load(f)
             if not _match_filter(data, python_filter, platform_filter):
@@ -287,7 +287,7 @@ def write_excel(df, output_file_name: str):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Compare BlackSheep benchmark results")
+    parser = argparse.ArgumentParser(description="Compare Dreaming Electric Sheep benchmark results")
     parser.add_argument(
         "--results-dir",
         type=str,

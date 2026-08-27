@@ -1,7 +1,7 @@
 from essentials.meta import deprecated
 
-from blacksheep.messages import Request, Response
-from blacksheep.server import Application
+from dreaming_electric_sheep.messages import Request, Response
+from dreaming_electric_sheep.server import Application
 
 
 class FakeApplication(Application):

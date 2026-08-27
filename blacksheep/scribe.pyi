@@ -1,9 +1,0 @@
-from typing import AsyncIterable, Callable
-
-from blacksheep.contents import Content, ServerSentEvent
-from blacksheep.cookies import Cookie
-from blacksheep.messages import Request, Response
-
-def write_chunks(content: Content) -> AsyncIterable[bytes]: ...
-async def send_asgi_response(response: Response, send: Callable): ...
-def write_sse(event: ServerSentEvent) -> bytes: ...

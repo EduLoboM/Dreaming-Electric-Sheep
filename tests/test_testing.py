@@ -1,13 +1,13 @@
 import pytest
 
-from blacksheep import Content
-from blacksheep.contents import JSONContent
-from blacksheep.server.application import Application
-from blacksheep.server.bindings import FromHeader
-from blacksheep.server.controllers import Controller, RoutesRegistry
-from blacksheep.server.responses import Response
-from blacksheep.testing import AbstractTestSimulator, TestClient
-from blacksheep.testing.helpers import (
+from dreaming_electric_sheep import Content
+from dreaming_electric_sheep.contents import JSONContent
+from dreaming_electric_sheep.server.application import Application
+from dreaming_electric_sheep.server.bindings import FromHeader
+from dreaming_electric_sheep.server.controllers import Controller, RoutesRegistry
+from dreaming_electric_sheep.server.responses import Response
+from dreaming_electric_sheep.testing import AbstractTestSimulator, TestClient
+from dreaming_electric_sheep.testing.helpers import (
     CookiesType,
     HeadersType,
     QueryType,

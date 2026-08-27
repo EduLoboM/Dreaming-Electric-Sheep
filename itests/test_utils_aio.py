@@ -2,7 +2,7 @@ from uuid import uuid4
 
 import pytest
 
-from blacksheep.utils.aio import (
+from dreaming_electric_sheep.utils.aio import (
     FailedRequestError,
     HTTPHandler,
     _try_parse_content_as_json,

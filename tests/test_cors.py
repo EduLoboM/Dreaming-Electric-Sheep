@@ -1,18 +1,18 @@
 import pytest
 
-from blacksheep.exceptions import BadRequest
-from blacksheep.server.application import ApplicationAlreadyStartedCORSError
-from blacksheep.server.cors import (
+from dreaming_electric_sheep.exceptions import BadRequest
+from dreaming_electric_sheep.server.application import ApplicationAlreadyStartedCORSError
+from dreaming_electric_sheep.server.cors import (
     CORSConfigurationError,
     CORSPolicy,
     CORSPolicyNotConfiguredError,
     CORSStrategy,
     NotRequestHandlerError,
 )
-from blacksheep.server.responses import text
-from blacksheep.server.routing import Router
-from blacksheep.testing.helpers import get_example_scope
-from blacksheep.testing.messages import MockReceive, MockSend
+from dreaming_electric_sheep.server.responses import text
+from dreaming_electric_sheep.server.routing import Router
+from dreaming_electric_sheep.testing.helpers import get_example_scope
+from dreaming_electric_sheep.testing.messages import MockReceive, MockSend
 
 
 def test_app_raises_type_error_for_cors_property(app):

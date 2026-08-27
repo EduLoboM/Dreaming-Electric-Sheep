@@ -1,8 +1,8 @@
 import uvicorn
 
-from blacksheep.server import Application
-from blacksheep.server.compression import use_gzip_compression
-from blacksheep.server.responses import json
+from dreaming_electric_sheep.server import Application
+from dreaming_electric_sheep.server.compression import use_gzip_compression
+from dreaming_electric_sheep.server.responses import json
 
 application = Application(show_error_details=True)
 app_3 = Application(show_error_details=True)

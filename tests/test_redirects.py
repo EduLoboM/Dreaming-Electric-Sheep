@@ -1,11 +1,11 @@
 import pytest
 
-from blacksheep.messages import Request
-from blacksheep.server.redirects import (
+from dreaming_electric_sheep.messages import Request
+from dreaming_electric_sheep.server.redirects import (
     default_trailing_slash_exclude,
     get_trailing_slash_middleware,
 )
-from blacksheep.server.responses import text
+from dreaming_electric_sheep.server.responses import text
 
 
 class TestDefaultTrailingSlashExclude:

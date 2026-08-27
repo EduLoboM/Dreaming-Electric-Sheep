@@ -168,7 +168,7 @@ class CythonHash:
 
 
 def main():
-    parser = argparse.ArgumentParser(description="BlackSheep Performance Benchmarking")
+    parser = argparse.ArgumentParser(description="Dreaming Electric Sheep Performance Benchmarking")
     parser.add_argument(
         "--iterations", type=int, default=100000, help="Number of iterations"
     )

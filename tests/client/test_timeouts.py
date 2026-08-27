@@ -1,6 +1,6 @@
 import pytest
 
-from blacksheep.client import ClientSession, ConnectionTimeout, RequestTimeout
+from dreaming_electric_sheep.client import ClientSession, ConnectionTimeout, RequestTimeout
 
 from . import FakePools
 

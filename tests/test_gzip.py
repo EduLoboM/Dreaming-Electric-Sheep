@@ -2,9 +2,9 @@ import gzip
 
 import pytest
 
-from blacksheep.server.compression import GzipMiddleware
-from blacksheep.testing.helpers import get_example_scope
-from blacksheep.testing.messages import MockReceive, MockSend
+from dreaming_electric_sheep.server.compression import GzipMiddleware
+from dreaming_electric_sheep.testing.helpers import get_example_scope
+from dreaming_electric_sheep.testing.messages import MockReceive, MockSend
 
 
 @pytest.mark.parametrize(

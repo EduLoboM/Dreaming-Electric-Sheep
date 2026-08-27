@@ -1,7 +1,7 @@
 import pytest
 
-from blacksheep.messages import Response
-from blacksheep.middlewares import (
+from dreaming_electric_sheep.messages import Response
+from dreaming_electric_sheep.middlewares import (
     CategorizedMiddleware,
     MiddlewareCategory,
     MiddlewareList,

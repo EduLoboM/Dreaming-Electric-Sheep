@@ -5,7 +5,7 @@ from uuid import uuid4
 
 import pytest
 
-from blacksheep import (
+from dreaming_electric_sheep import (
     FormContent,
     FormPart,
     JSONContent,
@@ -13,7 +13,7 @@ from blacksheep import (
     Response,
     StreamedContent,
 )
-from blacksheep.common.files.asyncfs import FilesHandler
+from dreaming_electric_sheep.common.files.asyncfs import FilesHandler
 
 from .client_fixtures import *  # NoQA
 from .client_fixtures import get_static_path

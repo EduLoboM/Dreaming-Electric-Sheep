@@ -6,10 +6,10 @@ from dataclasses import dataclass, field
 
 import pytest
 
-from blacksheep.contents import FileBuffer
-from blacksheep.server.bindings import FromForm
-from blacksheep.testing.helpers import get_example_scope
-from blacksheep.testing.messages import MockReceive, MockSend
+from dreaming_electric_sheep.contents import FileBuffer
+from dreaming_electric_sheep.server.bindings import FromForm
+from dreaming_electric_sheep.testing.helpers import get_example_scope
+from dreaming_electric_sheep.testing.messages import MockReceive, MockSend
 from tests.utils.application import FakeApplication
 
 

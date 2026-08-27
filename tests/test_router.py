@@ -1,8 +1,8 @@
 import pytest
 
-from blacksheep.messages import Request
-from blacksheep.server.application import Application
-from blacksheep.server.routing import (
+from dreaming_electric_sheep.messages import Request
+from dreaming_electric_sheep.server.application import Application
+from dreaming_electric_sheep.server.routing import (
     HostFilter,
     InvalidValuePatternName,
     MountRegistry,

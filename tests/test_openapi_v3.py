@@ -36,12 +36,12 @@ from pydantic.types import (
     conint,
 )
 
-from blacksheep.contents import FileBuffer
-from blacksheep.messages import Response
-from blacksheep.server.application import Application
-from blacksheep.server.bindings import FromFiles, FromForm, FromText
-from blacksheep.server.controllers import APIController
-from blacksheep.server.openapi.common import (
+from dreaming_electric_sheep.contents import FileBuffer
+from dreaming_electric_sheep.messages import Response
+from dreaming_electric_sheep.server.application import Application
+from dreaming_electric_sheep.server.bindings import FromFiles, FromForm, FromText
+from dreaming_electric_sheep.server.controllers import APIController
+from dreaming_electric_sheep.server.openapi.common import (
     ContentInfo,
     DefaultSerializer,
     EndpointDocs,
@@ -49,15 +49,15 @@ from blacksheep.server.openapi.common import (
     ResponseInfo,
     SecurityInfo,
 )
-from blacksheep.server.openapi.exceptions import DuplicatedContentTypeDocsException
-from blacksheep.server.openapi.v3 import (
+from dreaming_electric_sheep.server.openapi.exceptions import DuplicatedContentTypeDocsException
+from dreaming_electric_sheep.server.openapi.v3 import (
     DataClassTypeHandler,
     OpenAPIHandler,
     PydanticModelTypeHandler,
     Tag,
     check_union,
 )
-from blacksheep.server.routing import RoutesRegistry
+from dreaming_electric_sheep.server.routing import RoutesRegistry
 
 GenericModel = BaseModel
 
@@ -4630,7 +4630,7 @@ async def test_multi_format_union_body_generates_all_content_types(
     docs: OpenAPIHandler, serializer: Serializer
 ):
     """Union annotation FromJSON[T] | FromForm[T] should document all content types."""
-    from blacksheep.server.bindings import FromJSON
+    from dreaming_electric_sheep.server.bindings import FromJSON
 
     app = get_app()
 
@@ -4656,7 +4656,7 @@ async def test_from_body_generates_json_and_form_content_types(
     docs: OpenAPIHandler, serializer: Serializer, monkeypatch
 ):
     """FromBody[T] should document both JSON and form content types."""
-    from blacksheep.server.bindings import (
+    from dreaming_electric_sheep.server.bindings import (
         FormBinder,
         FromBody,
         FromBodyBinder,
@@ -4686,7 +4686,7 @@ async def test_optional_union_body_generates_not_required(
     docs: OpenAPIHandler, serializer: Serializer
 ):
     """FromJSON[T] | FromForm[T] | None should emit required: false."""
-    from blacksheep.server.bindings import FromJSON
+    from dreaming_electric_sheep.server.bindings import FromJSON
 
     app = get_app()
 
@@ -4708,7 +4708,7 @@ async def test_xml_body_binder_generates_xml_content_types(
     docs: OpenAPIHandler, serializer: Serializer
 ):
     """FromXML[T] should document application/xml and text/xml content types."""
-    from blacksheep.server.bindings import FromXML
+    from dreaming_electric_sheep.server.bindings import FromXML
 
     app = get_app()
 
@@ -4729,7 +4729,7 @@ async def test_json_xml_union_generates_all_content_types(
     docs: OpenAPIHandler, serializer: Serializer
 ):
     """FromJSON[T] | FromXML[T] should document both JSON and XML content types."""
-    from blacksheep.server.bindings import FromJSON, FromXML
+    from dreaming_electric_sheep.server.bindings import FromJSON, FromXML
 
     app = get_app()
 
@@ -4759,8 +4759,8 @@ async def test_sse_async_iterable_does_not_crash_openapi(
     docs: OpenAPIHandler, serializer: Serializer
 ):
     """AsyncIterable[ServerSentEvent] return type must not crash the OpenAPI generator."""
-    from blacksheep.server.controllers import Controller
-    from blacksheep.server.sse import ServerSentEvent
+    from dreaming_electric_sheep.server.controllers import Controller
+    from dreaming_electric_sheep.server.sse import ServerSentEvent
 
     app = get_app()
 

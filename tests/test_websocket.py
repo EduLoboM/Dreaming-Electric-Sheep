@@ -1,7 +1,7 @@
 import pytest
 
-from blacksheep.server.bindings import FromHeader
-from blacksheep.server.websocket import (
+from dreaming_electric_sheep.server.bindings import FromHeader
+from dreaming_electric_sheep.server.websocket import (
     InvalidWebSocketStateError,
     MessageMode,
     WebSocket,
@@ -9,8 +9,8 @@ from blacksheep.server.websocket import (
     WebSocketState,
     format_reason,
 )
-from blacksheep.testing import TestClient
-from blacksheep.testing.messages import MockReceive, MockSend
+from dreaming_electric_sheep.testing import TestClient
+from dreaming_electric_sheep.testing.messages import MockReceive, MockSend
 from tests.utils.application import FakeApplication
 
 

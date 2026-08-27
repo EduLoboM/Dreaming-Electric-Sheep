@@ -113,9 +113,9 @@ tests/out/
 
 *,cover
 
-blacksheep/*.c
-blacksheep/*.html
-blacksheep/includes/*.html
+dreaming_electric_sheep/*.c
+dreaming_electric_sheep/*.html
+dreaming_electric_sheep/includes/*.html
 out/*
 
 # Output of integration tests

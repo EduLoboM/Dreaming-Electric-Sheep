@@ -2,14 +2,14 @@ import pytest
 from essentials.secrets import Secret
 from guardpost import Identity
 
-from blacksheep.server.authentication.apikey import (
+from dreaming_electric_sheep.server.authentication.apikey import (
     APIKey,
     APIKeyAuthentication,
     APIKeyLocation,
     APIKeysProvider,
 )
-from blacksheep.testing.helpers import get_example_scope
-from blacksheep.testing.messages import MockReceive, MockSend
+from dreaming_electric_sheep.testing.helpers import get_example_scope
+from dreaming_electric_sheep.testing.messages import MockReceive, MockSend
 from tests.utils.application import FakeApplication
 
 

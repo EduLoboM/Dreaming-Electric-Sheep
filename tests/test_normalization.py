@@ -8,8 +8,8 @@ from guardpost import Identity, User
 from pytest import raises
 from rodi import Container, Services, inject
 
-from blacksheep import Request
-from blacksheep.server.bindings import (
+from dreaming_electric_sheep import Request
+from dreaming_electric_sheep.server.bindings import (
     Binder,
     BoundValue,
     ExactBinder,
@@ -26,7 +26,7 @@ from blacksheep.server.bindings import (
     RouteBinder,
     ServiceBinder,
 )
-from blacksheep.server.normalization import (
+from dreaming_electric_sheep.server.normalization import (
     AmbiguousMethodSignatureError,
     NormalizationError,
     RouteBinderMismatch,
@@ -38,7 +38,7 @@ from blacksheep.server.normalization import (
     normalize_handler,
     normalize_middleware,
 )
-from blacksheep.server.routing import Route
+from dreaming_electric_sheep.server.routing import Route
 
 
 class Pet:
@@ -679,8 +679,8 @@ def test_get_asyncgen_yield_type():
 
 from dataclasses import dataclass
 
-from blacksheep import FormContent, JSONContent, Request
-from blacksheep.server.bindings import (
+from dreaming_electric_sheep import FormContent, JSONContent, Request
+from dreaming_electric_sheep.server.bindings import (
     FormBinder,
     FromBody,
     FromBodyBinder,
@@ -739,7 +739,7 @@ async def test_union_body_binder_dispatches_correctly_in_handler():
     async def handler(data: FromJSON[NormItem] | FromForm[NormItem]):
         return data
 
-    from blacksheep.server.normalization import normalize_handler
+    from dreaming_electric_sheep.server.normalization import normalize_handler
 
     route = Route(b"/", handler)
     normalized = normalize_handler(route, Container())
@@ -771,7 +771,7 @@ def test_regular_optional_body_not_treated_as_multi_format():
 
 def test_union_with_xml_creates_multi_format_binder():
     """FromJSON[T] | FromXML[T] should produce a MultiFormatBodyBinder."""
-    from blacksheep.server.bindings import FromXML, XMLBinder
+    from dreaming_electric_sheep.server.bindings import FromXML, XMLBinder
 
     def handler(data: FromJSON[NormItem] | FromXML[NormItem]): ...
 

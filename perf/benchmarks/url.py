@@ -2,7 +2,7 @@
 URL methods.
 """
 
-from blacksheep.url import URL
+from dreaming_electric_sheep.url import URL
 from perf.benchmarks import main_run, sync_benchmark
 
 ITERATIONS = 10000

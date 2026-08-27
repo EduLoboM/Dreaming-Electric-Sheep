@@ -2,14 +2,14 @@
 
 
 cyt:
-	cython blacksheep/url.pyx
-	cython blacksheep/exceptions.pyx
-	cython blacksheep/headers.pyx
-	cython blacksheep/cookies.pyx
-	cython blacksheep/contents.pyx
-	cython blacksheep/messages.pyx
-	cython blacksheep/scribe.pyx
-	cython blacksheep/baseapp.pyx
+	cython dreaming_electric_sheep/url.pyx
+	cython dreaming_electric_sheep/exceptions.pyx
+	cython dreaming_electric_sheep/headers.pyx
+	cython dreaming_electric_sheep/cookies.pyx
+	cython dreaming_electric_sheep/contents.pyx
+	cython dreaming_electric_sheep/messages.pyx
+	cython dreaming_electric_sheep/scribe.pyx
+	cython dreaming_electric_sheep/baseapp.pyx
 
 compile: cyt
 	python3 setup.py build_ext --inplace
@@ -18,8 +18,8 @@ compile: cyt
 clean:
 	rm -rf dist/
 	rm -rf build/
-	rm -f blacksheep/*.c
-	rm -f blacksheep/*.so
+	rm -f dreaming_electric_sheep/*.c
+	rm -f dreaming_electric_sheep/*.so
 
 
 buildext:
@@ -27,18 +27,18 @@ buildext:
 
 
 annotate:
-	cython blacksheep/url.pyx -a
-	cython blacksheep/exceptions.pyx -a
-	cython blacksheep/headers.pyx -a
-	cython blacksheep/cookies.pyx -a
-	cython blacksheep/contents.pyx -a
-	cython blacksheep/messages.pyx -a
-	cython blacksheep/scribe.pyx -a
-	cython blacksheep/baseapp.pyx -a
+	cython dreaming_electric_sheep/url.pyx -a
+	cython dreaming_electric_sheep/exceptions.pyx -a
+	cython dreaming_electric_sheep/headers.pyx -a
+	cython dreaming_electric_sheep/cookies.pyx -a
+	cython dreaming_electric_sheep/contents.pyx -a
+	cython dreaming_electric_sheep/messages.pyx -a
+	cython dreaming_electric_sheep/scribe.pyx -a
+	cython dreaming_electric_sheep/baseapp.pyx -a
 
 
 pack:
-	BLACKSHEEP_NO_EXTENSIONS=1 python -m build --sdist
+	DREAMING_ELECTRIC_SHEEP_NO_EXTENSIONS=1 python -m build --sdist
 
 
 build: test
@@ -74,39 +74,40 @@ test-v:
 
 
 test-cov-unit:
-	pytest --cov-report html --cov=blacksheep tests
+	pytest --cov-report html --cov=dreaming_electric_sheep tests
 
 
 test-cov:
-	pytest --cov-report html --cov=blacksheep --disable-warnings
+	pytest --cov-report html --cov=dreaming_electric_sheep --disable-warnings
 
 
 lint: check-flake8 check-isort check-black
 
 format:
-	@isort blacksheep 2>&1
+	@isort dreaming_electric_sheep 2>&1
 	@isort tests 2>&1
 	@isort itests 2>&1
-	@black blacksheep 2>&1
+	@black dreaming_electric_sheep 2>&1
 	@black tests 2>&1
 	@black itests 2>&1
 
 check-flake8:
 	@echo "$(BOLD)Checking flake8$(RESET)"
-	@flake8 blacksheep 2>&1
+	@flake8 dreaming_electric_sheep 2>&1
 	@flake8 itests 2>&1
 	@flake8 tests 2>&1
 
 
 check-isort:
 	@echo "$(BOLD)Checking isort$(RESET)"
-	@isort --check-only blacksheep 2>&1
+	@isort --check-only dreaming_electric_sheep 2>&1
 	@isort --check-only tests 2>&1
 	@isort --check-only itests 2>&1
 
 
 check-black:  ## Run the black tool in check mode only (won't modify files)
 	@echo "$(BOLD)Checking black$(RESET)"
-	@black --check blacksheep 2>&1
+	@black --check dreaming_electric_sheep 2>&1
 	@black --check tests 2>&1
 	@black --check itests 2>&1
+

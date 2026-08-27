@@ -7,13 +7,13 @@ from uuid import UUID, uuid4
 
 import pytest
 
-from blacksheep import Content, Cookie, Response, scribe
-from blacksheep.exceptions import FailedRequestError
-from blacksheep.server.controllers import (
+from dreaming_electric_sheep import Content, Cookie, Response, scribe
+from dreaming_electric_sheep.exceptions import FailedRequestError
+from dreaming_electric_sheep.server.controllers import (
     CannotDetermineDefaultViewNameError,
     Controller,
 )
-from blacksheep.server.responses import (
+from dreaming_electric_sheep.server.responses import (
     ContentDispositionType,
     accepted,
     bad_request,
@@ -36,9 +36,9 @@ from blacksheep.server.responses import (
     text,
     unauthorized,
 )
-from blacksheep.server.routing import RoutesRegistry
-from blacksheep.testing.helpers import get_example_scope
-from blacksheep.testing.messages import MockReceive, MockSend
+from dreaming_electric_sheep.server.routing import RoutesRegistry
+from dreaming_electric_sheep.testing.helpers import get_example_scope
+from dreaming_electric_sheep.testing.messages import MockReceive, MockSend
 from tests.test_files_serving import get_file_path
 
 STATUS_METHODS_OPTIONAL_BODY = [
@@ -984,7 +984,7 @@ async def test_pretty_json_response_in_controller(
 def test_get_chunks_large_data():
     """Regression test for OverflowError with data > 2GB (issue #675).
     Uses a mock large bytearray via memoryview to avoid allocating 2GB."""
-    from blacksheep.scribe import get_chunks
+    from dreaming_electric_sheep.scribe import get_chunks
 
     MAX_RESPONSE_CHUNK_SIZE = 61440
 

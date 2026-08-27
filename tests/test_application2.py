@@ -1,8 +1,8 @@
 from pydantic import BaseModel
 
-from blacksheep.server.bindings import FromJSON
-from blacksheep.testing.helpers import get_example_scope
-from blacksheep.testing.messages import MockReceive, MockSend
+from dreaming_electric_sheep.server.bindings import FromJSON
+from dreaming_electric_sheep.testing.helpers import get_example_scope
+from dreaming_electric_sheep.testing.messages import MockReceive, MockSend
 
 
 class CustomClass:

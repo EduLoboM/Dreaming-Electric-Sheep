@@ -2,7 +2,7 @@ import os
 
 import pytest
 
-from blacksheep.utils.aio import get_running_loop
+from dreaming_electric_sheep.utils.aio import get_running_loop
 from itests.client_fixtures import *
 
 os.environ["APP_DEFAULT_ROUTER"] = "false"

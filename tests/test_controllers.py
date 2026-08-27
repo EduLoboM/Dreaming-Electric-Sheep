@@ -7,22 +7,22 @@ from guardpost import AuthenticationHandler, User
 from pydantic import Field
 from rodi import inject
 
-from blacksheep.messages import Request, Response
-from blacksheep.server.application import Application
-from blacksheep.server.controllers import (
+from dreaming_electric_sheep.messages import Request, Response
+from dreaming_electric_sheep.server.application import Application
+from dreaming_electric_sheep.server.controllers import (
     APIController,
     Controller,
     RoutesRegistry,
     abstract,
     filters,
 )
-from blacksheep.server.di import register_http_context
-from blacksheep.server.responses import text
-from blacksheep.server.routing import RouteDuplicate
-from blacksheep.server.websocket import WebSocket
-from blacksheep.testing.helpers import get_example_scope
-from blacksheep.testing.messages import MockReceive, MockSend
-from blacksheep.utils import ensure_str
+from dreaming_electric_sheep.server.di import register_http_context
+from dreaming_electric_sheep.server.responses import text
+from dreaming_electric_sheep.server.routing import RouteDuplicate
+from dreaming_electric_sheep.server.websocket import WebSocket
+from dreaming_electric_sheep.testing.helpers import get_example_scope
+from dreaming_electric_sheep.testing.messages import MockReceive, MockSend
+from dreaming_electric_sheep.utils import ensure_str
 from tests.test_files_serving import get_file_path
 from tests.utils.application import FakeApplication
 

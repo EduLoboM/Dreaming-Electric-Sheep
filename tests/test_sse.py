@@ -1,7 +1,7 @@
 import pytest
 
-from blacksheep.contents import ServerSentEvent
-from blacksheep.server.sse import ServerSentEventsResponse
+from dreaming_electric_sheep.contents import ServerSentEvent
+from dreaming_electric_sheep.server.sse import ServerSentEventsResponse
 
 
 @pytest.mark.asyncio

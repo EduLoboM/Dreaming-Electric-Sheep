@@ -1,11 +1,11 @@
 ####################################################################################
-# Runs benchmarks for BlackSheep source code at various points of the commit history,
+# Runs benchmarks for Dreaming Electric Sheep source code at various points of the commit history,
 # on Ubuntu and Windows for a single version of Python.
 #
 # This workflow supports both manual and automatic triggers.
 # If triggered manually, it is possible to select commits hashes or tags to checkout.
 #
-# The minimum supported BlackSheep version by the benchmarks is v2.0.1!
+# The minimum supported Dreaming Electric Sheep version by the benchmarks is v2.0.1!
 ####################################################################################
 name: HistoryBenchmark
 

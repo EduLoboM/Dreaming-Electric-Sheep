@@ -1,14 +1,14 @@
 import pytest
 
-from blacksheep import Request, Response
-from blacksheep.contents import TextContent
-from blacksheep.server.remotes.scheme import (
+from dreaming_electric_sheep import Request, Response
+from dreaming_electric_sheep.contents import TextContent
+from dreaming_electric_sheep.server.remotes.scheme import (
     HTTPSchemeMiddleware,
     configure_scheme_middleware,
 )
-from blacksheep.server.security.hsts import HSTSMiddleware
-from blacksheep.testing.helpers import get_example_scope
-from blacksheep.testing.messages import MockReceive, MockSend
+from dreaming_electric_sheep.server.security.hsts import HSTSMiddleware
+from dreaming_electric_sheep.testing.helpers import get_example_scope
+from dreaming_electric_sheep.testing.messages import MockReceive, MockSend
 from tests.utils.application import FakeApplication
 
 

@@ -1,0 +1,9 @@
+from typing import AsyncIterable, Callable
+
+from dreaming_electric_sheep.contents import Content, ServerSentEvent
+from dreaming_electric_sheep.cookies import Cookie
+from dreaming_electric_sheep.messages import Request, Response
+
+def write_chunks(content: Content) -> AsyncIterable[bytes]: ...
+async def send_asgi_response(response: Response, send: Callable): ...
+def write_sse(event: ServerSentEvent) -> bytes: ...

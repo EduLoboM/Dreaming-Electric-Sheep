@@ -1,9 +1,10 @@
 include LICENSE
 include README.md
-include blacksheep/server/res/*.html
-include blacksheep/server/res/*.css
+include dreaming_electric_sheep/server/res/*.html
+include dreaming_electric_sheep/server/res/*.css
 include build_info.txt
-recursive-include blacksheep *.pyx *.pxd *.pxi *.pyi *.py *.c *.h
+recursive-include dreaming_electric_sheep *.pyx *.pxd *.pxi *.pyi *.py *.c *.h
 
 # Stubs
-include blacksheep/py.typed
+include dreaming_electric_sheep/py.typed
+

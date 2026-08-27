@@ -2,15 +2,15 @@ from ipaddress import ip_address, ip_network
 
 import pytest
 
-from blacksheep.server.remotes.forwarding import (
+from dreaming_electric_sheep.server.remotes.forwarding import (
     ForwardedHeaderEntry,
     ForwardedHeadersMiddleware,
     XForwardedHeadersMiddleware,
     parse_forwarded_header,
 )
-from blacksheep.server.remotes.hosts import TrustedHostsMiddleware
-from blacksheep.testing.helpers import get_example_scope
-from blacksheep.testing.messages import MockReceive, MockSend
+from dreaming_electric_sheep.server.remotes.hosts import TrustedHostsMiddleware
+from dreaming_electric_sheep.testing.helpers import get_example_scope
+from dreaming_electric_sheep.testing.messages import MockReceive, MockSend
 from tests.utils.application import FakeApplication
 
 

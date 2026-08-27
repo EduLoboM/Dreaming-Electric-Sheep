@@ -2,14 +2,14 @@ import http
 
 import pytest
 
-from blacksheep import URL, HTMLContent, Response, TextContent
-from blacksheep.client import (
+from dreaming_electric_sheep import URL, HTMLContent, Response, TextContent
+from dreaming_electric_sheep.client import (
     CircularRedirectError,
     ClientSession,
     MaximumRedirectsExceededError,
 )
-from blacksheep.client.exceptions import MissingLocationForRedirect
-from blacksheep.client.session import RedirectsCache
+from dreaming_electric_sheep.client.exceptions import MissingLocationForRedirect
+from dreaming_electric_sheep.client.session import RedirectsCache
 
 from . import FakePools
 

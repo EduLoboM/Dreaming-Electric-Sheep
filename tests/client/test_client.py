@@ -1,11 +1,11 @@
 import pytest
 
-from blacksheep import URL, Request, Response
-from blacksheep.client import ClientSession
-from blacksheep.client.connection import ConnectionClosedError
-from blacksheep.client.exceptions import UnsupportedRedirect
-from blacksheep.client.session import normalize_headers
-from blacksheep.contents import TextContent
+from dreaming_electric_sheep import URL, Request, Response
+from dreaming_electric_sheep.client import ClientSession
+from dreaming_electric_sheep.client.connection import ConnectionClosedError
+from dreaming_electric_sheep.client.exceptions import UnsupportedRedirect
+from dreaming_electric_sheep.client.session import normalize_headers
+from dreaming_electric_sheep.contents import TextContent
 
 
 @pytest.mark.parametrize(

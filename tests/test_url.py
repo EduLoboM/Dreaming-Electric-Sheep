@@ -1,6 +1,6 @@
 import pytest
 
-from blacksheep.url import URL, InvalidURL, join_prefix
+from dreaming_electric_sheep.url import URL, InvalidURL, join_prefix
 
 
 def test_empty_url():

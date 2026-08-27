@@ -1,4 +1,4 @@
-"""These classes implement the interface used by BlackSheep HTTP client implementation, to simplify testing on the
+"""These classes implement the interface used by Dreaming Electric Sheep HTTP client implementation, to simplify testing on the
 ClientSession object; including handling of connections and requests timeouts; redirects, etc.
 """
 

@@ -8,8 +8,8 @@ from dataclasses import dataclass
 
 from openapidocs.v3 import Info
 
-from blacksheep import Application, get
-from blacksheep.server.openapi.v3 import OpenAPIHandler
+from dreaming_electric_sheep import Application, get
+from dreaming_electric_sheep.server.openapi.v3 import OpenAPIHandler
 
 # Ensure optional dependencies are not installed!
 for pkg in ("cryptography", "jwt", "PyJWT"):

@@ -1,5 +1,5 @@
-from blacksheep import Response, TextContent
-from blacksheep.client import ClientSession
+from dreaming_electric_sheep import Response, TextContent
+from dreaming_electric_sheep.client import ClientSession
 
 from . import FakePools
 

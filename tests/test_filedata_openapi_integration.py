@@ -5,9 +5,9 @@ Integration tests for FileBuffer OpenAPI documentation generation.
 import pytest
 from openapidocs.v3 import Info, ValueFormat, ValueType
 
-from blacksheep import Application, FileBuffer
-from blacksheep.server.openapi.common import DefaultSerializer
-from blacksheep.server.openapi.v3 import OpenAPIHandler
+from dreaming_electric_sheep import Application, FileBuffer
+from dreaming_electric_sheep.server.openapi.common import DefaultSerializer
+from dreaming_electric_sheep.server.openapi.v3 import OpenAPIHandler
 
 
 def get_test_app():

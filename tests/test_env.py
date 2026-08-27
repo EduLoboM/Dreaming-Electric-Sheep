@@ -3,7 +3,7 @@ from unittest.mock import patch
 
 import pytest
 
-from blacksheep.server.env import EnvironmentSettings
+from dreaming_electric_sheep.server.env import EnvironmentSettings
 
 
 def test_env_settings():

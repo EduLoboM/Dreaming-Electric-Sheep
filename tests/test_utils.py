@@ -2,7 +2,7 @@ from typing import AnyStr, Sequence
 
 import pytest
 
-from blacksheep.utils import ensure_bytes, ensure_str, join_fragments
+from dreaming_electric_sheep.utils import ensure_bytes, ensure_str, join_fragments
 
 
 @pytest.mark.parametrize(

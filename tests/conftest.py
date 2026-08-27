@@ -3,8 +3,8 @@ import os
 
 import pytest
 
-from blacksheep.server.rendering.jinja2 import JinjaRenderer
-from blacksheep.settings.html import html_settings
+from dreaming_electric_sheep.server.rendering.jinja2 import JinjaRenderer
+from dreaming_electric_sheep.settings.html import html_settings
 from tests.utils.application import FakeApplication
 
 # configures default Jinja settings for tests

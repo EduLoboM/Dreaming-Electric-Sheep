@@ -11,7 +11,7 @@ Benchmarks measure execution time and memory utilization.
 > Download the results from the GitHub Workflow.
 > The `benchmark-reports` artifacts include Excel files with tables and charts.
 >
->  [![Build](https://github.com/Neoteroi/BlackSheep/workflows/Benchmark/badge.svg)](https://github.com/Neoteroi/BlackSheep/actions/workflows/perf.yml)
+>  [![Build](https://github.com/EduLoboM/Dreaming-Electric-Sheep/workflows/Benchmark/badge.svg)](https://github.com/EduLoboM/Dreaming-Electric-Sheep/actions/workflows/perf.yml)
 
 The code can both collect information and compare it depending on the Git
 commit SHA.

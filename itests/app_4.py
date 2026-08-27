@@ -7,15 +7,15 @@ from datetime import datetime
 import uvicorn
 from openapidocs.v3 import Info
 
-from blacksheep import JSONContent, Response
-from blacksheep.server import Application
-from blacksheep.server.bindings import FromJSON
-from blacksheep.server.compression import use_gzip_compression
-from blacksheep.server.openapi.ui import ReDocUIProvider, UIFilesOptions
-from blacksheep.server.openapi.v3 import OpenAPIHandler
-from blacksheep.server.responses import json
-from blacksheep.server.websocket import WebSocket
-from blacksheep.settings.json import default_json_dumps, json_settings
+from dreaming_electric_sheep import JSONContent, Response
+from dreaming_electric_sheep.server import Application
+from dreaming_electric_sheep.server.bindings import FromJSON
+from dreaming_electric_sheep.server.compression import use_gzip_compression
+from dreaming_electric_sheep.server.openapi.ui import ReDocUIProvider, UIFilesOptions
+from dreaming_electric_sheep.server.openapi.v3 import OpenAPIHandler
+from dreaming_electric_sheep.server.responses import json
+from dreaming_electric_sheep.server.websocket import WebSocket
+from dreaming_electric_sheep.settings.json import default_json_dumps, json_settings
 from itests.utils import get_test_files_url
 
 SINGLE_PID = None

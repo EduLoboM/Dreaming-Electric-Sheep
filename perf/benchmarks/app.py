@@ -5,12 +5,12 @@ Benchmarks testing end-2-end handling of HTTP requests, mocking ASGI scopes.
 from functools import partial
 from pathlib import Path
 
-from blacksheep import Application, Response, Router
-from blacksheep.contents import TextContent
-from blacksheep.server.controllers import Controller
-from blacksheep.server.responses import text
-from blacksheep.testing.helpers import get_example_scope
-from blacksheep.testing.messages import MockReceive, MockSend
+from dreaming_electric_sheep import Application, Response, Router
+from dreaming_electric_sheep.contents import TextContent
+from dreaming_electric_sheep.server.controllers import Controller
+from dreaming_electric_sheep.server.responses import text
+from dreaming_electric_sheep.testing.helpers import get_example_scope
+from dreaming_electric_sheep.testing.messages import MockReceive, MockSend
 from perf.benchmarks import async_benchmark, main_run
 
 ITERATIONS = 10000
@@ -51,7 +51,7 @@ RESPONSE_HEADERS = [
     (b"X-Content-Type-Options", b"nosniff"),
     (b"X-XSS-Protection", b"1; mode=block"),
     (b"Strict-Transport-Security", b"max-age=31536000; includeSubDomains"),
-    (b"Server", b"BlackSheep/1.0"),
+    (b"Server", b"DreamingElectricSheep/1.0"),
 ]
 
 

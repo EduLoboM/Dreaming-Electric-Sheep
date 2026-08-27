@@ -15,15 +15,15 @@ from essentials.secrets import Secret
 from guardpost import Identity, Policy
 from guardpost.common import AuthenticatedRequirement
 
-from blacksheep.contents import Content
-from blacksheep.cookies import parse_cookie
-from blacksheep.exceptions import BadRequest, Unauthorized
-from blacksheep.messages import Request, Response
-from blacksheep.server.application import Application
-from blacksheep.server.asgi import incoming_request
-from blacksheep.server.authentication.cookie import CookieAuthentication
-from blacksheep.server.authentication.jwt import JWTBearerAuthentication
-from blacksheep.server.authentication.oidc import (
+from dreaming_electric_sheep.contents import Content
+from dreaming_electric_sheep.cookies import parse_cookie
+from dreaming_electric_sheep.exceptions import BadRequest, Unauthorized
+from dreaming_electric_sheep.messages import Request, Response
+from dreaming_electric_sheep.server.application import Application
+from dreaming_electric_sheep.server.asgi import incoming_request
+from dreaming_electric_sheep.server.authentication.cookie import CookieAuthentication
+from dreaming_electric_sheep.server.authentication.jwt import JWTBearerAuthentication
+from dreaming_electric_sheep.server.authentication.oidc import (
     CookiesOpenIDTokensHandler,
     CookiesTokensStore,
     IDToken,
@@ -41,11 +41,11 @@ from blacksheep.server.authentication.oidc import (
     TokensStore,
     use_openid_connect,
 )
-from blacksheep.testing.helpers import get_example_scope
-from blacksheep.testing.messages import MockReceive, MockSend
-from blacksheep.url import URL
-from blacksheep.utils.aio import FailedRequestError
-from blacksheep.utils.time import utcnow
+from dreaming_electric_sheep.testing.helpers import get_example_scope
+from dreaming_electric_sheep.testing.messages import MockReceive, MockSend
+from dreaming_electric_sheep.url import URL
+from dreaming_electric_sheep.utils.aio import FailedRequestError
+from dreaming_electric_sheep.utils.time import utcnow
 from itests import client_fixtures  # noqa
 from tests.test_auth import get_token
 from tests.test_auth_cookie import get_auth_cookie

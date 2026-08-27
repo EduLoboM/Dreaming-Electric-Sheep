@@ -1,16 +1,16 @@
 import pytest
 
-from blacksheep import Content, Request
-from blacksheep.contents import FormPart, MultiPartFormData
-from blacksheep.exceptions import BadRequestFormat
-from blacksheep.messages import get_absolute_url_to_path, get_request_absolute_url
-from blacksheep.server.asgi import (
+from dreaming_electric_sheep import Content, Request
+from dreaming_electric_sheep.contents import FormPart, MultiPartFormData
+from dreaming_electric_sheep.exceptions import BadRequestFormat
+from dreaming_electric_sheep.messages import get_absolute_url_to_path, get_request_absolute_url
+from dreaming_electric_sheep.server.asgi import (
     get_request_url,
     get_request_url_from_scope,
     incoming_request,
 )
-from blacksheep.testing.helpers import get_example_scope
-from blacksheep.url import URL
+from dreaming_electric_sheep.testing.helpers import get_example_scope
+from dreaming_electric_sheep.url import URL
 
 
 def test_request_supports_dynamic_attributes():

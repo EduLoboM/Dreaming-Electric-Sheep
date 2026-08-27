@@ -1,7 +1,7 @@
 import pytest
 
-from blacksheep import JSONContent, Request
-from blacksheep.contents import (
+from dreaming_electric_sheep import JSONContent, Request
+from dreaming_electric_sheep.contents import (
     FormPart,
     HTMLContent,
     MultiPartFormData,
@@ -10,12 +10,12 @@ from blacksheep.contents import (
     parse_www_form,
     write_www_form_urlencoded,
 )
-from blacksheep.multipart import (
+from dreaming_electric_sheep.multipart import (
     get_boundary_from_header,
     parse_content_disposition_values,
     parse_multipart,
 )
-from blacksheep.scribe import write_chunks
+from dreaming_electric_sheep.scribe import write_chunks
 
 
 async def test_chunked_encoding_with_generated_content():

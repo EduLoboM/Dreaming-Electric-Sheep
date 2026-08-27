@@ -2,17 +2,17 @@ from datetime import timedelta
 
 import pytest
 
-from blacksheep import URL, Cookie, Response, TextContent
-from blacksheep.client import ClientSession
-from blacksheep.client.cookies import (
+from dreaming_electric_sheep import URL, Cookie, Response, TextContent
+from dreaming_electric_sheep.client import ClientSession
+from dreaming_electric_sheep.client.cookies import (
     CookieJar,
     InvalidCookieDomain,
     MissingSchemeInURL,
     StoredCookie,
 )
-from blacksheep.cookies import datetime_from_cookie_format
-from blacksheep.scribe import write_response_cookie
-from blacksheep.utils.time import utcnow
+from dreaming_electric_sheep.cookies import datetime_from_cookie_format
+from dreaming_electric_sheep.scribe import write_response_cookie
+from dreaming_electric_sheep.utils.time import utcnow
 
 from . import FakePools
 

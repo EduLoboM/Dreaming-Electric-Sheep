@@ -6,12 +6,12 @@ from unittest.mock import create_autospec
 import pytest
 from essentials.folders import get_file_extension
 
-from blacksheep import Application, Request
-from blacksheep.common.files.asyncfs import FileContext, FilesHandler
-from blacksheep.exceptions import BadRequest, InvalidArgument
-from blacksheep.messages import Response
-from blacksheep.ranges import Range, RangePart
-from blacksheep.server.files import (
+from dreaming_electric_sheep import Application, Request
+from dreaming_electric_sheep.common.files.asyncfs import FileContext, FilesHandler
+from dreaming_electric_sheep.exceptions import BadRequest, InvalidArgument
+from dreaming_electric_sheep.messages import Response
+from dreaming_electric_sheep.ranges import Range, RangePart
+from dreaming_electric_sheep.server.files import (
     DefaultFileOptions,
     FileInfo,
     RangeNotSatisfiable,
@@ -20,15 +20,15 @@ from blacksheep.server.files import (
     get_range_file_getter,
     validate_source_path,
 )
-from blacksheep.server.files.dynamic import get_response_for_file
-from blacksheep.server.files.static import get_response_for_static_content
-from blacksheep.server.headers.cache import CacheControlHeaderValue
-from blacksheep.server.resources import get_resource_file_path
-from blacksheep.server.responses import text
-from blacksheep.server.routing import Router
-from blacksheep.testing.helpers import get_example_scope
-from blacksheep.testing.messages import MockReceive, MockSend
-from blacksheep.utils.aio import get_running_loop
+from dreaming_electric_sheep.server.files.dynamic import get_response_for_file
+from dreaming_electric_sheep.server.files.static import get_response_for_static_content
+from dreaming_electric_sheep.server.headers.cache import CacheControlHeaderValue
+from dreaming_electric_sheep.server.resources import get_resource_file_path
+from dreaming_electric_sheep.server.responses import text
+from dreaming_electric_sheep.server.routing import Router
+from dreaming_electric_sheep.testing.helpers import get_example_scope
+from dreaming_electric_sheep.testing.messages import MockReceive, MockSend
+from dreaming_electric_sheep.utils.aio import get_running_loop
 
 
 def get_folder_path(folder_name: str) -> str:
@@ -947,7 +947,7 @@ async def test_files_served_with_content_length_for_a2wsgi():
     obtained from os.stat() to set Content-Length instead of using chunked
     transfer encoding.
     """
-    from blacksheep.scribe import set_headers_for_response_content
+    from dreaming_electric_sheep.scribe import set_headers_for_response_content
 
     test_file = get_file_path("example.txt")
 

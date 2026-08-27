@@ -2,15 +2,15 @@ import time
 
 import pytest
 
-from blacksheep.cookies import parse_cookie
-from blacksheep.messages import Request
-from blacksheep.server.responses import text
-from blacksheep.sessions import Session
-from blacksheep.sessions.cookies import CookieSessionStore
-from blacksheep.sessions.json import JSONSerializer
-from blacksheep.sessions.memory import InMemorySessionStore
-from blacksheep.testing.helpers import get_example_scope
-from blacksheep.testing.messages import MockReceive, MockSend
+from dreaming_electric_sheep.cookies import parse_cookie
+from dreaming_electric_sheep.messages import Request
+from dreaming_electric_sheep.server.responses import text
+from dreaming_electric_sheep.sessions import Session
+from dreaming_electric_sheep.sessions.cookies import CookieSessionStore
+from dreaming_electric_sheep.sessions.json import JSONSerializer
+from dreaming_electric_sheep.sessions.memory import InMemorySessionStore
+from dreaming_electric_sheep.testing.helpers import get_example_scope
+from dreaming_electric_sheep.testing.messages import MockReceive, MockSend
 
 
 def test_friendly_exception_for_request_without_session():

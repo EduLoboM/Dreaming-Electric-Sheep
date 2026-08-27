@@ -1,5 +1,5 @@
 ####################################################################################
-# Runs benchmarks for BlackSheep source code for various versions of Python
+# Runs benchmarks for Dreaming Electric Sheep source code for various versions of Python
 # and Operating System and publishes the results.
 # See the perf folder for more information.
 ####################################################################################
@@ -39,14 +39,14 @@ jobs:
 
       - name: Compile Cython extensions
         run: |
-          cython blacksheep/url.pyx
-          cython blacksheep/exceptions.pyx
-          cython blacksheep/headers.pyx
-          cython blacksheep/cookies.pyx
-          cython blacksheep/contents.pyx
-          cython blacksheep/messages.pyx
-          cython blacksheep/scribe.pyx
-          cython blacksheep/baseapp.pyx
+          cython dreaming_electric_sheep/url.pyx
+          cython dreaming_electric_sheep/exceptions.pyx
+          cython dreaming_electric_sheep/headers.pyx
+          cython dreaming_electric_sheep/cookies.pyx
+          cython dreaming_electric_sheep/contents.pyx
+          cython dreaming_electric_sheep/messages.pyx
+          cython dreaming_electric_sheep/scribe.pyx
+          cython dreaming_electric_sheep/baseapp.pyx
           python setup.py build_ext --inplace
 
       - name: Install dependencies for benchmark

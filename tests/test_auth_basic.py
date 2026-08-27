@@ -4,13 +4,13 @@ import pytest
 from essentials.secrets import Secret
 from guardpost import Identity
 
-from blacksheep.server.authentication.basic import (
+from dreaming_electric_sheep.server.authentication.basic import (
     BasicAuthentication,
     BasicCredentials,
     BasicCredentialsProvider,
 )
-from blacksheep.testing.helpers import get_example_scope
-from blacksheep.testing.messages import MockReceive, MockSend
+from dreaming_electric_sheep.testing.helpers import get_example_scope
+from dreaming_electric_sheep.testing.messages import MockReceive, MockSend
 from tests.utils.application import FakeApplication
 
 

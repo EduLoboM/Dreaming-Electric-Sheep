@@ -3,10 +3,10 @@ from typing import Any
 from essentials.secrets import Secret
 from guardpost import Identity
 
-from blacksheep.messages import Request, Response
-from blacksheep.server.authentication.cookie import CookieAuthentication
-from blacksheep.server.dataprotection import generate_secret
-from blacksheep.utils.time import utcnow
+from dreaming_electric_sheep.messages import Request, Response
+from dreaming_electric_sheep.server.authentication.cookie import CookieAuthentication
+from dreaming_electric_sheep.server.dataprotection import generate_secret
+from dreaming_electric_sheep.utils.time import utcnow
 
 
 def get_auth_cookie(handler: CookieAuthentication, data: Any) -> str:

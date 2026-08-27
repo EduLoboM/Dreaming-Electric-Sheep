@@ -5,7 +5,7 @@ import pytest
 from essentials.secrets import Secret
 from itsdangerous import BadSignature
 
-from blacksheep.server.dataprotection import generate_secret, get_keys, get_serializer
+from dreaming_electric_sheep.server.dataprotection import generate_secret, get_keys, get_serializer
 
 
 def get_secrets() -> list[Secret]:

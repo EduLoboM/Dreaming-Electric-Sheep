@@ -2,16 +2,16 @@ import re
 
 import pytest
 
-from blacksheep.contents import write_www_form_urlencoded
-from blacksheep.messages import Response
-from blacksheep.server.controllers import Controller
-from blacksheep.server.csrf import ignore_anti_forgery, use_anti_forgery
-from blacksheep.server.rendering.jinja2 import AntiForgeryBaseExtension, JinjaRenderer
-from blacksheep.server.responses import no_content, view, view_async
-from blacksheep.server.routing import RoutesRegistry
-from blacksheep.settings.html import html_settings
-from blacksheep.testing.helpers import get_example_scope
-from blacksheep.testing.messages import MockReceive, MockSend
+from dreaming_electric_sheep.contents import write_www_form_urlencoded
+from dreaming_electric_sheep.messages import Response
+from dreaming_electric_sheep.server.controllers import Controller
+from dreaming_electric_sheep.server.csrf import ignore_anti_forgery, use_anti_forgery
+from dreaming_electric_sheep.server.rendering.jinja2 import AntiForgeryBaseExtension, JinjaRenderer
+from dreaming_electric_sheep.server.responses import no_content, view, view_async
+from dreaming_electric_sheep.server.routing import RoutesRegistry
+from dreaming_electric_sheep.settings.html import html_settings
+from dreaming_electric_sheep.testing.helpers import get_example_scope
+from dreaming_electric_sheep.testing.messages import MockReceive, MockSend
 from tests.utils.application import FakeApplication
 
 
@@ -144,7 +144,7 @@ async def test_anti_forgery_missing_request_context(home_model):
     text = await app.response.text()
     assert text is not None
     assert (
-        "blacksheep.server.csrf.MissingRequestContextError: The request context is "
+        "dreaming_electric_sheep.server.csrf.MissingRequestContextError: The request context is "
         "missing from the render call. Pass the request object to the context of the "
         "template."
     ) in text
