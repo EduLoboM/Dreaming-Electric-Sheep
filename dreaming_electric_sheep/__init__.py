@@ -22,6 +22,7 @@ from .cookies import datetime_from_cookie_format as datetime_from_cookie_format
 from .cookies import datetime_to_cookie_format as datetime_to_cookie_format
 from .cookies import parse_cookie as parse_cookie
 from .exceptions import HTTPException as HTTPException
+from .exceptions import UnprocessableEntity as UnprocessableEntity
 from .headers import Header as Header
 from .headers import Headers as Headers
 from .messages import Message as Message
@@ -86,5 +87,6 @@ from .server.websocket import WebSocket as WebSocket
 from .server.websocket import WebSocketDisconnectError as WebSocketDisconnectError
 from .server.websocket import WebSocketError as WebSocketError
 from .server.websocket import WebSocketState as WebSocketState
+from .structures import Struct as Struct
 from .url import URL as URL
 from .url import InvalidURL as InvalidURL

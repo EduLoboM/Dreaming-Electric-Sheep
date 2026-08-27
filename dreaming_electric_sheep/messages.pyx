@@ -5,12 +5,13 @@ from datetime import datetime, timedelta
 from json.decoder import JSONDecodeError
 from urllib.parse import parse_qs, quote, unquote, urlencode
 
+import msgspec
 from guardpost import Identity
 
-from blacksheep.sessions import Session
-from blacksheep.settings.encodings import encodings_settings
-from blacksheep.settings.json import json_settings
-from blacksheep.utils.time import utcnow
+from dreaming_electric_sheep.sessions import Session
+from dreaming_electric_sheep.settings.encodings import encodings_settings
+from dreaming_electric_sheep.settings.json import json_settings
+from dreaming_electric_sheep.utils.time import utcnow
 
 from .contents cimport (
     ASGIContent,
@@ -226,6 +227,40 @@ cdef class Message:
             return await self.content.read()
         return None
 
+    async def read_raw(self):
+        """
+        Reads and returns the raw binary body without string conversion,
+        implementing Python's buffer protocol (Py_buffer compatible: bytes/bytearray).
+        """
+        if self.content:
+            return await self.content.read()
+        return b''
+
+    async def read_detached(self):
+        """
+        Reads and returns an independent copy (bytes) of the body buffer,
+        guaranteeing safe usage across background tasks (e.g. asyncio.create_task)
+        without risk of use-after-free or socket buffer recycling.
+        """
+        raw = await self.read_raw()
+        if raw is None:
+            return b""
+        return bytes(raw)
+
+    def detach_raw(self):
+        """
+        Synchronously returns an independent copy (bytes) of already-read body buffer,
+        guaranteeing safe usage across background tasks without holding socket buffer pointers.
+        """
+        if self.content:
+            data = getattr(self.content, "_data", None)
+            if data is not None:
+                return bytes(data)
+            body = getattr(self.content, "body", None)
+            if body is not None:
+                return bytes(body)
+        return b""
+
     async def stream(self):
         if self.content:
             async for chunk in self.content.stream():
@@ -365,7 +400,7 @@ cdef class Message:
 
         # Extract boundary from Content-Type header
         # e.g., "multipart/form-data; boundary=----WebKitFormBoundary..."
-        from blacksheep.multipart import get_boundary_from_header, parse_multipart_async
+        from dreaming_electric_sheep.multipart import get_boundary_from_header, parse_multipart_async
         try:
             boundary = get_boundary_from_header(content_type_value)
         except (ValueError, IndexError):
@@ -401,30 +436,46 @@ cdef class Message:
             return [part for part in data if part.file_name and part.name == name]
         return [part for part in data if part.file_name]
 
-    async def json(self, loads=json_settings.loads):
+    async def json(self, loads=None):
         if not self.declares_json():
             return None
 
-        text = await self.text()
-
-        if text is None or text == "":
+        raw = await self.read_raw()
+        if raw is None or len(raw) == 0:
             return None
 
-        try:
-            return loads(text)
-        except JSONDecodeError as decode_error:
-            content_type = self.content_type()
-            if content_type and b'json' in content_type:
-                # NB: content type could also be "application/problem+json";
-                # so we don't check for application/json in this case
+        if loads is None and json_settings.has_custom_loads:
+            loads = json_settings.loads
+
+        if loads is None:
+            try:
+                return msgspec.json.decode(raw)
+            except msgspec.DecodeError as decode_error:
+                content_type = self.content_type()
+                if content_type and b'json' in content_type:
+                    raise BadRequestFormat(
+                        f'Declared Content-Type is {content_type.decode()} but '
+                        f'the content cannot be parsed as JSON.', decode_error
+                    )
                 raise BadRequestFormat(
-                    f'Declared Content-Type is {content_type.decode()} but '
-                    f'the content cannot be parsed as JSON.', decode_error
+                    f'Cannot parse content as JSON',
+                    decode_error
                 )
-            raise BadRequestFormat(
-                f'Cannot parse content as JSON',
-                decode_error
-            )
+        else:
+            try:
+                text = raw.decode(self.charset) if isinstance(raw, (bytes, bytearray, memoryview)) else raw
+                return loads(text)
+            except (JSONDecodeError, UnicodeDecodeError, ValueError) as decode_error:
+                content_type = self.content_type()
+                if content_type and b'json' in content_type:
+                    raise BadRequestFormat(
+                        f'Declared Content-Type is {content_type.decode()} but '
+                        f'the content cannot be parsed as JSON.', decode_error
+                    )
+                raise BadRequestFormat(
+                    f'Cannot parse content as JSON',
+                    decode_error
+                )
 
     cpdef bint has_body(self):
         cdef Content content = self.content

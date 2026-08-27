@@ -1,4 +1,5 @@
 import asyncio
+import gc
 import logging
 from contextlib import asynccontextmanager
 from functools import wraps
@@ -19,50 +20,50 @@ from guardpost.common import AuthenticatedRequirement
 from itsdangerous import Serializer
 from rodi import ContainerProtocol
 
-from blacksheep.baseapp import BaseApplication, handle_not_found
-from blacksheep.common import extend
-from blacksheep.common.files.asyncfs import FilesHandler
-from blacksheep.contents import ASGIContent
-from blacksheep.exceptions import NotFound
-from blacksheep.messages import Request, Response
-from blacksheep.middlewares import (
+from dreaming_electric_sheep.baseapp import BaseApplication, handle_not_found
+from dreaming_electric_sheep.common import extend
+from dreaming_electric_sheep.common.files.asyncfs import FilesHandler
+from dreaming_electric_sheep.contents import ASGIContent
+from dreaming_electric_sheep.exceptions import NotFound
+from dreaming_electric_sheep.messages import Request, Response
+from dreaming_electric_sheep.middlewares import (
     MiddlewareCategory,
     MiddlewareList,
     get_middlewares_chain,
 )
-from blacksheep.scribe import send_asgi_response
-from blacksheep.server.asgi import get_request_url_from_scope
-from blacksheep.server.authentication import (
+from dreaming_electric_sheep.scribe import send_asgi_response
+from dreaming_electric_sheep.server.asgi import get_request_url_from_scope
+from dreaming_electric_sheep.server.authentication import (
     AuthenticateChallenge,
     get_authentication_middleware,
     handle_authentication_challenge,
     handle_rate_limited_auth,
 )
-from blacksheep.server.authorization import (
+from dreaming_electric_sheep.server.authorization import (
     AuthorizationWithoutAuthenticationError,
     get_authorization_middleware,
     handle_forbidden,
     handle_unauthorized,
 )
-from blacksheep.server.controllers import ControllersManager
-from blacksheep.server.cors import CORSPolicy, CORSStrategy, get_cors_middleware
-from blacksheep.server.env import EnvironmentSettings
-from blacksheep.server.errors import ServerErrorDetailsHandler
-from blacksheep.server.files import DefaultFileOptions
-from blacksheep.server.files.dynamic import ResponseCallback, serve_files_dynamic
-from blacksheep.server.normalization import normalize_handler, normalize_middleware
-from blacksheep.server.process import use_shutdown_handler
-from blacksheep.server.remotes.scheme import configure_scheme_middleware
-from blacksheep.server.responses import _ensure_bytes
-from blacksheep.server.routing import MountRegistry, RouteMethod, Router, RoutesRegistry
-from blacksheep.server.routing import router as default_router
-from blacksheep.server.routing import validate_default_router, validate_router
-from blacksheep.server.websocket import WebSocket, format_reason
-from blacksheep.sessions import SessionMiddleware, SessionSerializer
-from blacksheep.sessions.abc import SessionStore
-from blacksheep.settings.di import di_settings
-from blacksheep.utils import join_fragments
-from blacksheep.utils.meta import get_parent_file, import_child_modules
+from dreaming_electric_sheep.server.controllers import ControllersManager
+from dreaming_electric_sheep.server.cors import CORSPolicy, CORSStrategy, get_cors_middleware
+from dreaming_electric_sheep.server.env import EnvironmentSettings
+from dreaming_electric_sheep.server.errors import ServerErrorDetailsHandler
+from dreaming_electric_sheep.server.files import DefaultFileOptions
+from dreaming_electric_sheep.server.files.dynamic import ResponseCallback, serve_files_dynamic
+from dreaming_electric_sheep.server.normalization import normalize_handler, normalize_middleware
+from dreaming_electric_sheep.server.process import use_shutdown_handler
+from dreaming_electric_sheep.server.remotes.scheme import configure_scheme_middleware
+from dreaming_electric_sheep.server.responses import _ensure_bytes
+from dreaming_electric_sheep.server.routing import MountRegistry, RouteMethod, Router, RoutesRegistry
+from dreaming_electric_sheep.server.routing import router as default_router
+from dreaming_electric_sheep.server.routing import validate_default_router, validate_router
+from dreaming_electric_sheep.server.websocket import WebSocket, format_reason
+from dreaming_electric_sheep.sessions import SessionMiddleware, SessionSerializer
+from dreaming_electric_sheep.sessions.abc import SessionStore
+from dreaming_electric_sheep.settings.di import di_settings
+from dreaming_electric_sheep.utils import join_fragments
+from dreaming_electric_sheep.utils.meta import get_parent_file, import_child_modules
 
 
 def get_default_headers_middleware(
@@ -177,6 +178,10 @@ class Application(BaseApplication):
         services: ContainerProtocol | None = None,
         show_error_details: bool = False,
         mount: MountRegistry | None = None,
+        dec_hook: Callable[[type, Any], Any] | None = None,
+        enc_hook: Callable[[Any], Any] | None = None,
+        optimize_gc: bool = True,
+        gc_thresholds: tuple[int, int, int] = (50000, 10, 10),
     ):
         env_settings = EnvironmentSettings.from_env()
         if router is None:
@@ -190,6 +195,15 @@ class Application(BaseApplication):
 
         assert services is not None
         self._services: ContainerProtocol = services
+        self.dec_hook: Callable[[type, Any], Any] | None = dec_hook
+        self.enc_hook: Callable[[Any], Any] | None = enc_hook
+        self.optimize_gc: bool = optimize_gc
+        self.gc_thresholds: tuple[int, int, int] = gc_thresholds
+        if self.optimize_gc:
+            try:
+                gc.set_threshold(*self.gc_thresholds)
+            except Exception:
+                pass
         self._middlewares: MiddlewareList = MiddlewareList()
         self._default_headers: tuple[tuple[str, str], ...] | None = None
         self._middlewares_configured = False
@@ -287,7 +301,7 @@ class Application(BaseApplication):
         that starts with the mount path, it is handled by the mounted app (the mount
         path is stripped from the final URL path received by the child application).
 
-        If the child application is a BlackSheep application, it requires handling of
+        If the child application is a Dreaming Electric Sheep application, it requires handling of
         its lifecycle events. This can be automatic, if the environment variable
 
             APP_MOUNT_AUTO_EVENTS is missing or set to "1" or "true" (case insensitive)
@@ -370,7 +384,7 @@ class Application(BaseApplication):
             app.use_sessions(MyCustomSessionStore())
         """
         if isinstance(store, str):
-            from blacksheep.sessions.cookies import CookieSessionStore
+            from dreaming_electric_sheep.sessions.cookies import CookieSessionStore
 
             session_middleware = SessionMiddleware(
                 CookieSessionStore(
@@ -682,6 +696,11 @@ class Application(BaseApplication):
         for method, route in self.router.iter_with_methods():
             if route.handler in configured_handlers:
                 continue
+
+            if getattr(route, "dec_hook", None) is None:
+                route.dec_hook = self.dec_hook
+            if getattr(route, "enc_hook", None) is None:
+                route.enc_hook = self.enc_hook
 
             route.handler = normalize_handler(route, self.services, method)
             configured_handlers.add(route.handler)
