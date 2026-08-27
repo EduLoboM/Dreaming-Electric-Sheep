@@ -3,10 +3,10 @@ ignore = E203, E266, W503, E704, E701, F824, C901, E501
 max-line-length = 88
 max-complexity = 18
 per-file-ignores =
-    blacksheep/__init__.py:F401
-    blacksheep/client/__init__.py:F401
-    blacksheep/server/__init__.py:F401
-    blacksheep/url.py:E501
+    dreaming_electric_sheep/__init__.py:F401
+    dreaming_electric_sheep/client/__init__.py:F401
+    dreaming_electric_sheep/server/__init__.py:F401
+    dreaming_electric_sheep/url.py:E501
     tests/*:E501
     itests/*:E501
     itests/conftest.py:F401,F403
@@ -18,3 +18,4 @@ exclude =
     venv311
     build
     .eggs
+
