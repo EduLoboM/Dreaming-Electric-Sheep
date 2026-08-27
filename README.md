@@ -1,22 +1,22 @@
-[![Build](https://github.com/Neoteroi/BlackSheep/workflows/Main/badge.svg)](https://github.com/Neoteroi/BlackSheep/actions)
-[![pypi](https://img.shields.io/pypi/v/BlackSheep.svg?color=blue)](https://pypi.org/project/BlackSheep/)
-[![versions](https://img.shields.io/pypi/pyversions/blacksheep.svg)](https://github.com/robertoprevato/blacksheep)
-[![license](https://img.shields.io/github/license/Neoteroi/blacksheep.svg)](https://github.com/Neoteroi/blacksheep/blob/main/LICENSE) [![Join the chat at https://gitter.im/Neoteroi/BlackSheep](https://badges.gitter.im/Neoteroi/BlackSheep.svg)](https://gitter.im/Neoteroi/BlackSheep?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge) [![documentation](https://img.shields.io/badge/📖-docs-purple)](https://www.neoteroi.dev/blacksheep/)
+[![Build](https://github.com/EduLoboM/Dreaming-Electric-Sheep/workflows/Main/badge.svg)](https://github.com/EduLoboM/Dreaming-Electric-Sheep/actions)
+[![pypi](https://img.shields.io/pypi/v/dreaming-electric-sheep.svg?color=blue)](https://pypi.org/project/dreaming-electric-sheep/)
+[![versions](https://img.shields.io/pypi/pyversions/dreaming-electric-sheep.svg)](https://github.com/EduLoboM/Dreaming-Electric-Sheep)
+[![license](https://img.shields.io/github/license/EduLoboM/Dreaming-Electric-Sheep.svg)](https://github.com/EduLoboM/Dreaming-Electric-Sheep/blob/main/LICENSE)
 
-# BlackSheep
+# Dreaming Electric Sheep
 
-BlackSheep is an asynchronous web framework to build event based web
-applications with Python. It is inspired by
+**Dreaming Electric Sheep** is an ultra high-performance asynchronous web framework to build event-based web
+applications with Python, developed as an optimized fork of [BlackSheep](https://github.com/Neoteroi/BlackSheep). It is inspired by
 [Flask](https://palletsprojects.com/p/flask/), [ASP.NET
 Core](https://docs.microsoft.com/en-us/aspnet/core/), and the work by [Yury
 Selivanov](https://magic.io/blog/uvloop-blazing-fast-python-networking/).
 
-<p align="left">
-  <a href="#blacksheep"><img width="320" height="271" src="https://www.neoteroi.dev/blacksheep/img/blacksheep.png" alt="Black Sheep"></a>
+<p align="center">
+  <a href="#dreaming-electric-sheep"><img width="180" src="https://limbuscompany.wiki.gg/images/thumb/Dreaming_Electric_Sheep_Gift.png/100px-Dreaming_Electric_Sheep_Gift.png?128db1" alt="Dreaming Electric Sheep"></a>
 </p>
 
 ```bash
-pip install blacksheep
+pip install dreaming-electric-sheep
 ```
 
 ---
@@ -24,7 +24,7 @@ pip install blacksheep
 ```python
 from datetime import datetime, timezone
 
-from blacksheep import Application, get
+from dreaming_electric_sheep import Application, get
 
 
 app = Application()
@@ -35,65 +35,21 @@ async def home():
 
 ```
 
-## Getting started using the CLI ✨
-
-BlackSheep offers a CLI to bootstrap new projects rapidly.
-To try it, first install the `blacksheep-cli` package:
-
-```bash
-pip install blacksheep-cli
-```
-
-Then use the `blacksheep create` command to bootstrap a project
-using one of the supported templates.
-
-![blacksheep create command](https://gist.githubusercontent.com/RobertoPrevato/38a0598b515a2f7257c614938843b99b/raw/67d15ba337de94c2f50d980a7b8924a747259254/blacksheep-create-demo.gif)
-
-The CLI includes a help, and supports custom templates, using the
-same sources supported by `Cookiecutter`.
-
 ## Dependencies
 
-Before version `2.3.1`, BlackSheep only supported running with `CPython` and
-always depended on `httptools`. Starting with version `2.3.1`, the framework
-supports running on [`PyPy`](https://pypy.org/) and makes `httptools` an
-optional dependency.
+Dreaming Electric Sheep supports running with `CPython` and [`PyPy`](https://pypy.org/), and makes `httptools` an optional dependency.
 
-Since version `2.5.0`, the BlackSheep HTTP Client includes HTTP/2 support and
-requires `h11` and `h2` libraries.
+The Dreaming Electric Sheep HTTP Client includes HTTP/2 support and requires `h11` and `h2` libraries.
 
 For slightly better performance in `URL` parsing when running on `CPython`,
 it is recommended to install `httptools` (optional).
 
-> [!TIP]
->
-> The best performance can be achieved using `PyPy` runtime, and
-> [`Socketify`](https://docs.socketify.dev/cli.html) or [`Granian`](https://github.com/emmett-framework/granian), (see
-> [#539](https://github.com/Neoteroi/BlackSheep/issues/539) for more information).
-
-## Getting started with the documentation
-
-The documentation offers getting started tutorials:
-* [Getting started:
-  basics](https://www.neoteroi.dev/blacksheep/getting-started/)
-* [Getting started: the MVC project
-  template](https://www.neoteroi.dev/blacksheep/mvc-project-template/)
-
-These project templates can be used to start new applications faster:
-
-* [MVC project
-  template](https://github.com/Neoteroi/BlackSheepMVC)
-* [Empty project
-  template](https://github.com/Neoteroi/BlackSheepEmptyProject)
-
 ## Requirements
 
 [Python](https://www.python.org): any version listed in the project's
-classifiers. The current list is:
+classifiers.
 
-[![versions](https://img.shields.io/pypi/pyversions/blacksheep.svg)](https://github.com/robertoprevato/blacksheep)
-
-BlackSheep belongs to the category of
+Dreaming Electric Sheep belongs to the category of
 [ASGI](https://asgi.readthedocs.io/en/latest/) web frameworks, so it requires
 an ASGI HTTP server to run, such as [uvicorn](https://www.uvicorn.org/),
 [hypercorn](https://pgjones.gitlab.io/hypercorn/) or
@@ -101,14 +57,14 @@ an ASGI HTTP server to run, such as [uvicorn](https://www.uvicorn.org/),
 For example, to use it with uvicorn:
 
 ```bash
-$ pip install uvicorn
+pip install uvicorn
 ```
 
 To run an application like in the example above, use the methods provided by
 the ASGI HTTP Server:
 
 ```bash
-# if the BlackSheep app is defined in a file `server.py`
+# if the Dreaming Electric Sheep app is defined in a file `server.py`
 
 $ uvicorn server:app
 ```
@@ -118,14 +74,13 @@ To run for production, refer to the documentation of the chosen ASGI server
 
 ## Automatic bindings and dependency injection
 
-BlackSheep supports automatic binding of values for request handlers, by type
-annotation or by conventions. See [more
-here](https://www.neoteroi.dev/blacksheep/requests/).
+Dreaming Electric Sheep supports automatic binding of values for request handlers, by type
+annotation or by conventions.
 
 ```python
 from dataclasses import dataclass
 
-from blacksheep import Application, FromJSON, FromQuery, get, post
+from dreaming_electric_sheep import Application, FromJSON, FromQuery, get, post
 
 
 app = Application()
@@ -176,22 +131,11 @@ def get_products2(
 
 ```
 
-It also supports [dependency
-injection](https://www.neoteroi.dev/blacksheep/dependency-injection/), a
-feature that provides a consistent and clean way to use dependencies in request
-handlers.
-
-## Generation of OpenAPI Documentation
-
-[Generation of OpenAPI Documentation](https://www.neoteroi.dev/blacksheep/openapi/).
+It also supports dependency injection, a feature that provides a consistent and clean way to use dependencies in request handlers.
 
 ## Strategies to handle authentication and authorization
 
-BlackSheep implements strategies to handle authentication and authorization.
-These features are documented here:
-
-* [Authentication](https://www.neoteroi.dev/blacksheep/authentication/)
-* [Authorization](https://www.neoteroi.dev/blacksheep/authorization/)
+Dreaming Electric Sheep implements strategies to handle authentication and authorization:
 
 ```python
 app.use_authentication()\
@@ -214,79 +158,61 @@ async def only_for_authenticated_users():
     ...
 ```
 
-BlackSheep provides:
+Dreaming Electric Sheep provides:
 
-* [Built-in support for **OpenID Connect** authentication](https://www.neoteroi.dev/blacksheep/authentication/#oidc)
-* [Built-in support for **JWT Bearer** authentication](https://www.neoteroi.dev/blacksheep/authentication/#jwt-bearer)
+* Built-in support for **OpenID Connect** authentication
+* Built-in support for **JWT Bearer** authentication
 
 Meaning that it is easy to integrate with services such as:
+
 * [Auth0](https://auth0.com)
 * [Microsoft Entra ID](https://www.microsoft.com/en-us/security/business/identity-access/microsoft-entra-id)
 * [Azure Active Directory B2C](https://docs.microsoft.com/en-us/azure/active-directory-b2c/overview)
 * [Okta](https://www.okta.com)
 
-Since version `2.4.2`, it also offers built-in support for **Basic authentication**,
+It also offers built-in support for **Basic authentication**,
 **API Key authentication**, **JWT Bearer authentication using symmetric encryption**,
 and automatic generation of OpenAPI Documentation for security schemes when using
 built-in classes for authentication. It supports defining custom authentication handlers
 and custom mappers for OpenAPI Documentation.
 
-Refer to the documentation and to [BlackSheep-Examples](https://github.com/Neoteroi/BlackSheep-Examples)
-for more details and examples.
-
 ## Web framework features
 
-* [ASGI compatibility](https://www.neoteroi.dev/blacksheep/asgi/)
-* [Routing](https://www.neoteroi.dev/blacksheep/routing/)
-* Request handlers can be [defined as
-  functions](https://www.neoteroi.dev/blacksheep/request-handlers/), or [class
-  methods](https://www.neoteroi.dev/blacksheep/controllers/)
-* [Middlewares](https://www.neoteroi.dev/blacksheep/middlewares/)
-* [WebSocket](https://www.neoteroi.dev/blacksheep/websocket/)
-* [Server-Sent Events (SSE)](https://www.neoteroi.dev/blacksheep/server-sent-events/)
-* [Built-in support for dependency
-  injection](https://www.neoteroi.dev/blacksheep/dependency-injection/)
-* [Support for automatic binding of route and query parameters to request
-  handlers methods
-  calls](https://www.neoteroi.dev/blacksheep/getting-started/#handling-route-parameters)
-* [Strategy to handle
-  exceptions](https://www.neoteroi.dev/blacksheep/application/#configuring-exceptions-handlers)
-* [Strategy to handle authentication and
-  authorization](https://www.neoteroi.dev/blacksheep/authentication/)
-* [Built-in support for OpenID Connect authentication using OIDC
-  discovery](https://www.neoteroi.dev/blacksheep/authentication/#oidc)
-* [Built-in support for JWT Bearer authentication using OIDC discovery and
-  other sources of
-  JWKS](https://www.neoteroi.dev/blacksheep/authentication/#jwt-bearer)
-* [Handlers
-  normalization](https://www.neoteroi.dev/blacksheep/request-handlers/)
-* [Serving static
-  files](https://www.neoteroi.dev/blacksheep/static-files/)
-* [Integration with
-  Jinja2](https://www.neoteroi.dev/blacksheep/templating/)
-* [Support for serving SPAs that use HTML5 History API for client side
-  routing](https://www.neoteroi.dev/blacksheep/static-files/#how-to-serve-spas-that-use-html5-history-api)
-* [Support for automatic generation of OpenAPI
-  Documentation](https://www.neoteroi.dev/blacksheep/openapi/)
-* [Strategy to handle CORS settings](https://www.neoteroi.dev/blacksheep/cors/)
-* [Sessions](https://www.neoteroi.dev/blacksheep/sessions/)
-* Support for automatic binding of `dataclasses` and
-  [`Pydantic`](https://pydantic-docs.helpmanual.io) models to handle the
-  request body payload expected by request handlers
-* [`TestClient` class to simplify testing of applications](https://www.neoteroi.dev/blacksheep/testing/)
-* [Anti Forgery validation](https://www.neoteroi.dev/blacksheep/anti-request-forgery) to protect against Cross-Site Request Forgery (XSRF/CSRF) attacks
+* ASGI compatibility
+* Routing
+* Request handlers can be defined as functions or class methods
+* Middlewares
+* WebSocket
+* Server-Sent Events (SSE)
+* Built-in support for dependency injection
+* Support for automatic binding of route and query parameters to request handler method calls
+* Strategy to handle exceptions
+* Strategy to handle authentication and authorization
+* Built-in support for OpenID Connect authentication using OIDC discovery
+* Built-in support for JWT Bearer authentication using OIDC discovery and other sources of JWKS
+* Handlers normalization
+* Serving static files
+* Integration with Jinja2
+* Support for serving SPAs that use HTML5 History API for client side routing
+* Support for automatic generation of OpenAPI Documentation
+* Strategy to handle CORS settings
+* Sessions
+* Support for automatic binding of `dataclasses` and [`Pydantic`](https://pydantic-docs.helpmanual.io) models to handle the request body payload expected by request handlers
+* `TestClient` class to simplify testing of applications
+* Anti Forgery validation to protect against Cross-Site Request Forgery (XSRF/CSRF) attacks
 
 ## Client features
 
-BlackSheep includes an HTTP Client with native HTTP/2 support (since version `2.5.0`).
+Dreaming Electric Sheep includes an HTTP Client with native HTTP/2 support.
 The client automatically detects and uses HTTP/2 when the server supports it, with
 seamless fallback to HTTP/1.1.
 
 **Example:**
+
 ```python
 import asyncio
 
-from blacksheep.client import ClientSession
+from dreaming_electric_sheep.client import ClientSession
 
 
 async def client_example():
@@ -301,11 +227,9 @@ asyncio.run(client_example())
 
 > [!IMPORTANT]
 >
-> Starting from version `2.3.1`, BlackSheep supports [PyPy](https://pypy.org/)
-> (`PyPy 3.11`). The HTTP client requires `h11` and `h2` libraries. Version `2.5.0`
-> added native HTTP/2 support via the `h2` library. The `httptools` library is
+> Dreaming Electric Sheep supports [PyPy](https://pypy.org/) (`PyPy 3.11`). The HTTP client requires `h11` and `h2` libraries. The `httptools` library is
 > optional and only provides better URL parsing performance on CPython. These
-> dependencies affect only the `blacksheep.client` namespace.
+> dependencies affect only the `dreaming_electric_sheep.client` namespace.
 
 ## Supported platforms and runtimes
 
@@ -315,11 +239,6 @@ asyncio.run(client_example())
 * Windows.
 * macOS.
 
-## Documentation
-
-Please refer to the [documentation website](https://www.neoteroi.dev/blacksheep/).
-
 ## Branches
 
-The _main_ branch contains the currently developed version, which is version 2. The _v1_ branch contains version 1 of the web framework, for bugs fixes
-and maintenance.
+The _main_ branch contains the currently developed version.
