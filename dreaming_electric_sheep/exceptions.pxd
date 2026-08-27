@@ -37,6 +37,10 @@ cdef class UnsupportedMediaType(HTTPException):
     pass
 
 
+cdef class UnprocessableEntity(HTTPException):
+    cdef public object details
+
+
 cdef class FailedRequestError(HTTPException):
     cdef public str data
 

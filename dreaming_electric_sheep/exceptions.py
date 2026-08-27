@@ -56,6 +56,12 @@ class UnsupportedMediaType(HTTPException):
         super().__init__(415, message or "Unsupported media type")
 
 
+class UnprocessableEntity(HTTPException):
+    def __init__(self, message=None, details=None):
+        super().__init__(422, message or "Unprocessable entity")
+        self.details = details
+
+
 class RangeNotSatisfiable(HTTPException):
     def __init__(self):
         super().__init__(416, "Range not satisfiable")

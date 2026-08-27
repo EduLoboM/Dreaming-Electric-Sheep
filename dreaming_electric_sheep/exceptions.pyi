@@ -33,6 +33,11 @@ class RangeNotSatisfiable(HTTPException):
     def __init__(self, message: str = "Range Not Satisfiable"):
         super().__init__(416, message)
 
+class UnprocessableEntity(HTTPException):
+    def __init__(self, message: str = "Unprocessable Entity", details: object = None):
+        super().__init__(422, message)
+        self.details = details
+
 class NotFound(HTTPException):
     def __init__(self):
         super().__init__(404)

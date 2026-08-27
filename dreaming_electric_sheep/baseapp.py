@@ -4,11 +4,18 @@ import logging
 import typing
 from collections import UserDict
 
-from blacksheep.server.errors import ServerErrorDetailsHandler
-from blacksheep.server.routing import Router
+import msgspec
+
+from dreaming_electric_sheep.server.errors import ServerErrorDetailsHandler
+from dreaming_electric_sheep.server.routing import Router
 
 from .contents import Content, TextContent
-from .exceptions import HTTPException, InternalServerError, InvalidExceptionHandler
+from .exceptions import (
+    HTTPException,
+    InternalServerError,
+    InvalidExceptionHandler,
+    UnprocessableEntity,
+)
 from .messages import Response
 from .utils import get_class_instance_hierarchy
 
@@ -57,6 +64,18 @@ async def handle_bad_request(app, request, http_exception) -> Response:
     return Response(400, content=TextContent(f"Bad Request: {str(http_exception)}"))
 
 
+async def handle_unprocessable_entity(app, request, http_exception) -> Response:
+    """Default 422 Unprocessable Entity handler with structured msgspec error details."""
+    details = getattr(http_exception, "details", None)
+    if details is not None:
+        if isinstance(details, (dict, list)):
+            body = msgspec.json.encode(details)
+        else:
+            body = msgspec.json.encode({"error": str(details), "type": "validation_error"})
+        return Response(422, content=Content(b"application/json", body))
+    return Response(422, content=TextContent(f"Unprocessable Entity: {str(http_exception)}"))
+
+
 async def _default_pydantic_validation_error_handler(app, request, error) -> Response:
     return Response(
         400, content=Content(b"application/json", error.json(indent=4).encode("utf-8"))
@@ -71,7 +90,7 @@ async def common_http_exception_handler(app, request, http_exception) -> Respons
 
 
 def get_logger() -> logging.Logger:
-    logger = logging.getLogger("blacksheep.server")
+    logger = logging.getLogger("dreaming_electric_sheep.server")
     logger.setLevel(logging.INFO)
     return logger
 
@@ -88,7 +107,12 @@ class BaseApplication:
 
     def init_exceptions_handlers(self) -> ExceptionHandlersDict:
         default_handlers = ExceptionHandlersDict(
-            {404: handle_not_found, 400: handle_bad_request}
+            {
+                404: handle_not_found,
+                400: handle_bad_request,
+                422: handle_unprocessable_entity,
+                UnprocessableEntity: handle_unprocessable_entity,
+            }
         )
         if ValidationError is not None:
             default_handlers[ValidationError] = (
