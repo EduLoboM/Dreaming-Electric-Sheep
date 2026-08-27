@@ -14,16 +14,16 @@ from typing import (
 )
 from urllib.parse import unquote
 
-from blacksheep.common import extend
-from blacksheep.common.types import (
+from dreaming_electric_sheep.common import extend
+from dreaming_electric_sheep.common.types import (
     HeadersType,
     ParamsType,
     normalize_headers,
     normalize_params,
 )
-from blacksheep.messages import Request
-from blacksheep.server.env import get_global_route_prefix
-from blacksheep.utils import ensure_bytes, ensure_str
+from dreaming_electric_sheep.messages import Request
+from dreaming_electric_sheep.server.env import get_global_route_prefix
+from dreaming_electric_sheep.utils import ensure_bytes, ensure_str
 
 
 class RouteMethod:
@@ -242,6 +242,8 @@ class Route:
         "pattern",
         "param_names",
         "_rx",
+        "dec_hook",
+        "enc_hook",
     )
 
     pattern: bytes
@@ -267,6 +269,8 @@ class Route:
         rx, param_names = self._get_regex_for_pattern(raw_pattern)
         self._rx = rx
         self.param_names = [name.decode("utf8") for name in param_names]
+        self.dec_hook = None
+        self.enc_hook = None
 
     @property
     def rx(self) -> re.Pattern:
@@ -1173,7 +1177,7 @@ def validate_router(app):
             # This is the same application! This can happen when imported dynamically
             # by uvicorn reload feature, when uvicorn is started programmatically.
             # See https://github.com/Neoteroi/BlackSheep/issues/438
-            logging.getLogger("blacksheep.server").warning(
+            logging.getLogger("dreaming_electric_sheep.server").warning(
                 "The application was reloaded, resetting its router."
             )
             app_router.reset()

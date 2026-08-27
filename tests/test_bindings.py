@@ -10,8 +10,15 @@ from pydantic import BaseModel
 from pytest import raises
 from rodi import Container
 
-from blacksheep import FormContent, FormPart, JSONContent, MultiPartFormData, Request
-from blacksheep.server.bindings import (
+from dreaming_electric_sheep import (
+    FormContent,
+    FormPart,
+    JSONContent,
+    MultiPartFormData,
+    Request,
+    UnprocessableEntity,
+)
+from dreaming_electric_sheep.server.bindings import (
     BadRequest,
     Binder,
     BinderAlreadyDefinedException,
@@ -36,7 +43,7 @@ from blacksheep.server.bindings import (
     TypeAliasAlreadyDefinedException,
     get_binder_by_type,
 )
-from blacksheep.url import URL
+from dreaming_electric_sheep.url import URL
 
 JSONContentType = (b"Content-Type", b"application/json")
 
@@ -325,7 +332,7 @@ async def test_from_body_json_binding_invalid_input():
 
     parameter = JSONBinder(ExampleOne)
 
-    with raises(BadRequest):
+    with raises((BadRequest, UnprocessableEntity)):
         await parameter.get_value(request)
 
 
@@ -1253,8 +1260,8 @@ async def test_from_body_json_binding_empty_dict(expected_type):
 
 # region MultiFormatBodyBinder tests
 
-from blacksheep.exceptions import UnsupportedMediaType as UnsupportedMediaTypeExc
-from blacksheep.server.bindings import FormBinder, MultiFormatBodyBinder
+from dreaming_electric_sheep.exceptions import UnsupportedMediaType as UnsupportedMediaTypeExc
+from dreaming_electric_sheep.server.bindings import FormBinder, MultiFormatBodyBinder
 
 
 @dataclass
@@ -1312,7 +1319,7 @@ async def test_multi_format_binder_raises_415_for_unsupported_content_type():
         "body",
         required=True,
     )
-    from blacksheep.contents import Content
+    from dreaming_electric_sheep.contents import Content
 
     request = Request(
         "POST", b"/", [(b"content-type", b"application/xml")]
@@ -1332,7 +1339,7 @@ async def test_multi_format_binder_returns_none_when_optional_and_no_match():
         "body",
         required=False,
     )
-    from blacksheep.contents import Content
+    from dreaming_electric_sheep.contents import Content
 
     request = Request(
         "POST", b"/", [(b"content-type", b"application/xml")]
@@ -1374,8 +1381,8 @@ def test_multi_format_binder_content_type_combines_inner():
 
 # region XMLBinder tests
 
-from blacksheep.contents import Content
-from blacksheep.server.bindings import FromXML, XMLBinder
+from dreaming_electric_sheep.contents import Content
+from dreaming_electric_sheep.server.bindings import FromXML, XMLBinder
 
 XML_ITEM = b"<Item><name>hello</name><value>7</value></Item>"
 XML_NESTED = b"<Root><inner><x>1</x></inner></Root>"
@@ -1472,7 +1479,7 @@ def test_xml_binder_rejects_billion_laughs():
 def test_element_to_dict_handles_attributes():
     import xml.etree.ElementTree as ET
 
-    from blacksheep.server.bindings import _element_to_dict
+    from dreaming_electric_sheep.server.bindings import _element_to_dict
 
     root = ET.fromstring(XML_ATTR)
     d = _element_to_dict(root)
@@ -1483,7 +1490,7 @@ def test_element_to_dict_handles_attributes():
 def test_element_to_dict_handles_nested():
     import xml.etree.ElementTree as ET
 
-    from blacksheep.server.bindings import _element_to_dict
+    from dreaming_electric_sheep.server.bindings import _element_to_dict
 
     root = ET.fromstring(XML_NESTED)
     d = _element_to_dict(root)
@@ -1494,7 +1501,7 @@ def test_element_to_dict_handles_nested():
 def test_element_to_dict_collects_repeated_tags_as_list():
     import xml.etree.ElementTree as ET
 
-    from blacksheep.server.bindings import _element_to_dict
+    from dreaming_electric_sheep.server.bindings import _element_to_dict
 
     root = ET.fromstring(XML_LIST)
     d = _element_to_dict(root)

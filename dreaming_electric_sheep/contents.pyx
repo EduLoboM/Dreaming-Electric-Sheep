@@ -9,11 +9,11 @@ from inspect import isasyncgenfunction
 from tempfile import SpooledTemporaryFile
 from urllib.parse import parse_qsl, quote_plus
 
-from blacksheep.settings.json import json_settings
+from dreaming_electric_sheep.settings.json import json_settings
 
 from .exceptions cimport MessageAborted
 
-logger = logging.getLogger("blacksheep.server")
+logger = logging.getLogger("dreaming_electric_sheep.server")
 
 
 def ensure_in_cwd(path: str) -> None:
@@ -123,8 +123,21 @@ cdef class ASGIContent(Content):
     async def read(self):
         if self.body is not None:
             return self.body
-        value = bytearray()
 
+        if self.receive is None:
+            return b''
+
+        message = await self.receive()
+        if message.get('type') == 'http.disconnect':
+            raise MessageAborted()
+
+        chunk = message.get('body', b'')
+        if not message.get('more_body'):
+            self.body = chunk
+            self.length = len(chunk)
+            return self.body
+
+        value = bytearray(chunk)
         while True:
             if self.receive is None:
                 break  # disposed
@@ -388,7 +401,7 @@ cdef class FormPart:
 
         if content_type is None:
             # Try obtaining mime type from the file name
-            from blacksheep.common.files.pathsutils import get_mime_type_from_name
+            from dreaming_electric_sheep.common.files.pathsutils import get_mime_type_from_name
             content_type = get_mime_type_from_name(file_path)
 
         if content_type:
@@ -694,7 +707,7 @@ cdef class MultiPartFormData(StreamedContent):
     async def _generate_multipart_chunks(self) -> AsyncIterator[bytes]:
         """Generate multipart/form-data content in chunks."""
         # Import the escape function from multipart module
-        from blacksheep.multipart import _escape_quoted_string
+        from dreaming_electric_sheep.multipart import _escape_quoted_string
 
         for part in self.parts:
             # Build headers as a single chunk

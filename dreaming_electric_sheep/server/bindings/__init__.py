@@ -10,6 +10,7 @@ See:
 
 from abc import abstractmethod
 from collections.abc import Iterable as IterableAbc
+from dataclasses import is_dataclass
 from functools import partial
 from typing import (
     Any,
@@ -23,16 +24,30 @@ from typing import (
     TypeVar,
 )
 
+from uuid import UUID
+
+import msgspec
 from guardpost import Identity
 from rodi import CannotResolveTypeException, ContainerProtocol
 
-from blacksheep.contents import FormPart
-from blacksheep.exceptions import BadRequest, UnsupportedMediaType
-from blacksheep.messages import Request
-from blacksheep.server.bindings.converters import class_converters, converters
-from blacksheep.server.routing import Router, URLResolver
-from blacksheep.server.websocket import WebSocket
-from blacksheep.url import URL
+try:
+    from pydantic import BaseModel
+except ImportError:
+    BaseModel = ()  # type: ignore
+
+from dreaming_electric_sheep.contents import FormPart
+from dreaming_electric_sheep.exceptions import (
+    BadRequest,
+    BadRequestFormat,
+    UnprocessableEntity,
+    UnsupportedMediaType,
+)
+from dreaming_electric_sheep.messages import Request
+from dreaming_electric_sheep.server.bindings.converters import class_converters, converters
+from dreaming_electric_sheep.server.routing import Router, URLResolver
+from dreaming_electric_sheep.server.websocket import WebSocket
+from dreaming_electric_sheep.settings.json import json_settings
+from dreaming_electric_sheep.url import URL
 
 T = TypeVar("T")
 TypeOrName = Type | str
@@ -206,7 +221,7 @@ class FromXML(BoundValue[T]):
     Requires ``defusedxml`` for safe parsing against common XML attacks (XXE, entity
     expansion, DTD injection). Install it with::
 
-        pip install blacksheep[xml]
+        pip install dreaming-electric-sheep[xml]
 
     The root element tag is ignored; its child elements are mapped to model fields by
     name.  All standard field-type coercions (int, float, datetime, UUID …) apply via
@@ -476,7 +491,7 @@ class BodyBinder(Binder):
         item_type = self.generic_iterable_annotation_item_type(expected_type)
 
         if isinstance(item_type, ForwardRef):  # pragma: no cover
-            from blacksheep.server.normalization import (
+            from dreaming_electric_sheep.server.normalization import (
                 UnsupportedForwardRefInSignatureError,
             )
 
@@ -552,9 +567,88 @@ class BodyBinder(Binder):
 
 
 class JSONBinder(BodyBinder):
-    """Extracts a model from JSON content"""
+    """Extracts a model from JSON content using pre-compiled msgspec decoders."""
 
     handle = FromJSON
+
+    def __init__(
+        self,
+        expected_type: Type,
+        name: str = "",
+        implicit: bool = False,
+        required: bool = False,
+        default: Any = empty,
+        converter: Callable | None = None,
+        dec_hook: Callable[[type, Any], Any] | None = None,
+    ):
+        super().__init__(expected_type, name, implicit, required, converter)
+        self.default = default
+        self.dec_hook = dec_hook
+        self.decoder = self._build_decoder(
+            expected_type, dec_hook, converter is not None and converter != self.get_default_binder_for_body(expected_type)
+        )
+
+    @property
+    def converter(self):
+        return getattr(self, "_converter", None)
+
+    @converter.setter
+    def converter(self, value):
+        self._converter = value
+        if hasattr(self, "expected_type"):
+            has_custom = value is not None and value != self.get_default_binder_for_body(self.expected_type)
+            self.decoder = self._build_decoder(self.expected_type, getattr(self, "dec_hook", None), has_custom)
+
+    def _build_decoder(
+        self,
+        expected_type: Type,
+        custom_dec_hook: Callable | None = None,
+        has_custom_converter: bool = False,
+    ):
+        if has_custom_converter:
+            target_type = Any
+        else:
+            target_type = expected_type
+            if target_type in (None, empty):
+                target_type = dict
+
+        def composite_dec_hook(tp, obj):
+            if custom_dec_hook is not None:
+                try:
+                    res = custom_dec_hook(tp, obj)
+                    if res is not None:
+                        return res
+                except Exception:
+                    pass
+
+            if isinstance(tp, type):
+                if issubclass(tp, UUID) and isinstance(obj, str):
+                    return UUID(obj)
+                try:
+                    from pydantic import BaseModel
+
+                    if issubclass(tp, BaseModel):
+                        return tp.model_validate(obj)
+                except (ImportError, TypeError):
+                    pass
+                if hasattr(tp, "convert") and callable(getattr(tp, "convert")):
+                    return tp.convert(obj)
+                if hasattr(tp, "__dataclass_fields__") or issubclass(tp, msgspec.Struct):
+                    return obj
+                try:
+                    conv = get_default_class_converter(tp)
+                    return conv(obj)
+                except (TypeError, ValueError):
+                    raise
+                except Exception:
+                    pass
+
+            return obj
+
+        try:
+            return msgspec.json.Decoder(target_type, dec_hook=composite_dec_hook)
+        except Exception:
+            return msgspec.json.Decoder(dec_hook=composite_dec_hook)
 
     @property
     def content_type(self) -> str:
@@ -564,7 +658,110 @@ class JSONBinder(BodyBinder):
         return request.declares_json()
 
     async def read_data(self, request: Request) -> Any:
-        return await request.json()
+        return await request.read_raw()
+
+    async def get_value(self, request: Request) -> T | None:
+        if request.method not in self._excluded_methods and self.matches_content_type(
+            request
+        ):
+            raw_data = await request.read_raw()
+
+            if not raw_data:
+                if not self.required or self.default is not empty:
+                    return self.default if self.default is not empty else None
+                raise MissingBodyError()
+
+            charset = request.charset or "utf8"
+            if charset.lower() not in ("utf-8", "utf8", "ascii"):
+                try:
+                    text = raw_data.decode(charset)
+                    raw_data = text.encode("utf-8")
+                except UnicodeDecodeError as decode_error:
+                    raise BadRequest(
+                        f"Unicode decode error. Cannot decode the request content using: {decode_error.encoding}. "
+                        "Ensure the request content is encoded using the encoding declared in the Content-Type request header."
+                    )
+
+            if json_settings.has_custom_loads:
+                try:
+                    text = raw_data.decode(charset)
+                    data = json_settings.loads(text)
+                    if self.converter and self.converter != self.get_default_binder_for_body(self.expected_type):
+                        return self.parse_value(data)
+                    return data
+                except (ValueError, TypeError) as err:
+                    raise BadRequestFormat(f"Cannot parse content as JSON: {err}", err)
+
+            try:
+                data = self.decoder.decode(raw_data)
+                if self.converter and self.converter != self.get_default_binder_for_body(self.expected_type):
+                    return self.parse_value(data)
+                return data
+            except UnicodeDecodeError as decode_error:
+                charset_name = (request.charset or decode_error.encoding or "utf-8").lower()
+                raise BadRequest(
+                    f"Unicode decode error. Cannot decode the request content using: {charset_name}. "
+                    "Ensure the request content is encoded using the encoding declared in the Content-Type request header."
+                )
+            except msgspec.ValidationError as validation_error:
+                err_str = str(validation_error)
+                if "codec can't decode" in err_str or "UnicodeDecodeError" in err_str:
+                    charset_name = (request.charset or "utf-8").lower()
+                    raise BadRequest(
+                        f"Unicode decode error. Cannot decode the request content using: {charset_name}. "
+                        "Ensure the request content is encoded using the encoding declared in the Content-Type request header."
+                    )
+                tp = self.expected_type
+                if tp not in (None, empty):
+                    try:
+                        raw_obj = msgspec.json.decode(raw_data)
+                        if self.converter and self.converter != self.get_default_binder_for_body(tp):
+                            return self.parse_value(raw_obj)
+                        conv = get_default_class_converter(tp)
+                        val = conv(raw_obj)
+                        return val
+                    except (MissingBodyError,):
+                        raise
+                    except Exception:
+                        pass
+                raise UnprocessableEntity(
+                    f"Validation error: {validation_error}",
+                    details=str(validation_error),
+                )
+            except msgspec.DecodeError as decode_error:
+                err_str = str(decode_error)
+                if "codec can't decode" in err_str or "UnicodeDecodeError" in err_str:
+                    charset_name = (request.charset or "utf-8").lower()
+                    raise BadRequest(
+                        f"Unicode decode error. Cannot decode the request content using: {charset_name}. "
+                        "Ensure the request content is encoded using the encoding declared in the Content-Type request header."
+                    )
+                content_type = request.content_type()
+                if content_type and b"json" in content_type:
+                    raise BadRequestFormat(
+                        f"Declared Content-Type is {content_type.decode()} but "
+                        f"the content cannot be parsed as JSON: {decode_error}",
+                        decode_error,
+                    )
+                raise BadRequestFormat(
+                    f"Cannot parse content as JSON: {decode_error}", decode_error
+                )
+            except (TypeError, ValueError) as value_error:
+                raise UnprocessableEntity(
+                    f"Validation error: {value_error}",
+                    details=str(value_error),
+                )
+
+        if self.required:
+            if self.default is not empty:
+                return None
+
+            if not request.has_body():
+                raise MissingBodyError()
+
+            raise InvalidRequestBody("Expected request content")
+
+        return None
 
 
 JsonBinder = JSONBinder
@@ -648,7 +845,7 @@ class XMLBinder(BodyBinder):
     Uses ``defusedxml`` to protect against XXE injection, entity expansion (billion
     laughs), and DTD-based attacks.  Install the extra with::
 
-        pip install blacksheep[xml]
+        pip install dreaming-electric-sheep[xml]
 
     The root element tag is ignored; its direct children are mapped to model fields by
     name.  The same type-coercion converters used by the JSON and form binders apply,
@@ -681,7 +878,7 @@ class XMLBinder(BodyBinder):
         except ImportError as exc:
             raise ImportError(
                 "defusedxml is required for safe XML parsing. "
-                "Install it with: pip install blacksheep[xml]"
+                "Install it with: pip install dreaming-electric-sheep[xml]"
             ) from exc
 
         try:
@@ -968,7 +1165,7 @@ class ControllerBinder(ServiceBinder):
     Binder used to activate an instance of Controller. This binder is applied
     automatically by the application
     object at startup, as type annotation, for handlers configured on classes
-    inheriting `blacksheep.server.Controller`.
+    inheriting `dreaming_electric_sheep.server.Controller`.
 
     If used manually, it causes several controllers to be instantiated and
     injected into request handlers.
@@ -1085,7 +1282,7 @@ class URLResolverBinder(Binder):
 
     @classmethod
     def from_alias(cls, services: ContainerProtocol) -> "URLResolverBinder":
-        from blacksheep.server import Application
+        from dreaming_electric_sheep.server import Application
 
         app: Application = services.resolve(Application)
         return cls(app.router)

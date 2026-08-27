@@ -27,10 +27,10 @@ from typing import (
 from urllib.parse import unquote
 from uuid import UUID
 
-from blacksheep.contents import FileBuffer, FormPart
-from blacksheep.exceptions import BadRequest
-from blacksheep.server.bindings.dates import parse_datetime
-from blacksheep.utils import ensure_str
+from dreaming_electric_sheep.contents import FileBuffer, FormPart
+from dreaming_electric_sheep.exceptions import BadRequest
+from dreaming_electric_sheep.server.bindings.dates import parse_datetime
+from dreaming_electric_sheep.utils import ensure_str
 
 try:
     # Supported only in Python >= 3.11
@@ -88,8 +88,10 @@ class InitTypeConverter(TypeConverter):
     def can_convert(self, expected_type) -> bool:
         return expected_type is self._handled_type
 
-    def convert(self, value, expected_type) -> Any:
-        return self._handled_type(value) if value is not None else None
+    def convert(self, value, expected_type=None) -> Any:
+        if value is None or isinstance(value, self._handled_type):
+            return value
+        return self._handled_type(value)
 
 
 class BoolConverter(TypeConverter):
@@ -196,7 +198,9 @@ class DateTimeConverter(TypeConverter):
     def can_convert(self, expected_type) -> bool:
         return expected_type is datetime
 
-    def convert(self, value, expected_type) -> Any:
+    def convert(self, value, expected_type=None) -> Any:
+        if isinstance(value, datetime):
+            return value
         return self.parser_fn(value) if value else None
 
 
@@ -208,7 +212,9 @@ class DateConverter(TypeConverter):
     def can_convert(self, expected_type) -> bool:
         return expected_type is date
 
-    def convert(self, value, expected_type) -> Any:
+    def convert(self, value, expected_type=None) -> Any:
+        if isinstance(value, date):
+            return value
         return self.parser_fn(value).date() if value else None
 
 
@@ -405,13 +411,19 @@ class ClassConverter(TypeConverter):
                 ]
             else:
                 # return data as-is (let if fail downstream if it must)
-                return data
+                try:
+                    return cls(data)
+                except Exception:
+                    return data
 
         if _dict_converter.can_convert(cls):
             return _dict_converter.convert(data, cls)
 
         if not isinstance(data, dict):
-            return data
+            try:
+                return cls(data)
+            except Exception:
+                return data
 
         # Handle dataclasses
         if _is_dataclass(cls):

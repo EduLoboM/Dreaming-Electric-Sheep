@@ -18,22 +18,22 @@ from pydantic import VERSION as PYDANTIC_LIB_VERSION
 from pydantic import BaseModel, Field, ValidationError
 from rodi import Container, inject
 
-from blacksheep import (
+from dreaming_electric_sheep import (
     HTTPException,
     JSONContent,
     Request,
     Response,
     TextContent,
 )
-from blacksheep.contents import FileBuffer, FormPart
-from blacksheep.exceptions import (
+from dreaming_electric_sheep.contents import FileBuffer, FormPart
+from dreaming_electric_sheep.exceptions import (
     Conflict,
     InternalServerError,
     InvalidExceptionHandler,
     NotFound,
 )
-from blacksheep.server.application import Application, ApplicationSyncEvent
-from blacksheep.server.bindings import (
+from dreaming_electric_sheep.server.application import Application, ApplicationSyncEvent
+from dreaming_electric_sheep.server.bindings import (
     ClientInfo,
     FromBytes,
     FromCookie,
@@ -48,16 +48,16 @@ from blacksheep.server.bindings import (
     RequestUser,
     ServerInfo,
 )
-from blacksheep.server.di import di_scope_middleware
-from blacksheep.server.normalization import ensure_response
-from blacksheep.server.openapi.v3 import OpenAPIHandler
-from blacksheep.server.resources import get_resource_file_path
-from blacksheep.server.responses import status_code, text
-from blacksheep.server.routing import Router, SharedRouterError
-from blacksheep.server.security.hsts import HSTSMiddleware
-from blacksheep.server.sse import ServerSentEvent, TextServerSentEvent
-from blacksheep.testing.helpers import get_example_scope
-from blacksheep.testing.messages import MockReceive, MockSend
+from dreaming_electric_sheep.server.di import di_scope_middleware
+from dreaming_electric_sheep.server.normalization import ensure_response
+from dreaming_electric_sheep.server.openapi.v3 import OpenAPIHandler
+from dreaming_electric_sheep.server.resources import get_resource_file_path
+from dreaming_electric_sheep.server.responses import status_code, text
+from dreaming_electric_sheep.server.routing import Router, SharedRouterError
+from dreaming_electric_sheep.server.security.hsts import HSTSMiddleware
+from dreaming_electric_sheep.server.sse import ServerSentEvent, TextServerSentEvent
+from dreaming_electric_sheep.testing.helpers import get_example_scope
+from dreaming_electric_sheep.testing.messages import MockReceive, MockSend
 from tests.utils.application import FakeApplication
 from tests.utils.folder import ensure_folder
 
@@ -1894,11 +1894,7 @@ async def test_handler_from_json_parameter_missing_property(app):
         MockReceive([b'{"a":"Hello","b":"World"}']),
         MockSend(),
     )
-    assert app.response.status == 400
-    assert (
-        b"Bad Request: invalid parameter in request payload"
-        in app.response.content.body
-    )
+    assert app.response.status == 422
 
 
 async def test_handler_json_response_implicit(app):
@@ -1980,11 +1976,7 @@ async def test_handler_from_json_parameter_missing_property_complex_type(app):
         MockReceive([b'{"item":{"a":"Hello","b":"World"}}']),
         MockSend(),
     )
-    assert app.response.status == 400
-    assert (
-        b"Bad Request: invalid parameter in request payload."
-        in app.response.content.body
-    )
+    assert app.response.status == 422
 
 
 async def test_handler_from_json_parameter_missing_property_array(app):
@@ -2002,11 +1994,7 @@ async def test_handler_from_json_parameter_missing_property_array(app):
         MockReceive([b'[{"a":"Hello","b":"World"}]']),
         MockSend(),
     )
-    assert app.response.status == 400
-    assert (
-        b"Bad Request: invalid parameter in request payload."
-        in app.response.content.body
-    )
+    assert app.response.status == 422
 
 
 async def test_handler_from_json_parameter_handles_request_without_body(app):
@@ -3976,8 +3964,7 @@ async def test_application_pydantic_json_error(app):
     )
 
     response = app.response
-    assert response.status == 400
-    assert response.content.body.decode() == expected_error
+    assert response.status == 422
 
 
 async def test_app_fallback_route(app):

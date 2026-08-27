@@ -3,7 +3,7 @@ requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "blacksheep"
+name = "dreaming-electric-sheep"
 dynamic = ["version"]
 authors = [{ name = "Roberto Prevato", email = "roberto.prevato@gmail.com" }]
 description = "Fast web framework for Python asyncio"
@@ -26,7 +26,7 @@ classifiers = [
     "Topic :: Internet :: WWW/HTTP :: HTTP Servers",
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
-keywords = ["blacksheep", "web framework", "asyncio"]
+keywords = ["dreaming-electric-sheep", "dreaming electric sheep", "web framework", "asyncio"]
 dependencies = [
     "certifi>=2025.4.26",
     "guardpost>=1.0.4",
@@ -37,15 +37,16 @@ dependencies = [
     "h11>=0.14.0,<1.0.0",
     "h2>=4.0.0,<5.0.0",
     "httptools>=0.7.1; platform_python_implementation != 'PyPy'",
+    "msgspec>=0.18.0",
     "async-timeout>=4.0.0; python_version < '3.11'",
 ]
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["blacksheep*"]
+include = ["dreaming_electric_sheep*"]
 
 [tool.setuptools.dynamic]
-version = { attr = "blacksheep.__version__" }
+version = { attr = "dreaming_electric_sheep.__version__" }
 
 [project.optional-dependencies]
 jinja = ["Jinja2~=3.1.6"]
@@ -59,11 +60,12 @@ full = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/Neoteroi/BlackSheep"
-Documentation = "https://www.neoteroi.dev/blacksheep/"
-Issues = "https://github.com/Neoteroi/BlackSheep/issues"
-Repository = "https://github.com/Neoteroi/BlackSheep"
-Changelog = "https://github.com/Neoteroi/BlackSheep/blob/main/CHANGELOG.md"
+Homepage = "https://github.com/EduLoboM/Dreaming-Electric-Sheep"
+Documentation = "https://github.com/EduLoboM/Dreaming-Electric-Sheep#readme"
+Issues = "https://github.com/EduLoboM/Dreaming-Electric-Sheep/issues"
+Repository = "https://github.com/EduLoboM/Dreaming-Electric-Sheep"
+Changelog = "https://github.com/EduLoboM/Dreaming-Electric-Sheep/blob/main/CHANGELOG.md"
 
 [tool.setuptools]
 include-package-data = true
+

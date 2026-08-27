@@ -1,5 +1,5 @@
-from blacksheep.contents import ASGIContent
-from blacksheep.messages import Request
+from dreaming_electric_sheep.contents import ASGIContent
+from dreaming_electric_sheep.messages import Request
 
 
 def get_request_url_from_scope(
@@ -15,7 +15,7 @@ def get_request_url_from_scope(
     Do not use this method for logic that must generate full request URL, since it
     doesn't handle Forward and X-Forwarded* headers - use instead:
 
-    > from blacksheep.messages import get_absolute_url_to_path, get_request_absolute_url
+    > from dreaming_electric_sheep.messages import get_absolute_url_to_path, get_request_absolute_url
     """
     try:
         path = scope["path"]
@@ -58,7 +58,7 @@ def get_request_url(request: Request) -> str:
     Do not use this method for logic that must generate full request URL, since it
     doesn't handle Forward and X-Forwarded* headers - use instead:
 
-    > from blacksheep.messages import get_absolute_url_to_path, get_request_absolute_url
+    > from dreaming_electric_sheep.messages import get_absolute_url_to_path, get_request_absolute_url
     """
     return get_request_url_from_scope(request.scope)
 
@@ -67,7 +67,7 @@ def incoming_request(scope, receive=None) -> Request:
     """
     Function used to simulate incoming requests from an ASGI scope.
     This function is intentionally not used in
-    `blacksheep.server.application.Application`.
+    `dreaming_electric_sheep.server.application.Application`.
     """
     request = Request.incoming(
         scope["method"],

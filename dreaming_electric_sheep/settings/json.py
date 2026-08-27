@@ -28,6 +28,10 @@ class JSONSettings:
         self._dumps = dumps
         self._pretty_dumps = pretty_dumps
 
+    @property
+    def has_custom_loads(self) -> bool:
+        return self._loads is not json.loads
+
     def loads(self, text: str) -> Any:
         return self._loads(text)
 

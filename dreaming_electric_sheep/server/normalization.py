@@ -20,12 +20,12 @@ from uuid import UUID
 from guardpost import Identity
 from rodi import ContainerProtocol
 
-from blacksheep.messages import Request, Response
-from blacksheep.normalization import copy_special_attributes
-from blacksheep.server import responses
-from blacksheep.server.routing import Route
-from blacksheep.server.sse import ServerSentEvent, ServerSentEventsResponse
-from blacksheep.server.websocket import WebSocket
+from dreaming_electric_sheep.messages import Request, Response
+from dreaming_electric_sheep.normalization import copy_special_attributes
+from dreaming_electric_sheep.server import responses
+from dreaming_electric_sheep.server.routing import Route
+from dreaming_electric_sheep.server.sse import ServerSentEvent, ServerSentEventsResponse
+from dreaming_electric_sheep.server.websocket import WebSocket
 
 from .bindings import (
     Binder,
@@ -111,7 +111,7 @@ def ensure_response(result) -> Response:
     """
     When a request handler returns a result that is not an instance of Response,
     this method normalizes the output of the method to be either `None`. or an instance
-    of `blacksheep.messages.Response` class.
+    of `dreaming_electric_sheep.messages.Response` class.
 
     Use this method in custom decorators for request handlers.
     """
@@ -434,7 +434,11 @@ def _get_parameter_binder(
             binder.expected_type = expected_type
             binder.parameter_name = parameter_name
         else:
-            binder = binder_type(expected_type, parameter_name, False)
+            dec_hook = getattr(route, "dec_hook", None) if route else None
+            if issubclass(binder_type, JSONBinder):
+                binder = binder_type(expected_type, parameter_name, False, dec_hook=dec_hook)
+            else:
+                binder = binder_type(expected_type, parameter_name, False)
         binder.required = not is_optional
 
         if is_root_optional:
@@ -471,7 +475,8 @@ def _get_parameter_binder(
         )
 
     # 6. from json body (last default)
-    return JSONBinder(annotation, name, True, required=not is_root_optional)
+    dec_hook = getattr(route, "dec_hook", None) if route else None
+    return JSONBinder(annotation, name, True, required=not is_root_optional, dec_hook=dec_hook)
 
 
 def get_parameter_binder(
@@ -765,7 +770,7 @@ def normalize_handler(
 ) -> Callable[[Request], Awaitable[Response]]:
     """
     Root function used to normalize a request handler. The objective of this function is
-    to improve the developer experience, so developers using BlackSheep have more
+    to improve the developer experience, so developers using Dreaming Electric Sheep have more
     options when defining request handlers.
 
     When a request handler already has the right signature, it is kept as-is (this
@@ -810,7 +815,7 @@ def normalize_handler(
         normalized = get_sync_wrapper(services, route, method, params, params_len)
 
     # Normalize output. WebSocket handlers must be excluded here because their
-    # response is not handled writing a BlackSheep Response object.
+    # response is not handled writing a Dreaming Electric Sheep Response object.
     if (
         return_type is _empty or return_type is not Response
     ) and http_method != "GET_WS":

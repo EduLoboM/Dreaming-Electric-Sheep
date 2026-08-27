@@ -7,11 +7,11 @@ from inspect import isasyncgenfunction
 from typing import IO, Any, AsyncIterable, AsyncIterator, Iterable, cast
 from urllib.parse import parse_qsl, quote_plus
 
-from blacksheep.common.files.pathsutils import get_mime_type_from_name
-from blacksheep.exceptions import MessageAborted
-from blacksheep.settings.json import json_settings
+from dreaming_electric_sheep.common.files.pathsutils import get_mime_type_from_name
+from dreaming_electric_sheep.exceptions import MessageAborted
+from dreaming_electric_sheep.settings.json import json_settings
 
-logger = logging.getLogger("blacksheep.server")
+logger = logging.getLogger("dreaming_electric_sheep.server")
 
 
 def ensure_in_cwd(path: str) -> None:
@@ -180,7 +180,21 @@ class ASGIContent(Content):
         """
         if self.body is not None:
             return self.body
-        value = bytearray()
+
+        if self.receive is None:
+            return b""
+
+        message = await self.receive()
+        if message.get("type") == "http.disconnect":
+            raise MessageAborted()
+
+        chunk = message.get("body", b"")
+        if not message.get("more_body"):
+            self.body = chunk
+            self.length = len(chunk)
+            return self.body
+
+        value = bytearray(chunk)
         while True:
             if self.receive is None:
                 break  # disposed
@@ -781,7 +795,7 @@ class MultiPartFormData(StreamedContent):
     async def _generate_multipart_chunks(self) -> AsyncIterator[bytes]:
         """Generate multipart/form-data content in chunks."""
         # Import the escape function from multipart module
-        from blacksheep.multipart import _escape_quoted_string
+        from dreaming_electric_sheep.multipart import _escape_quoted_string
 
         for part in self.parts:
             # Build headers as a single chunk
