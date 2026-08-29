@@ -272,22 +272,24 @@ def test_get_file(session_1, url_path, file_name):
     response = session_1.get(url_path, stream=True)
     ensure_success(response)
 
-    with open(file_name, "wb") as output_file:
-        for chunk in response:
-            output_file.write(chunk)
+    with temp_file(file_name) as temp:
+        with open(temp, "wb") as output_file:
+            for chunk in response:
+                output_file.write(chunk)
 
-    assert_files_equals(get_static_path(url_path), file_name)
+        assert_files_equals(get_static_path(url_path), str(temp))
 
 
 def test_get_file_response_with_path(session_1):
     response = session_1.get("/file-response-with-path", stream=True)
     ensure_success(response)
 
-    with open("nice-cat.jpg", "wb") as output_file:
-        for chunk in response:
-            output_file.write(chunk)
+    with temp_file("nice-cat.jpg") as temp:
+        with open(temp, "wb") as output_file:
+            for chunk in response:
+                output_file.write(chunk)
 
-    assert_files_equals(get_static_path("pexels-photo-923360.jpeg"), "nice-cat.jpg")
+        assert_files_equals(get_static_path("pexels-photo-923360.jpeg"), str(temp))
 
 
 def test_get_file_response_with_generator(session_1):
