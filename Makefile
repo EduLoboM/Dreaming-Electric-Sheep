@@ -10,6 +10,7 @@ cyt:
 	cython dreaming_electric_sheep/messages.pyx
 	cython dreaming_electric_sheep/scribe.pyx
 	cython dreaming_electric_sheep/baseapp.pyx
+	cython dreaming_electric_sheep/routing.pyx
 
 compile: cyt
 	python3 setup.py build_ext --inplace
@@ -18,7 +19,7 @@ compile: cyt
 clean:
 	rm -rf dist/
 	rm -rf build/
-	rm -f dreaming_electric_sheep/*.c
+	rm -f dreaming_electric_sheep/url.c dreaming_electric_sheep/exceptions.c dreaming_electric_sheep/headers.c dreaming_electric_sheep/cookies.c dreaming_electric_sheep/contents.c dreaming_electric_sheep/messages.c dreaming_electric_sheep/scribe.c dreaming_electric_sheep/baseapp.c dreaming_electric_sheep/routing.c
 	rm -f dreaming_electric_sheep/*.so
 
 
@@ -35,6 +36,7 @@ annotate:
 	cython dreaming_electric_sheep/messages.pyx -a
 	cython dreaming_electric_sheep/scribe.pyx -a
 	cython dreaming_electric_sheep/baseapp.pyx -a
+	cython dreaming_electric_sheep/routing.pyx -a
 
 
 pack:
