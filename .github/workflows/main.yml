@@ -197,8 +197,8 @@ jobs:
           # Before build commands
           CIBW_BEFORE_BUILD_WINDOWS: >
             python -m pip install setuptools wheel Cython==3.1.4 &&
-            python -c "import os, glob; [os.remove(f) for f in glob.glob('dreaming_electric_sheep/*.c') + glob.glob('dreaming_electric_sheep/*.so')]" &&
-            make compile
+            python -c "import os, glob; [os.remove(f) for f in glob.glob('dreaming_electric_sheep/*.c') + glob.glob('dreaming_electric_sheep/*.so') + glob.glob('dreaming_electric_sheep/*.pyd')]" &&
+            python -c "import subprocess, glob; [subprocess.check_call(['cython', f]) for f in sorted(glob.glob('dreaming_electric_sheep/*.pyx'))]"
 
           # Unix-based systems (Linux)
           CIBW_BEFORE_BUILD: >
