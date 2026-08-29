@@ -32,6 +32,10 @@ class JSONSettings:
     def has_custom_loads(self) -> bool:
         return self._loads is not json.loads
 
+    @property
+    def has_custom_dumps(self) -> bool:
+        return self._dumps is not default_json_dumps
+
     def loads(self, text: str) -> Any:
         return self._loads(text)
 

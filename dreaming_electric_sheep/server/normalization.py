@@ -20,12 +20,14 @@ from uuid import UUID
 from guardpost import Identity
 from rodi import ContainerProtocol
 
+from dreaming_electric_sheep.contents import Content
 from dreaming_electric_sheep.messages import Request, Response
 from dreaming_electric_sheep.normalization import copy_special_attributes
 from dreaming_electric_sheep.server import responses
 from dreaming_electric_sheep.server.routing import Route
 from dreaming_electric_sheep.server.sse import ServerSentEvent, ServerSentEventsResponse
 from dreaming_electric_sheep.server.websocket import WebSocket
+from dreaming_electric_sheep.settings.json import json_settings
 
 from .bindings import (
     Binder,
@@ -41,6 +43,8 @@ from .bindings import (
     ServiceBinder,
     empty,
     get_binder_by_type,
+    get_precompiled_decoder,
+    get_precompiled_encoder,
 )
 
 _next_handler_binder = object()
@@ -542,43 +546,123 @@ def get_binders_for_middleware(
 def _get_sync_wrapper_for_controller(
     binders: Sequence[Binder], method: Callable[..., Any]
 ) -> Callable[[Request], Awaitable[Response]]:
+    c_binder = binders[0]
+    n_binders = len(binders)
+
+    if n_binders == 1:
+        @wraps(method)
+        async def handler_0(request):
+            controller = await c_binder.get_value(request)
+            await controller.on_request(request)
+            response = method(controller)
+            await controller.on_response(response)
+            return response
+
+        return handler_0
+
+    if n_binders == 2:
+        b1 = binders[1]
+
+        @wraps(method)
+        async def handler_1(request):
+            controller = await c_binder.get_value(request)
+            await controller.on_request(request)
+            p1 = await b1.get_parameter(request)
+            response = method(controller, p1)
+            await controller.on_response(response)
+            return response
+
+        return handler_1
+
+    if n_binders == 3:
+        b1 = binders[1]
+        b2 = binders[2]
+
+        @wraps(method)
+        async def handler_2(request):
+            controller = await c_binder.get_value(request)
+            await controller.on_request(request)
+            p1 = await b1.get_parameter(request)
+            p2 = await b2.get_parameter(request)
+            response = method(controller, p1, p2)
+            await controller.on_response(response)
+            return response
+
+        return handler_2
+
     @wraps(method)
-    async def handler(request):
-        values = []
-        controller = await binders[0].get_value(request)
+    async def handler_n(request):
+        controller = await c_binder.get_value(request)
         await controller.on_request(request)
-
-        values.append(controller)
-
+        values = [controller]
         for binder in binders[1:]:
             values.append(await binder.get_parameter(request))
-
         response = method(*values)
         await controller.on_response(response)
         return response
 
-    return handler
+    return handler_n
 
 
 def _get_async_wrapper_for_controller(
     binders: Sequence[Binder], method: Callable[..., Any]
 ) -> Callable[[Request], Awaitable[Response]]:
+    c_binder = binders[0]
+    n_binders = len(binders)
+
+    if n_binders == 1:
+        @wraps(method)
+        async def handler_0(request):
+            controller = await c_binder.get_value(request)
+            await controller.on_request(request)
+            response = await method(controller)
+            await controller.on_response(response)
+            return response
+
+        return handler_0
+
+    if n_binders == 2:
+        b1 = binders[1]
+
+        @wraps(method)
+        async def handler_1(request):
+            controller = await c_binder.get_value(request)
+            await controller.on_request(request)
+            p1 = await b1.get_parameter(request)
+            response = await method(controller, p1)
+            await controller.on_response(response)
+            return response
+
+        return handler_1
+
+    if n_binders == 3:
+        b1 = binders[1]
+        b2 = binders[2]
+
+        @wraps(method)
+        async def handler_2(request):
+            controller = await c_binder.get_value(request)
+            await controller.on_request(request)
+            p1 = await b1.get_parameter(request)
+            p2 = await b2.get_parameter(request)
+            response = await method(controller, p1, p2)
+            await controller.on_response(response)
+            return response
+
+        return handler_2
+
     @wraps(method)
-    async def handler(request):
-        values = []
-        controller = await binders[0].get_value(request)
+    async def handler_n(request):
+        controller = await c_binder.get_value(request)
         await controller.on_request(request)
-
-        values.append(controller)
-
+        values = [controller]
         for binder in binders[1:]:
             values.append(await binder.get_parameter(request))
-
         response = await method(*values)
         await controller.on_response(response)
         return response
 
-    return handler
+    return handler_n
 
 
 def _get_async_wrapper_for_controller_asyncgen(
@@ -628,6 +712,25 @@ def get_sync_wrapper(
     if isinstance(binders[0], ControllerBinder):
         return _get_sync_wrapper_for_controller(binders, method)
 
+    if len(binders) == 1:
+        b0 = binders[0]
+
+        @wraps(method)
+        async def sync_handler_1(request):
+            return method(await b0.get_parameter(request))
+
+        return sync_handler_1
+
+    if len(binders) == 2:
+        b0 = binders[0]
+        b1 = binders[1]
+
+        @wraps(method)
+        async def sync_handler_2(request):
+            return method(await b0.get_parameter(request), await b1.get_parameter(request))
+
+        return sync_handler_2
+
     @wraps(method)
     async def handler(request):
         values = [await binder.get_parameter(request) for binder in binders]
@@ -669,6 +772,25 @@ def get_async_wrapper(
 
     if isinstance(binders[0], ControllerBinder):
         return _get_async_wrapper_for_controller(binders, method)
+
+    if len(binders) == 1:
+        b0 = binders[0]
+
+        @wraps(method)
+        async def async_handler_1(request):
+            return await method(await b0.get_parameter(request))
+
+        return async_handler_1
+
+    if len(binders) == 2:
+        b0 = binders[0]
+        b1 = binders[1]
+
+        @wraps(method)
+        async def async_handler_2(request):
+            return await method(await b0.get_parameter(request), await b1.get_parameter(request))
+
+        return async_handler_2
 
     @wraps(method)
     async def handler(request):
@@ -729,7 +851,41 @@ def get_async_wrapper_for_asyncgen(
 
 def _get_async_wrapper_for_output(
     method: Callable[[Request], Any],
+    return_type: Any = _empty,
+    enc_hook: Callable[[Any], Any] | None = None,
 ) -> Callable[[Request], Awaitable[Response]]:
+    if return_type is str:
+        @wraps(method)
+        async def text_output_handler(request: Request) -> Response:
+            res = await method(request)
+            if res is None:
+                return Response(204)
+            if isinstance(res, Response):
+                return res
+            return responses.text(res)
+
+        return text_output_handler
+
+    if return_type not in (_empty, None, Response):
+        encoder = get_precompiled_encoder(enc_hook)
+
+        @wraps(method)
+        async def typed_output_handler(request: Request) -> Response:
+            res = await method(request)
+            if res is None:
+                return Response(204)
+            if isinstance(res, Response):
+                return res
+            if json_settings.has_custom_dumps:
+                return responses.json(res)
+            try:
+                raw = encoder.encode(res)
+                return Response(200, None, Content(b"application/json", raw))
+            except Exception:
+                return responses.json(res)
+
+        return typed_output_handler
+
     @wraps(method)
     async def handler(request: Request) -> Response:
         return ensure_response(await method(request))
@@ -816,6 +972,7 @@ def normalize_handler(
 
     # Normalize output. WebSocket handlers must be excluded here because their
     # response is not handled writing a Dreaming Electric Sheep Response object.
+    enc_hook = getattr(route, "enc_hook", None)
     if (
         return_type is _empty or return_type is not Response
     ) and http_method != "GET_WS":
@@ -823,10 +980,10 @@ def normalize_handler(
             # this scenario enables a more accurate automatic generation of
             # OpenAPI Documentation, for responses
             setattr(route.handler, "return_type", return_type)
-        normalized = _get_async_wrapper_for_output(normalized)
+        normalized = _get_async_wrapper_for_output(normalized, return_type, enc_hook)
 
     if _is_wrapped_function(normalized):
-        normalized = _get_async_wrapper_for_output(normalized)
+        normalized = _get_async_wrapper_for_output(normalized, return_type, enc_hook)
 
     if normalized is not method:
         setattr(normalized, "root_fn", method)

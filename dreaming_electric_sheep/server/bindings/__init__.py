@@ -566,14 +566,115 @@ class BodyBinder(Binder):
             raise InvalidRequestBody(str(value_error)) from value_error
 
 
-class JSONBinder(BodyBinder):
-    """Extracts a model from JSON content using pre-compiled msgspec decoders."""
+_DECODER_CACHE: dict[tuple[Any, Any], msgspec.json.Decoder] = {}
+_ENCODER_CACHE: dict[Any, msgspec.json.Encoder] = {}
 
+
+def get_precompiled_decoder(
+    target_type: Any = Any,
+    dec_hook: Callable[[type, Any], Any] | None = None,
+) -> msgspec.json.Decoder:
+    """
+    Returns a pre-compiled msgspec.json.Decoder for the given type and dec_hook,
+    caching compiled decoders across endpoints to eliminate dynamic type inspection.
+    """
+    if target_type in (None, empty):
+        target_type = dict
+
+    key = (target_type, dec_hook)
+    decoder = _DECODER_CACHE.get(key)
+    if decoder is not None:
+        return decoder
+
+    def composite_dec_hook(tp, obj):
+        if dec_hook is not None:
+            try:
+                res = dec_hook(tp, obj)
+                if res is not None:
+                    return res
+            except Exception:
+                pass
+
+        if isinstance(tp, type):
+            if issubclass(tp, UUID) and isinstance(obj, str):
+                return UUID(obj)
+            try:
+                from pydantic import BaseModel
+
+                if issubclass(tp, BaseModel):
+                    return tp.model_validate(obj)
+            except (ImportError, TypeError):
+                pass
+            if hasattr(tp, "convert") and callable(getattr(tp, "convert")):
+                return tp.convert(obj)
+            if hasattr(tp, "__dataclass_fields__") or issubclass(tp, msgspec.Struct):
+                return obj
+            try:
+                conv = get_default_class_converter(tp)
+                return conv(obj)
+            except (TypeError, ValueError):
+                raise
+            except Exception:
+                pass
+
+        return obj
+
+    try:
+        decoder = msgspec.json.Decoder(target_type, dec_hook=composite_dec_hook)
+    except Exception:
+        decoder = msgspec.json.Decoder(dec_hook=composite_dec_hook)
+
+    _DECODER_CACHE[key] = decoder
+    return decoder
+
+
+def get_precompiled_encoder(
+    enc_hook: Callable[[Any], Any] | None = None,
+) -> msgspec.json.Encoder:
+    """
+    Returns a pre-compiled msgspec.json.Encoder for the given enc_hook,
+    caching compiled encoders across endpoints.
+    """
+    encoder = _ENCODER_CACHE.get(enc_hook)
+    if encoder is not None:
+        return encoder
+
+    def composite_enc_hook(obj):
+        if enc_hook is not None:
+            try:
+                res = enc_hook(obj)
+                if res is not None:
+                    return res
+            except Exception:
+                pass
+
+        if isinstance(obj, UUID):
+            return str(obj)
+        try:
+            from pydantic import BaseModel
+
+            if isinstance(obj, BaseModel):
+                return obj.model_dump()
+        except (ImportError, TypeError):
+            pass
+
+        return obj
+
+    try:
+        encoder = msgspec.json.Encoder(enc_hook=composite_enc_hook)
+    except Exception:
+        encoder = msgspec.json.Encoder()
+
+    _ENCODER_CACHE[enc_hook] = encoder
+    return encoder
+
+
+class JSONBinder(BodyBinder):
     handle = FromJSON
 
     def __init__(
         self,
-        expected_type: Type,
+        expected_type: Type = empty,
         name: str = "",
         implicit: bool = False,
         required: bool = False,
@@ -609,46 +710,8 @@ class JSONBinder(BodyBinder):
             target_type = Any
         else:
             target_type = expected_type
-            if target_type in (None, empty):
-                target_type = dict
 
-        def composite_dec_hook(tp, obj):
-            if custom_dec_hook is not None:
-                try:
-                    res = custom_dec_hook(tp, obj)
-                    if res is not None:
-                        return res
-                except Exception:
-                    pass
-
-            if isinstance(tp, type):
-                if issubclass(tp, UUID) and isinstance(obj, str):
-                    return UUID(obj)
-                try:
-                    from pydantic import BaseModel
-
-                    if issubclass(tp, BaseModel):
-                        return tp.model_validate(obj)
-                except (ImportError, TypeError):
-                    pass
-                if hasattr(tp, "convert") and callable(getattr(tp, "convert")):
-                    return tp.convert(obj)
-                if hasattr(tp, "__dataclass_fields__") or issubclass(tp, msgspec.Struct):
-                    return obj
-                try:
-                    conv = get_default_class_converter(tp)
-                    return conv(obj)
-                except (TypeError, ValueError):
-                    raise
-                except Exception:
-                    pass
-
-            return obj
-
-        try:
-            return msgspec.json.Decoder(target_type, dec_hook=composite_dec_hook)
-        except Exception:
-            return msgspec.json.Decoder(dec_hook=composite_dec_hook)
+        return get_precompiled_decoder(target_type, custom_dec_hook)
 
     @property
     def content_type(self) -> str:
@@ -1141,19 +1204,36 @@ class ServiceBinder(Binder):
     ):
         super().__init__(service, name, implicit, False, None)
         self.services = services
+        self._prebound_factory = None
+        self._init_prebinding()
+
+    def _init_prebinding(self):
+        tp = self.expected_type
+        if isinstance(tp, type):
+            init = getattr(tp, "__init__", None)
+            if init is object.__init__ or (
+                callable(init)
+                and hasattr(init, "__code__")
+                and getattr(init.__code__, "co_argcount", 0) == 1
+            ):
+                self._prebound_factory = tp
 
     async def get_value(self, request: Request) -> Any:
         try:
             scope = request._di_scope  # type: ignore
         except AttributeError:
-            # no support for scoped services
-            # (across parameters and middlewares)
             scope = None
-        assert self.services is not None
-        try:
-            return self.services.resolve(self.expected_type, scope)
-        except CannotResolveTypeException:
-            return None
+
+        if self.services is not None:
+            try:
+                return self.services.resolve(self.expected_type, scope)
+            except CannotResolveTypeException:
+                pass
+
+        if self._prebound_factory is not None:
+            return self._prebound_factory()
+
+        return None
 
 
 class ControllerParameter(BoundValue[T]):
@@ -1174,6 +1254,27 @@ class ControllerBinder(ServiceBinder):
     """
 
     handle = ControllerParameter
+
+    def __init__(
+        self,
+        service,
+        name: str = "",
+        implicit: bool = False,
+        services: ContainerProtocol | None = None,
+    ):
+        super().__init__(service, name, implicit, services)
+        self._init_controller_prebinding()
+
+    def _init_controller_prebinding(self):
+        tp = self.expected_type
+        if isinstance(tp, type):
+            init = getattr(tp, "__init__", None)
+            if init is object.__init__ or (
+                callable(init)
+                and hasattr(init, "__code__")
+                and getattr(init.__code__, "co_argcount", 0) == 1
+            ):
+                self._prebound_factory = tp
 
     async def get_value(self, request: Request) -> T | None:
         return await super().get_value(request)
