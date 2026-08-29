@@ -25,6 +25,7 @@ on:
 
 env:
   PROJECT_NAME: dreaming-electric-sheep
+  APP_DEFAULT_ROUTER: "false"
 
 jobs:
   windows-validation:

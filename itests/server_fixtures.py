@@ -121,6 +121,10 @@ def _start_server_process(target):
 
     sleep(1.2)
     server_process.terminate()
+    server_process.join(timeout=3)
+    if server_process.is_alive():
+        server_process.kill()
+        server_process.join(timeout=1)
 
 
 @pytest.fixture(scope="module", autouse=True)

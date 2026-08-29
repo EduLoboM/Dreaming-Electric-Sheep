@@ -72,3 +72,7 @@ def server(server_host, server_port):
 
     sleep(1.2)
     server_process.terminate()
+    server_process.join(timeout=3)
+    if server_process.is_alive():
+        server_process.kill()
+        server_process.join(timeout=1)

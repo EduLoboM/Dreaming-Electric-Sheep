@@ -69,7 +69,9 @@ def get_file_bytes(file_path):
 
 def get_sleep_time():
     # Return the number of seconds to wait for a test server process to start.
-    # 2 seconds is a wait time that works most times.
+    # CI environments and slower VMs need more time for spawning processes.
+    if os.environ.get("CI") or os.name == "nt":
+        return 4
     return 2
 
 
