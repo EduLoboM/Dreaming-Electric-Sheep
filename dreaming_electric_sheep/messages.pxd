@@ -64,6 +64,7 @@ cdef class Request(Message):
     cdef public str _scheme
     cdef public object _context
     cdef public object services
+    cdef public object _is_disconnected
 
     cpdef bint expect_100_continue(self)
     cpdef void reset(self)

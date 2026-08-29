@@ -47,6 +47,7 @@ jobs:
           cython dreaming_electric_sheep/messages.pyx
           cython dreaming_electric_sheep/scribe.pyx
           cython dreaming_electric_sheep/baseapp.pyx
+          cython dreaming_electric_sheep/routing.pyx
           python setup.py build_ext --inplace
 
       - name: Install dependencies for benchmark

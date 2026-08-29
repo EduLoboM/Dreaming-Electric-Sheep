@@ -577,13 +577,6 @@ cdef class Request(Message):
         if host_header is not None:
             self._host = host_header.decode()
             return self._host
-        if self.scope and "server" in self.scope:
-            server = self.scope["server"]
-            if (self.scheme == "http" and server[1] == 80) or (self.scheme == "https" and server[1] == 443):
-                self._host = f"{server[0]}"
-            else:
-                self._host = f"{server[0]}:{server[1]}"
-            return self._host
         raise BadRequest("Missing Host header")
 
     @host.setter
@@ -660,6 +653,7 @@ cdef class Request(Message):
         self._form_data = None
         self._headers = None
         self._raw_headers = []
+        self._is_disconnected = None
         if self.content is not None:
             self.content.dispose()
             self.content = None
@@ -791,7 +785,8 @@ cdef class Request(Message):
                 "request/response cycle."
             )
 
-        self.init_prop("_is_disconnected", False)
+        if self._is_disconnected is None:
+            self._is_disconnected = False
         if self._is_disconnected is True:
             return True
 

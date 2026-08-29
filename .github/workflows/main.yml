@@ -31,7 +31,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
+        python-version: ["3.11", "3.12", "3.13", "3.14"]
     runs-on: windows-latest
     if: github.event_name == 'pull_request' || github.event_name == 'push'
 
@@ -61,6 +61,7 @@ jobs:
           cython dreaming_electric_sheep/messages.pyx
           cython dreaming_electric_sheep/scribe.pyx
           cython dreaming_electric_sheep/baseapp.pyx
+          cython dreaming_electric_sheep/routing.pyx
           python setup.py build_ext --inplace
 
       - name: Run tests
@@ -130,16 +131,10 @@ jobs:
 
       - name: Test Hypercorn
         run: |
-          PYVER=`python -V 2>&1`
-
-          if [ "${PYVER:0:-2}" == "Python 3.10" ]; then
-            echo "Skipping Hypercorn tests, since it fails with Python 3.10.0 on Ubuntu (2021/10/24)"
-          else
-            APP_DEFAULT_ROUTER=false ASGI_SERVER=hypercorn pytest itests/test_server.py
-          fi
+          APP_DEFAULT_ROUTER=false ASGI_SERVER=hypercorn pytest itests/test_server.py
 
       - name: Test Piccolo Admin / Starlette mount compatibility
-        if: matrix.os == 'ubuntu-latest' && matrix.python-version == 3.14
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.13'
         run: |
           echo "Running Starlette mount compatibility tests (ref: piccolo-orm/piccolo_admin#472)..."
           pip install piccolo-admin  # include the dedicated test
@@ -148,18 +143,18 @@ jobs:
 
       - name: Install distribution dependencies
         run: pip install --upgrade twine setuptools wheel
-        if: matrix.os == 'ubuntu-latest' && matrix.python-version == 3.12
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12'
 
       - name: Create distribution package
         run: python setup.py sdist
-        if: matrix.os == 'ubuntu-latest' && matrix.python-version == 3.12
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12'
 
       - name: Upload distribution package
         uses: actions/upload-artifact@v4
         with:
           name: dist-ubuntu-no-wheels
           path: dist
-        if: matrix.os == 'ubuntu-latest' && matrix.python-version == 3.12
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12'
 
       - name: Test imports with no optional dependencies
         run: |
@@ -189,19 +184,19 @@ jobs:
           ]
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
       - name: Build wheels
-        uses: pypa/cibuildwheel@v3.2.1
+        uses: pypa/cibuildwheel@v2.22.0
         env:
-          CIBW_BUILD: cp310-* cp311-* cp312-* cp313-* cp314-*
+          CIBW_BUILD: cp311-* cp312-* cp313-* cp314-*
           CIBW_ARCHS: "auto64"
 
           # Before build commands
           CIBW_BEFORE_BUILD_WINDOWS: >
-            python3 -m pip install setuptools wheel Cython==3.1.4 &&
+            python -m pip install setuptools wheel Cython==3.1.4 &&
             python -c "import os, glob; [os.remove(f) for f in glob.glob('dreaming_electric_sheep/*.c') + glob.glob('dreaming_electric_sheep/*.so')]" &&
             make compile
 
@@ -230,12 +225,12 @@ jobs:
         os: [macos-latest]  # macos-15-intel NOT supported
         python-version: ["3.11", "3.12", "3.13", "3.14"]
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
 
@@ -266,12 +261,12 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
       - name: Setup Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v5
         with:
           python-version: "3.13"
 

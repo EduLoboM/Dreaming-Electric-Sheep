@@ -1,11 +1,12 @@
-[![Build](https://github.com/EduLoboM/Dreaming-Electric-Sheep/workflows/Main/badge.svg)](https://github.com/EduLoboM/Dreaming-Electric-Sheep/actions)
-[![pypi](https://img.shields.io/pypi/v/dreaming-electric-sheep.svg?color=blue)](https://pypi.org/project/dreaming-electric-sheep/)
-[![versions](https://img.shields.io/pypi/pyversions/dreaming-electric-sheep.svg)](https://github.com/EduLoboM/Dreaming-Electric-Sheep)
-[![license](https://img.shields.io/github/license/EduLoboM/Dreaming-Electric-Sheep.svg)](https://github.com/EduLoboM/Dreaming-Electric-Sheep/blob/main/LICENSE)
+<p align="center">
+  <a href="https://github.com/EduLoboM/Dreaming-Electric-Sheep/actions"><img src="https://img.shields.io/github/actions/workflow/status/EduLoboM/Dreaming-Electric-Sheep/main.yml?style=for-the-badge" alt="Build"></a>
+  <a href="https://pypi.org/project/dreaming-electric-sheep/"><img src="https://img.shields.io/pypi/v/dreaming-electric-sheep.svg?color=blue&style=for-the-badge" alt="pypi"></a>
+  <a href="https://github.com/EduLoboM/Dreaming-Electric-Sheep"><img src="https://img.shields.io/pypi/pyversions/dreaming-electric-sheep.svg?style=for-the-badge" alt="versions"></a>
+  <a href="https://github.com/EduLoboM/Dreaming-Electric-Sheep/blob/main/LICENSE"><img src="https://img.shields.io/github/license/EduLoboM/Dreaming-Electric-Sheep.svg?style=for-the-badge" alt="license"></a>
+</p>
 
 <p align="center">
-  <img width="48%" src="https://limbuscompany.wiki.gg/images/Electric_Screaming_Don_Quixote.png" alt="Electric Screaming Don Quixote EGO">
-  <img width="48%" src="https://limbuscompany.wiki.gg/images/Electric_Screaming_Meursault.png" alt="Electric Screaming Meursault EGO">
+  <img width="75%" src="assets/Electric_Screaming_Don_Quixote.png" alt="Electric Screaming Don Quixote EGO">
 </p>
 
 <h1 align="center">Dreaming Electric Sheep</h1>
@@ -18,21 +19,21 @@
 
 ---
 
-## ⚡ Key Highlights & Low-Level Architectural Features
+## 🔮 Key Highlights & Low-Level Architectural Features
 
-### 1. 🚀 PEP 590 Vectorcall Direct C-API Dispatch
+### 1. 👾 PEP 590 Vectorcall Direct C-API Dispatch
 
 All handler, middleware, and route dispatching bypasses Python `*args` tuple and `**kwargs` dict allocations. Handlers are invoked using `PyObject_Vectorcall` passing contiguous pointer arrays directly in CPU registers.
 
-### 2. 🛡️ Pure `cdef class` Extension Types (Zero `__dict__` Overhead)
+### 2. ⚓ Pure `cdef class` Extension Types (Zero `__dict__` Overhead)
 
 `Request`, `Response`, `RouteMatch`, `Header`, and `Scope` are pure Cython extension classes. All fields reside at fixed C-level struct offsets (`pointer offset`), eliminating dictionary lookups in the hot path.
 
-### 3. ♻️ C-Level Object Freelists & Fast Pools
+### 3. 🌊 C-Level Object Freelists & Fast Pools
 
 `Request` and `Response` instances are managed through dedicated C freelists (`acquire_request`, `release_request`, `acquire_response`, `release_response`), recycling objects across HTTP lifecycles and reducing Python heap pressure to near zero.
 
-### 4. ⚡ SIMD Vectorization (AVX2 / SSE4.2 / ARM NEON / SWAR)
+### 4. 🚄 SIMD Vectorization (AVX2 / SSE4.2 / ARM NEON / SWAR)
 
 Custom C SIMD kernels accelerate:
 
@@ -40,21 +41,21 @@ Custom C SIMD kernels accelerate:
 - URL path separator tokenization (`/`).
 - ASCII header validation with fallback SWAR (SIMD Within A Register).
 
-### 5. 🎯 In-Memory Request Scratchpad Arenas
+### 5. 🧊 In-Memory Request Scratchpad Arenas
 
 Per-request linear arenas (`scratchpad.h`/`.c`) allow $\mathcal{O}(1)$ allocation and instant bulk resets without invoking `malloc()` or `free()` during request lifecycle processing.
 
-### 6. 🌐 Zero-Copy ASGI Ingestion
+### 6. 💎 Zero-Copy ASGI Ingestion
 
 Direct `bytes-like` memoryview and buffer passing from server transport layers (Granian, Uvicorn) directly into `msgspec` decoders without intermediate string copies or heap duplications.
 
-### 7. 🧠 Pre-Compiled Type Decoders & Fast DI Bindings
+### 7. 🔋 Pre-Compiled Type Decoders & Fast DI Bindings
 
 Endpoint payload decoders (`msgspec.json.Decoder(type=...)`) and controller activation paths are compiled ahead-of-time during application startup, eradicating runtime reflection.
 
 ---
 
-## 🔌 CPython & C / C++ / CUDA Native Interoperability
+## 🐍 CPython & C / C++ / CUDA Native Interoperability
 
 > [!IMPORTANT]
 > **Why CPython exclusively?**
@@ -68,7 +69,7 @@ Endpoint payload decoders (`msgspec.json.Decoder(type=...)`) and controller acti
 
 ---
 
-## 📦 Installation
+## ⭐ Installation
 
 ```bash
 pip install dreaming-electric-sheep
@@ -82,7 +83,7 @@ pip install dreaming-electric-sheep httptools uvloop uvicorn granian msgspec
 
 ---
 
-## 🛠️ Quick Start & `msgspec` Integration
+## ⚡ Quick Start & `msgspec` Integration
 
 Dreaming Electric Sheep provides first-class, zero-overhead support for `msgspec.Struct`, `dataclasses`, and `pydantic` models with startup-cached pre-compiled decoders.
 
@@ -110,7 +111,7 @@ async def create_item(data: CreateItemInput):
 
 ---
 
-## 📖 OpenAPI 3.0, Swagger UI, Scalar & ReDoc
+## 📙 OpenAPI 3.0, Swagger UI, Scalar & ReDoc
 
 Dreaming Electric Sheep automatically generates OpenAPI 3.0 documentation from type annotations (`msgspec.Struct`, `dataclasses`, `Pydantic`, Python typing) and docstrings. It includes built-in support for **Swagger UI**, **Scalar**, and **ReDoc**.
 
@@ -160,7 +161,7 @@ Now navigate in your browser:
 
 ---
 
-## ⚡ High-Speed Serialization: JSON & MessagePack
+## 🔥 High-Speed Serialization: JSON & MessagePack
 
 Take full advantage of pre-compiled type decoders and multiple wire formats:
 
@@ -217,7 +218,7 @@ uvicorn app:app --port 8000 --reload
 
 ---
 
-## 🧩 Controllers & Dependency Injection
+## 🎯 Controllers & Dependency Injection
 
 Dreaming Electric Sheep includes built-in dependency injection with pre-bound fast dispatching:
 
@@ -243,5 +244,5 @@ app.controllers.register(StatusController)
 ---
 
 <p align="center">
-  made with <img src="love.png" width="18" alt="love.png" style="vertical-align: middle;"> by <b>EduLoboM</b>
+  made with <img src="assets/love.png" width="18" alt="love.png" style="vertical-align: middle;"> by <b>EduLoboM</b>
 </p>
