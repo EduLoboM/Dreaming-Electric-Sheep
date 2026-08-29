@@ -8,6 +8,12 @@ import os
 import sys
 from setuptools import Extension, setup
 
+try:
+    from Cython.Build import cythonize
+    USE_CYTHON = True
+except ImportError:
+    USE_CYTHON = False
+
 if sys.platform == "win32":
     COMPILE_ARGS = ["/O2"]
 else:
@@ -19,41 +25,43 @@ skip_ext = (
     or os.environ.get("BLACKSHEEP_NO_EXTENSIONS", "0") == "1"
 )
 
+ext = ".pyx" if USE_CYTHON else ".c"
+
 ext_modules = []
 if not skip_ext:
     ext_modules = [
         Extension(
             "dreaming_electric_sheep.url",
             [
-                "dreaming_electric_sheep/url.c",
+                f"dreaming_electric_sheep/url{ext}",
                 "dreaming_electric_sheep/simd_ops.c",
             ],
             extra_compile_args=COMPILE_ARGS,
         ),
         Extension(
             "dreaming_electric_sheep.exceptions",
-            ["dreaming_electric_sheep/exceptions.c"],
+            [f"dreaming_electric_sheep/exceptions{ext}"],
             extra_compile_args=COMPILE_ARGS,
         ),
         Extension(
             "dreaming_electric_sheep.headers",
-            ["dreaming_electric_sheep/headers.c"],
+            [f"dreaming_electric_sheep/headers{ext}"],
             extra_compile_args=COMPILE_ARGS,
         ),
         Extension(
             "dreaming_electric_sheep.cookies",
-            ["dreaming_electric_sheep/cookies.c"],
+            [f"dreaming_electric_sheep/cookies{ext}"],
             extra_compile_args=COMPILE_ARGS,
         ),
         Extension(
             "dreaming_electric_sheep.contents",
-            ["dreaming_electric_sheep/contents.c"],
+            [f"dreaming_electric_sheep/contents{ext}"],
             extra_compile_args=COMPILE_ARGS,
         ),
         Extension(
             "dreaming_electric_sheep.messages",
             [
-                "dreaming_electric_sheep/messages.c",
+                f"dreaming_electric_sheep/messages{ext}",
                 "dreaming_electric_sheep/scratchpad.c",
             ],
             extra_compile_args=COMPILE_ARGS,
@@ -61,25 +69,31 @@ if not skip_ext:
         Extension(
             "dreaming_electric_sheep.scribe",
             [
-                "dreaming_electric_sheep/scribe.c",
+                f"dreaming_electric_sheep/scribe{ext}",
                 "dreaming_electric_sheep/simd_ops.c",
             ],
             extra_compile_args=COMPILE_ARGS,
         ),
         Extension(
             "dreaming_electric_sheep.baseapp",
-            ["dreaming_electric_sheep/baseapp.c"],
+            [f"dreaming_electric_sheep/baseapp{ext}"],
             extra_compile_args=COMPILE_ARGS,
         ),
         Extension(
             "dreaming_electric_sheep.routing",
             [
-                "dreaming_electric_sheep/routing.c",
+                f"dreaming_electric_sheep/routing{ext}",
                 "dreaming_electric_sheep/simd_ops.c",
             ],
             extra_compile_args=COMPILE_ARGS,
         ),
     ]
+
+    if USE_CYTHON:
+        ext_modules = cythonize(
+            ext_modules,
+            compiler_directives={"language_level": "3"},
+        )
 
 setup(ext_modules=ext_modules)
 

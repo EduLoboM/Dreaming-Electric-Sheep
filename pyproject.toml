@@ -1,11 +1,17 @@
 [build-system]
-requires = ["setuptools"]
+requires = ["setuptools>=61.0", "wheel", "Cython>=3.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "dreaming-electric-sheep"
 dynamic = ["version"]
-authors = [{ name = "Roberto Prevato", email = "roberto.prevato@gmail.com" }]
+authors = [
+    { name = "Eduardo Lobo", email = "eduardolobomoreira@tuta.io" },
+    { name = "Roberto Prevato", email = "roberto.prevato@gmail.com" },
+]
+maintainers = [
+    { name = "Eduardo Lobo", email = "eduardolobomoreira@tuta.io" },
+]
 description = "Fast web framework for Python asyncio"
 license = "MIT"
 license-files = ["LICENSE"]

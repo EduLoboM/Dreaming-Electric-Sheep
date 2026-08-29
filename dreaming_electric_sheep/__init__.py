@@ -3,8 +3,11 @@ Root module of the framework. This module re-exports the most commonly
 used types to reduce the verbosity of the imports statements.
 """
 
-__author__ = "Roberto Prevato <roberto.prevato@gmail.com>"
-__version__ = "2.6.3"
+__author__ = (
+    "Eduardo Lobo <eduardolobomoreira@tuta.io> (Fork author), "
+    "Roberto Prevato <roberto.prevato@gmail.com> (Original BlackSheep author)"
+)
+__version__ = "1.0.0"
 
 from .contents import Content as Content
 from .contents import FileBuffer as FileBuffer
