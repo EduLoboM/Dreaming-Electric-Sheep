@@ -7,10 +7,14 @@ consumption for lean infrastructure / VPS environments.
 """
 
 import os
-import resource
 import shutil
 import sys
 from typing import Any, Dict, Optional
+
+try:
+    import resource
+except ImportError:
+    resource = None  # type: ignore
 
 
 RECOMMENDED_JEMALLOC_CONF = (
@@ -174,22 +178,25 @@ def get_process_memory_usage() -> Dict[str, float]:
     rss_mb = 0.0
     vms_mb = 0.0
 
-    try:
-        with open("/proc/self/statm", "r") as f:
-            parts = f.read().split()
-            page_size_kb = resource.getpagesize() / 1024.0
-            if len(parts) >= 2:
-                vms_mb = (int(parts[0]) * page_size_kb) / 1024.0
-                rss_mb = (int(parts[1]) * page_size_kb) / 1024.0
-                return {"rss_mb": round(rss_mb, 2), "vms_mb": round(vms_mb, 2)}
-    except (FileNotFoundError, PermissionError, OSError, ValueError):
-        pass
+    if resource is not None:
+        try:
+            with open("/proc/self/statm", "r") as f:
+                parts = f.read().split()
+                page_size_kb = resource.getpagesize() / 1024.0
+                if len(parts) >= 2:
+                    vms_mb = (int(parts[0]) * page_size_kb) / 1024.0
+                    rss_mb = (int(parts[1]) * page_size_kb) / 1024.0
+                    return {"rss_mb": round(rss_mb, 2), "vms_mb": round(vms_mb, 2)}
+        except (FileNotFoundError, PermissionError, OSError, ValueError, AttributeError):
+            pass
 
-    try:
-        usage = resource.getrusage(resource.RUSAGE_SELF)
-        # On Linux, ru_maxrss is in kilobytes
-        rss_mb = usage.ru_maxrss / 1024.0
-    except Exception:
-        pass
+        try:
+            usage = resource.getrusage(resource.RUSAGE_SELF)
+            if sys.platform == "darwin":
+                rss_mb = usage.ru_maxrss / (1024.0 * 1024.0)
+            else:
+                rss_mb = usage.ru_maxrss / 1024.0
+        except Exception:
+            pass
 
     return {"rss_mb": round(rss_mb, 2), "vms_mb": round(vms_mb, 2)}
