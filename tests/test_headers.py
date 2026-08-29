@@ -235,3 +235,13 @@ def test_case_insensitive_contains():
     assert b"hello" in headers
     assert b"hElLo" in headers
     assert b"HELLO" in headers
+
+
+def test_headers_update():
+    headers = Headers([(b"A", b"1"), (b"B", b"2")])
+    headers.update({b"B": b"updated", b"C": b"3"})
+
+    assert headers.get_single(b"A") == b"1"
+    assert headers.get_single(b"B") == b"updated"
+    assert headers.get_single(b"C") == b"3"
+

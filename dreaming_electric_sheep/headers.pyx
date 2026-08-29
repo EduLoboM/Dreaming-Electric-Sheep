@@ -78,7 +78,7 @@ cdef class Headers:
                 continue
             self.values.append(header)
 
-    def update(self, dict values: dict[bytes, bytes]):
+    def update(self, dict values):
         for key, value in values.items():
             self[key] = value
 
