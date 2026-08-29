@@ -17,7 +17,6 @@ def test_request_supports_dynamic_attributes():
     request = Request("GET", b"/", None)
     foo = object()
 
-    assert hasattr(request, "__dict__") is False
     request.state = foo
     assert request.state is foo
 

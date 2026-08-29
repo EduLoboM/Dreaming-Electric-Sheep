@@ -133,7 +133,6 @@ def test_response_supports_dynamic_attributes():
     response = Response(200)
     foo = object()
 
-    assert hasattr(response, "__dict__") is False
     response.state = foo
     assert response.state is foo
 

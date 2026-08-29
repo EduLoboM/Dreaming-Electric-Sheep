@@ -323,8 +323,6 @@ class Message:
             if b"multipart/form-data;" in content_type_value and simplify_fields:
                 # This is just to not break backward compatibility.
                 # TODO: consider removing this in v3
-                from .contents import simplify_multipart_data
-
                 return simplify_multipart_data(self._form_data)
             return self._form_data
 
@@ -511,6 +509,9 @@ class Request(Message):
             self._raw_query = None
         self.scope: dict[str, Any] = {}
         self.content: Content | None = None
+        self._user: Identity | None = None
+        self.state: Any = None
+        self.route_values: Any = None
 
     # TODO: deprecate the 'identity' property in the future. This requires a breaking
     # change in guardpost, too.
@@ -520,19 +521,17 @@ class Request(Message):
 
     @identity.setter
     def identity(self, value: Identity):
-        self.__dict__["_user"] = value
+        self._user = value
 
     @property
     def user(self) -> Identity:
-        try:
-            return self.__dict__["_user"]
-        except KeyError:
-            self.__dict__["_user"] = Identity()
-            return self.__dict__["_user"]
+        if getattr(self, "_user", None) is None:
+            self._user = Identity()
+        return self._user
 
     @user.setter
     def user(self, value: Identity):
-        self.__dict__["_user"] = value
+        self._user = value
 
     @property
     def scheme(self) -> str:
@@ -748,6 +747,10 @@ class Request(Message):
         self._form_data = None
         self.__dict__.pop("_headers", None)
         self._raw_headers = []
+        self._is_disconnected = None
+        if self.content is not None:
+            self.content.dispose()
+            self.content = None
 
     def dispose(self):
         if getattr(self, "_form_data", None) is not None:
@@ -764,6 +767,7 @@ class Response(Message):
         self._raw_headers = headers or []
         self.status = status
         self.content = content
+        self.state: Any = None
 
     def __repr__(self) -> str:
         return f"<Response {self.status}>"

@@ -917,3 +917,6 @@ class TextServerSentEvent(ServerSentEvent):
 
     def write_data(self) -> str:
         return self.data.replace("\r", "\\r").replace("\n", "\\n")
+
+
+from dreaming_electric_sheep.multipart import simplify_multipart_data
