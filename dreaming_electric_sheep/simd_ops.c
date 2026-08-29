@@ -20,7 +20,11 @@
         #define HAS_SSE2 1
     #endif
 #elif defined(__ARM_NEON) || defined(__aarch64__) || defined(_M_ARM64)
-    #include <arm_neon.h>
+    #if defined(_MSC_VER) && !defined(__clang__)
+        #include <arm64_neon.h>
+    #else
+        #include <arm_neon.h>
+    #endif
     #define HAS_NEON 1
 #endif
 
