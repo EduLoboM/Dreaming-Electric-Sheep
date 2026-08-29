@@ -15,7 +15,7 @@
   <i>"The cloud has a head and two pairs of legs. It resembles a sheep."</i>
 </p>
 
-**Dreaming Electric Sheep** is an ultra-high-performance, bare-metal asynchronous ASGI web framework for modern **CPython (3.11–3.14+)**. Born as an aggressively optimized evolution of [BlackSheep](https://github.com/Neoteroi/BlackSheep), it discards legacy runtime compromises (such as PyPy compatibility shims) to squeeze maximum throughput, microsecond-level latency, and direct C/C++/CUDA interoperability from standard CPython.
+**Dreaming Electric Sheep** is an ultra-high-performance, bare-metal asynchronous ASGI web framework for modern **CPython (3.13–3.14+)**. Born as an aggressively optimized evolution of [BlackSheep](https://github.com/Neoteroi/BlackSheep), it discards legacy runtime compromises (such as PyPy compatibility shims) to squeeze maximum throughput, microsecond-level latency, and direct C/C++/CUDA interoperability from standard CPython.
 
 ---
 
@@ -59,7 +59,7 @@ Endpoint payload decoders (`msgspec.json.Decoder(type=...)`) and controller acti
 
 > [!IMPORTANT]
 > **Why CPython exclusively?**
-> Dreaming Electric Sheep purposefully removes PyPy support to target modern CPython C-APIs (3.11, 3.12, 3.13, 3.14+). If your workloads utilize:
+> Dreaming Electric Sheep purposefully removes PyPy and legacy Python support to target modern CPython C-APIs (3.13, 3.14+). If your workloads utilize:
 >
 > - **C / C++ Native Extensions** (e.g., custom Cython, pybind11, nanobind)
 > - **CUDA / TensorRT / PyTorch / ONNX Runtime** for high-throughput AI/ML serving

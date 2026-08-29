@@ -1,6 +1,6 @@
 """
 High-performance C/Cython extensions build configuration for Dreaming Electric Sheep.
-Optimized exclusively for modern CPython (>= 3.11) with SIMD vectorization,
+Optimized exclusively for modern CPython (>= 3.13) with SIMD vectorization,
 PEP 590 Vectorcall, and C-level memory arenas.
 """
 

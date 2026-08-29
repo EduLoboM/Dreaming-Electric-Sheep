@@ -727,6 +727,28 @@ class Request(Message):
             self._is_disconnected = True
         return self._is_disconnected
 
+    def reset(self):
+        self.method = ""
+        self._url = None
+        self._path = b""
+        self._raw_query = b""
+        self.route_values = None
+        self.scope = None
+        self.identity = None
+        self._user = None
+        self._di_scope = None
+        self.state = None
+        self._session = None
+        self.base_path = None
+        self.original_client_ip = None
+        self.host = None
+        self._scheme = None
+        self.context = None
+        self.services = None
+        self._form_data = None
+        self.__dict__.pop("_headers", None)
+        self._raw_headers = []
+
     def dispose(self):
         if getattr(self, "_form_data", None) is not None:
             for parts in self._form_data.values():

@@ -15,6 +15,34 @@ def _fast_unquote(val: bytes) -> str:
     return decoded
 
 
+class RouteMatch:
+    __slots__ = ("_values", "pattern", "handler", "route")
+
+    def __init__(
+        self,
+        route,
+        values=None,
+    ):
+        self.route = route
+        self.handler = getattr(route, "handler", None)
+        self.pattern = getattr(route, "pattern", None)
+        self._values = (
+            {
+                k: unquote(v.decode("utf8")) if isinstance(v, bytes) else (unquote(v) if isinstance(v, str) and "%" in v else v)
+                for k, v in values.items()
+            }
+            if values
+            else None
+        )
+
+    @property
+    def values(self):
+        return self._values
+
+    def __repr__(self):
+        return f"<RouteMatch {self.pattern}>"
+
+
 class RadixNode:
     __slots__ = (
         "segment",

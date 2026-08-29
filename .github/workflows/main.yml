@@ -31,9 +31,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.11", "3.12", "3.13", "3.14"]
+        python-version: ["3.14"]
     runs-on: windows-latest
-    if: github.event_name == 'pull_request' || github.event_name == 'push'
 
     steps:
       - uses: actions/checkout@v4
@@ -73,7 +72,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
-        python-version: ["3.11", "3.12", "3.13", "3.14"]
+        python-version: ["3.13", "3.14"]
     runs-on: ${{ matrix.os }}
 
     steps:
@@ -143,18 +142,18 @@ jobs:
 
       - name: Install distribution dependencies
         run: pip install --upgrade twine setuptools wheel
-        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12'
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.13'
 
       - name: Create distribution package
         run: python setup.py sdist
-        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12'
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.13'
 
       - name: Upload distribution package
         uses: actions/upload-artifact@v4
         with:
           name: dist-ubuntu-no-wheels
           path: dist
-        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12'
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.13'
 
       - name: Test imports with no optional dependencies
         run: |
@@ -191,7 +190,7 @@ jobs:
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.22.0
         env:
-          CIBW_BUILD: cp311-* cp312-* cp313-* cp314-*
+          CIBW_BUILD: cp313-* cp314-*
           CIBW_ARCHS: "auto64"
 
           # Before build commands
@@ -223,7 +222,7 @@ jobs:
     strategy:
       matrix:
         os: [macos-latest]  # macos-15-intel NOT supported
-        python-version: ["3.11", "3.12", "3.13", "3.14"]
+        python-version: ["3.13", "3.14"]
     steps:
       - uses: actions/checkout@v4
         with:
