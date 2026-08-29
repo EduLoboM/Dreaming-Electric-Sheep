@@ -10,16 +10,14 @@ description = "Fast web framework for Python asyncio"
 license = "MIT"
 license-files = ["LICENSE"]
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 classifiers = [
     "Development Status :: 5 - Production/Stable",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: 3.14",
     "Programming Language :: Python :: Implementation :: CPython",
-    "Programming Language :: Python :: Implementation :: PyPy",
     "Environment :: Web Environment",
     "Operating System :: OS Independent",
     "Framework :: AsyncIO",
@@ -36,9 +34,8 @@ dependencies = [
     "itsdangerous~=2.2.0",
     "h11>=0.14.0,<1.0.0",
     "h2>=4.0.0,<5.0.0",
-    "httptools>=0.7.1; platform_python_implementation != 'PyPy'",
+    "httptools>=0.7.1",
     "msgspec>=0.18.0",
-    "async-timeout>=4.0.0; python_version < '3.11'",
 ]
 
 [tool.setuptools.packages.find]
