@@ -1,3 +1,14 @@
+# cython: boundscheck=False
+# cython: wraparound=False
+# cython: nonecheck=False
+# cython: cdivision=True
+# cython: initializedcheck=False
+# cython: language_level=3
+# Copyright (C) 2018-present Roberto Prevato
+#
+# This module is part of Dreaming Electric Sheep and is released under
+# the MIT License https://opensource.org/licenses/MIT
+
 import asyncio
 import http
 import re
@@ -119,11 +130,10 @@ cdef class Message:
 
     @property
     def headers(self):
-        cdef str key = '_headers'
-        if key in self.__dict__:
-            return self.__dict__[key]
-        self.__dict__[key] = Headers(self._raw_headers)
-        return self.__dict__[key]
+        if self._headers is not None:
+            return self._headers
+        self._headers = Headers(self._raw_headers)
+        return self._headers
 
     cpdef Message with_content(self, Content content):
         self.content = content
@@ -261,6 +271,15 @@ cdef class Message:
                 return bytes(body)
         return b""
 
+    @property
+    def body_buffer(self):
+        """
+        Returns a memoryview over the body buffer, supporting zero-copy operations.
+        """
+        if self.content:
+            return getattr(self.content, "body_buffer", memoryview(b""))
+        return memoryview(b"")
+
     async def stream(self):
         if self.content:
             async for chunk in self.content.stream():
@@ -318,7 +337,7 @@ cdef class Message:
         if not content_type_value:
             return None
 
-        if hasattr(self, '_form_data'):
+        if self._form_data is not None:
             if b'multipart/form-data;' in content_type_value and simplify_fields:
                 # This is just to not break backward compatibility.
                 # TODO: consider removing this in v3
@@ -523,46 +542,53 @@ cdef class Request(Message):
 
     @identity.setter
     def identity(self, value):
-        self.__dict__["_user"] = value
+        self._user = value
 
     @property
     def user(self):
-        try:
-            return self.__dict__["_user"]
-        except KeyError:
-            self.__dict__["_user"] = Identity()  # no claims, unauthenticated
-            return self.__dict__["_user"]
+        if self._user is None:
+            self._user = Identity()  # no claims, unauthenticated
+        return self._user
 
     @user.setter
     def user(self, value):
-        self.__dict__["_user"] = value
+        self._user = value
 
     @property
     def scheme(self) -> str:
-        return self.__dict__.get("scheme") or (self.scope.get("scheme", "") if self.scope else "")
+        if self._scheme is not None:
+            return self._scheme
+        if self.scope:
+            return self.scope.get("scheme", "")
+        return ""
 
     @scheme.setter
     def scheme(self, value: str):
-        # this can be set, for example when handling forward headers
-        self.__dict__["scheme"] = value
+        self._scheme = value
 
     @property
     def host(self) -> str:
-        if not self.__dict__.get("host"):
-            if self._url is not None and self._url.is_absolute:
-                self.__dict__["host"] = self._url.host.decode()
+        if self._host is not None:
+            return self._host
+        if self._url is not None and self._url.is_absolute:
+            self._host = self._url.host.decode() if self._url.host is not None else ""
+            return self._host
+        host_header = self.get_first_header(b'host')
+        if host_header is not None:
+            self._host = host_header.decode()
+            return self._host
+        if self.scope and "server" in self.scope:
+            server = self.scope["server"]
+            if (self.scheme == "http" and server[1] == 80) or (self.scheme == "https" and server[1] == 443):
+                self._host = f"{server[0]}"
             else:
-                # default to host header
-                host_header = self.get_first_header(b'host')
-                if host_header is None:
-                    raise BadRequest("Missing Host header")
-                self.__dict__["host"] = host_header.decode()
-        return self.__dict__["host"]
+                self._host = f"{server[0]}:{server[1]}"
+            return self._host
+        raise BadRequest("Missing Host header")
 
     @host.setter
     def host(self, value: str) -> None:
-        # this can be set, for example when handling forward headers
-        self.__dict__["host"] = value
+        self._host = value
 
     @property
     def path(self) -> str:
@@ -570,21 +596,18 @@ cdef class Request(Message):
 
     @property
     def base_path(self) -> str:
-        # 1. if a base path was explicitly set, use it
-        # 2. if a root_path is set in the ASGI scope, use it
-        # 3. default to empty string otherwise
-        try:
-            return self.__dict__["base_path"]
-        except KeyError:
+        if self._base_path is not None:
+            return self._base_path
+        if self.scope is not None:
             try:
                 return self.scope.get("root_path", "")
             except AttributeError:
-                return ""
+                pass
+        return ""
 
     @base_path.setter
     def base_path(self, value: str):
-        # this can be set, for example when handling forward headers
-        self.__dict__["base_path"] = value
+        self._base_path = value
 
     @property
     def client_ip(self) -> str:
@@ -595,14 +618,13 @@ cdef class Request(Message):
 
     @property
     def original_client_ip(self) -> str:
-        if "original_client_ip" in self.__dict__:
-            return self.__dict__["original_client_ip"]
-
+        if self._original_client_ip is not None:
+            return self._original_client_ip
         return self.client_ip
 
     @original_client_ip.setter
     def original_client_ip(self, value: str):
-        self.__dict__["original_client_ip"] = value
+        self._original_client_ip = value
 
     @property
     def session(self):
@@ -616,6 +638,31 @@ cdef class Request(Message):
     @session.setter
     def session(self, value: Session):
         self._session = value
+
+    cpdef void reset(self):
+        self.method = ""
+        self._url = None
+        self._path = b""
+        self._raw_query = b""
+        self.route_values = None
+        self.scope = None
+        self.identity = None
+        self._user = None
+        self._di_scope = None
+        self.state = None
+        self._session = None
+        self._base_path = None
+        self._original_client_ip = None
+        self._host = None
+        self._scheme = None
+        self.context = None
+        self.services = None
+        self._form_data = None
+        self._headers = None
+        self._raw_headers = []
+        if self.content is not None:
+            self.content.dispose()
+            self.content = None
 
     @classmethod
     def incoming(cls, str method, bytes path, bytes query, list headers):
@@ -672,7 +719,7 @@ cdef class Request(Message):
             self._raw_query = None
         self._url = _url
         # unset the cached host
-        self.__dict__["host"] = None
+        self._host = None
         self.remove_header(b"host")
 
     def __repr__(self):
@@ -756,7 +803,7 @@ cdef class Request(Message):
         return self._is_disconnected
 
     def dispose(self):
-        if hasattr(self, '_form_data') and self._form_data:
+        if self._form_data is not None:
             for parts in self._form_data.values():
                 for part in parts:
                     if part.file:
@@ -847,9 +894,64 @@ cdef class Response(Message):
     cpdef bint is_redirect(self):
         return self.status in {301, 302, 303, 307, 308}
 
+    cpdef void reset(self):
+        self.status = 200
+        self.state = None
+        self.context = None
+        self._form_data = None
+        self._headers = None
+        self._raw_headers = []
+        if self.content is not None:
+            self.content.dispose()
+            self.content = None
+
     async def raise_for_status(self):
         if not (200 <= self.status < 300):
             raise FailedRequestError(self.status, await self.text())
+
+
+cdef list _REQUEST_FREELIST = []
+cdef list _RESPONSE_FREELIST = []
+cdef int _MAX_FREELIST_CAPACITY = 512
+
+
+cpdef Request acquire_request(str method, bytes path, bytes raw_query, list headers, object scope):
+    cdef Request req
+    if _REQUEST_FREELIST:
+        req = _REQUEST_FREELIST.pop()
+        req.method = method
+        req._path = path
+        req._raw_query = raw_query
+        req._raw_headers = headers if headers is not None else []
+        req.scope = scope
+        req.content = None
+        req._url = None
+        req.route_values = None
+        return req
+    return Request(method, path, headers)
+
+
+cpdef void release_request(Request request):
+    if len(_REQUEST_FREELIST) < _MAX_FREELIST_CAPACITY:
+        request.reset()
+        _REQUEST_FREELIST.append(request)
+
+
+cpdef Response acquire_response(int status=200, list headers=None, Content content=None):
+    cdef Response resp
+    if _RESPONSE_FREELIST:
+        resp = _RESPONSE_FREELIST.pop()
+        resp.status = status
+        resp._raw_headers = headers if headers is not None else []
+        resp.content = content
+        return resp
+    return Response(status, headers, content)
+
+
+cpdef void release_response(Response response):
+    if len(_RESPONSE_FREELIST) < _MAX_FREELIST_CAPACITY:
+        response.reset()
+        _RESPONSE_FREELIST.append(response)
 
 
 cpdef bint is_cors_request(Request request):

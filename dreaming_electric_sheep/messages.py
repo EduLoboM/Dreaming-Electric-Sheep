@@ -250,6 +250,15 @@ class Message:
                 return bytes(body)
         return b""
 
+    @property
+    def body_buffer(self) -> memoryview:
+        """
+        Returns a memoryview over the body buffer, supporting zero-copy operations.
+        """
+        if hasattr(self, "content") and self.content:
+            return getattr(self.content, "body_buffer", memoryview(b""))
+        return memoryview(b"")
+
     async def stream(self):
         if (
             hasattr(self, "content")
@@ -310,10 +319,12 @@ class Message:
         if not content_type_value:
             return None
 
-        if hasattr(self, "_form_data"):
+        if getattr(self, "_form_data", None) is not None:
             if b"multipart/form-data;" in content_type_value and simplify_fields:
                 # This is just to not break backward compatibility.
                 # TODO: consider removing this in v3
+                from .contents import simplify_multipart_data
+
                 return simplify_multipart_data(self._form_data)
             return self._form_data
 
@@ -717,9 +728,11 @@ class Request(Message):
         return self._is_disconnected
 
     def dispose(self):
-        if hasattr(self, "_form_data") and self._form_data:
+        if getattr(self, "_form_data", None) is not None:
             for parts in self._form_data.values():
-                MultiPartFormData.try_dispose_parts(parts)
+                for part in parts:
+                    if part.file:
+                        part.file.close()
         if self.content is not None:
             self.content.dispose()
 
@@ -782,9 +795,64 @@ class Response(Message):
     def is_redirect(self) -> bool:
         return self.status in {301, 302, 303, 307, 308}
 
+    def reset(self):
+        self.status = 200
+        self.state = None
+        self._context = None
+        self._raw_headers = []
+        if self.content is not None:
+            self.content.dispose()
+            self.content = None
+
     async def raise_for_status(self):
         if not (200 <= self.status < 300):
             raise FailedRequestError(self.status, await self.text())
+
+
+_REQUEST_FREELIST: list[Request] = []
+_RESPONSE_FREELIST: list[Response] = []
+_MAX_FREELIST_CAPACITY = 512
+
+
+def acquire_request(method: str, path: bytes, raw_query: bytes, headers: list, scope: Any) -> Request:
+    if _REQUEST_FREELIST:
+        req = _REQUEST_FREELIST.pop()
+        req.method = method
+        req._path = path
+        req._raw_query = raw_query
+        req._raw_headers = headers if headers is not None else []
+        req.scope = scope
+        req.content = None
+        req._url = None
+        req.route_values = None
+        return req
+    req = Request(method, None, headers)
+    req._path = path
+    req._raw_query = raw_query
+    req.scope = scope
+    return req
+
+
+def release_request(request: Request) -> None:
+    if len(_REQUEST_FREELIST) < _MAX_FREELIST_CAPACITY:
+        request.reset()
+        _REQUEST_FREELIST.append(request)
+
+
+def acquire_response(status: int = 200, headers: list | None = None, content: Content | None = None) -> Response:
+    if _RESPONSE_FREELIST:
+        resp = _RESPONSE_FREELIST.pop()
+        resp.status = status
+        resp._raw_headers = headers if headers is not None else []
+        resp.content = content
+        return resp
+    return Response(status, headers, content)
+
+
+def release_response(response: Response) -> None:
+    if len(_RESPONSE_FREELIST) < _MAX_FREELIST_CAPACITY:
+        response.reset()
+        _RESPONSE_FREELIST.append(response)
 
 
 def is_cors_request(request: Request) -> bool:

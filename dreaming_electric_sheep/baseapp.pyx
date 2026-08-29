@@ -1,7 +1,20 @@
+# cython: boundscheck=False
+# cython: wraparound=False
+# cython: nonecheck=False
+# cython: cdivision=True
+# cython: initializedcheck=False
+# cython: language_level=3
+# Copyright (C) 2018-present Roberto Prevato
+#
+# This module is part of Dreaming Electric Sheep and is released under
+# the MIT License https://opensource.org/licenses/MIT
+
 import http
 import inspect
 import logging
 from collections import UserDict
+
+from cpython.object cimport PyObject
 
 from .contents cimport Content, TextContent
 from .exceptions cimport (
@@ -15,6 +28,31 @@ from .messages cimport Request, Response
 
 import msgspec
 from .utils import get_class_instance_hierarchy
+
+cdef extern from "Python.h":
+    object PyObject_Vectorcall(object callable, const PyObject *const *args, size_t nargsf, PyObject *kwnames)
+
+
+cdef inline object vectorcall_1(object callable, object arg0):
+    cdef PyObject* args[1]
+    args[0] = <PyObject*>arg0
+    return PyObject_Vectorcall(callable, args, 1, NULL)
+
+
+cdef inline object vectorcall_2(object callable, object arg0, object arg1):
+    cdef PyObject* args[2]
+    args[0] = <PyObject*>arg0
+    args[1] = <PyObject*>arg1
+    return PyObject_Vectorcall(callable, args, 2, NULL)
+
+
+cdef inline object vectorcall_3(object callable, object arg0, object arg1, object arg2):
+    cdef PyObject* args[3]
+    args[0] = <PyObject*>arg0
+    args[1] = <PyObject*>arg1
+    args[2] = <PyObject*>arg2
+    return PyObject_Vectorcall(callable, args, 3, NULL)
+
 
 # Better support for Pydantic
 try:
@@ -142,7 +180,7 @@ cdef class BaseApplication:
 
         request.route_values = route.values
         try:
-            response = await route.handler(request)
+            response = await vectorcall_1(route.handler, request)
         except Exception as exc:
             response = await self.handle_request_handler_exception(request, exc)
         return response or Response(204)
@@ -199,7 +237,7 @@ cdef class BaseApplication:
         internal_server_error_handler = self.get_http_exception_handler(error)
 
         try:
-            return await internal_server_error_handler(self, request, error)
+            return await vectorcall_3(internal_server_error_handler, self, request, error)
         except Exception:
             self.logger.exception(
                 "An exception occurred while trying to apply the configured "
@@ -209,7 +247,7 @@ cdef class BaseApplication:
 
     async def _apply_exception_handler(self, Request request, Exception exc, object exception_handler):
         try:
-            return await exception_handler(self, request, exc)
+            return await vectorcall_3(exception_handler, self, request, exc)
         except Exception as server_ex:
             # If the exception happens in the user-defined exception handler,
             # we need to fallback to the default handlers.

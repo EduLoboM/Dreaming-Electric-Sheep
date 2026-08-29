@@ -1,3 +1,14 @@
+# cython: boundscheck=False
+# cython: wraparound=False
+# cython: nonecheck=False
+# cython: cdivision=True
+# cython: initializedcheck=False
+# cython: language_level=3
+# Copyright (C) 2018-present Roberto Prevato
+#
+# This module is part of Dreaming Electric Sheep and is released under
+# the MIT License https://opensource.org/licenses/MIT
+
 from datetime import datetime
 from urllib.parse import quote, unquote
 from cpython.datetime cimport datetime

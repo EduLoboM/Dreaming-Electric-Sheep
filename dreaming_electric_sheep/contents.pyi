@@ -12,13 +12,16 @@ from typing import (
 )
 
 class Content:
-    def __init__(self, content_type: bytes, data: bytes):
+    def __init__(self, content_type: bytes, data: Any):
         self.type = content_type
         self.body = data
         self.length = len(data)
 
-    async def read(self) -> bytes:
+    async def read(self) -> Any:
         return self.body
+
+    @property
+    def body_buffer(self) -> memoryview: ...
 
     def dispose(self) -> None: ...
 

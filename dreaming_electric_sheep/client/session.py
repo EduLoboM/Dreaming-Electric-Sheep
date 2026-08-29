@@ -357,7 +357,7 @@ class ClientSession:
     async def send(self, request: Request) -> Response:
         self._validate_request_url(request)
 
-        if not hasattr(request, "context"):
+        if getattr(request, "context", None) is None:
             request.context = self.get_new_context(request)  # type: ignore
             self.merge_default_headers(request)
 

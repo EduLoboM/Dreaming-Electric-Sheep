@@ -7,7 +7,7 @@
 
 cdef class Content:
     cdef readonly bytes type
-    cdef readonly bytes body
+    cdef readonly object body
     cdef readonly long long length
     cpdef void dispose(self)
 

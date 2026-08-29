@@ -17,11 +17,9 @@ def test_request_supports_dynamic_attributes():
     request = Request("GET", b"/", None)
     foo = object()
 
-    assert (
-        hasattr(request, "foo") is False
-    ), "This test makes sense if such attribute is not defined"
-    request.foo = foo  # type: ignore
-    assert request.foo is foo  # type: ignore
+    assert hasattr(request, "__dict__") is False
+    request.state = foo
+    assert request.state is foo
 
 
 @pytest.mark.parametrize(

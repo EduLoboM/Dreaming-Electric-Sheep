@@ -12,12 +12,16 @@ from .cookies cimport (
     write_cookie_for_response,
 )
 from .exceptions cimport BadRequestFormat
+from .headers cimport Headers
 from .url cimport URL
 
 
 cdef class Message:
     cdef list _raw_headers
+    cdef public Headers _headers
     cdef public Content content
+    cdef public object _form_data
+    cdef public object context
     cdef object __weakref__
 
     cpdef list get_headers(self, bytes key)
@@ -50,17 +54,35 @@ cdef class Request(Message):
     cdef public bytes _raw_query
     cdef public object route_values
     cdef public object scope
-
-    cdef dict __dict__
+    cdef public object _user
+    cdef public object _di_scope
+    cdef public object state
+    cdef public object _session
+    cdef public str _base_path
+    cdef public str _original_client_ip
+    cdef public str _host
+    cdef public str _scheme
+    cdef public object _context
+    cdef public object services
 
     cpdef bint expect_100_continue(self)
+    cpdef void reset(self)
 
 
 cdef class Response(Message):
     cdef public int status
-    cdef dict __dict__
+    cdef public object state
+    cdef public object _context
 
     cpdef bint is_redirect(self)
+    cpdef void reset(self)
+
+
+cpdef Request acquire_request(str method, bytes path, bytes raw_query, list headers, object scope)
+cpdef void release_request(Request request)
+
+cpdef Response acquire_response(int status=*, list headers=*, Content content=*)
+cpdef void release_response(Response response)
 
 
 cpdef bint method_without_body(str method)

@@ -566,7 +566,7 @@ class TestHandler(AuthenticationHandler):
     foo: Foo
 
     def authenticate(self, context: Request) -> Identity | None:
-        context.foo = self.foo  # type: ignore
+        context.state = self.foo  # type: ignore
         return Identity({"test": True})
 
 
@@ -625,7 +625,7 @@ async def test_di_supports_scoped_auth_handlers(app: Application):
     @app.router.get("/")
     async def home(request, foo: Foo):
         nonlocal first_foo
-        assert request.foo is foo
+        assert request.state is foo
         if first_foo is None:
             first_foo = foo
         else:

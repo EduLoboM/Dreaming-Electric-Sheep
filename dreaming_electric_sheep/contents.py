@@ -34,19 +34,28 @@ def ensure_in_cwd(path: str) -> None:
 
 
 class Content:
-    def __init__(self, content_type: bytes, data: bytes):
+    def __init__(self, content_type: bytes, data: Any):
         self.type = content_type
         self.body = data
-        self.length = len(data)
+        self.length = len(data) if data is not None else 0
 
-    async def read(self) -> bytes:
-        return self.body or b""
+    async def read(self) -> Any:
+        return self.body if self.body is not None else b""
+
+    @property
+    def body_buffer(self) -> memoryview:
+        if self.body is None:
+            return memoryview(b"")
+        if isinstance(self.body, memoryview):
+            return self.body
+        return memoryview(self.body)
 
     def dispose(self):
         """
         Dispose of the content.
         """
         self.body = None
+        self.type = None
 
 
 class StreamedContent(Content):
@@ -83,10 +92,14 @@ class StreamedContent(Content):
         Returns:
             The complete content as bytes.
         """
-        value = bytearray()
+        chunks = []
         async for chunk in self.generator():
-            value.extend(chunk)
-        self.body = bytes(value)
+            if chunk:
+                chunks.append(chunk)
+        if len(chunks) == 1:
+            self.body = chunks[0]
+        else:
+            self.body = b"".join(chunks) if chunks else b""
         self.length = len(self.body)
         return self.body
 
@@ -194,7 +207,7 @@ class ASGIContent(Content):
             self.length = len(chunk)
             return self.body
 
-        value = bytearray(chunk)
+        chunks = [chunk] if chunk else []
         while True:
             if self.receive is None:
                 break  # disposed
@@ -202,10 +215,15 @@ class ASGIContent(Content):
             message = await self.receive()
             if message.get("type") == "http.disconnect":
                 raise MessageAborted()
-            value.extend(message.get("body", b""))
+            next_chunk = message.get("body", b"")
+            if next_chunk:
+                chunks.append(next_chunk)
             if not message.get("more_body"):
                 break
-        self.body = bytes(value)
+        if len(chunks) == 1:
+            self.body = chunks[0]
+        else:
+            self.body = b"".join(chunks) if chunks else b""
         self.length = len(self.body)
         return self.body
 

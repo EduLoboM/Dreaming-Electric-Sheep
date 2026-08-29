@@ -1,3 +1,14 @@
+# cython: boundscheck=False
+# cython: wraparound=False
+# cython: nonecheck=False
+# cython: cdivision=True
+# cython: initializedcheck=False
+# cython: language_level=3
+# Copyright (C) 2018-present Roberto Prevato
+#
+# This module is part of Dreaming Electric Sheep and is released under
+# the MIT License https://opensource.org/licenses/MIT
+
 import asyncio
 import json
 import logging
@@ -40,20 +51,29 @@ cdef class Content:
     def __init__(
         self,
         bytes content_type,
-        bytes data
+        object data
     ):
         self.type = content_type
         self.body = data
-        self.length = len(data)
+        self.length = len(data) if data is not None else 0
 
     async def read(self):
-        return self.body or b""
+        return self.body if self.body is not None else b""
+
+    @property
+    def body_buffer(self):
+        if self.body is None:
+            return memoryview(b"")
+        if isinstance(self.body, memoryview):
+            return self.body
+        return memoryview(self.body)
 
     cpdef void dispose(self):
         """
         Dispose of the content.
         """
         self.body = None
+        self.type = None
 
 
 cdef class StreamedContent(Content):
@@ -73,12 +93,16 @@ cdef class StreamedContent(Content):
             raise ValueError("Data provider must be an async generator")
 
     async def read(self):
-        value = bytearray()
+        cdef list chunks = []
 
         async for chunk in self.generator():
-            value.extend(chunk)
+            if chunk:
+                chunks.append(chunk)
 
-        self.body = bytes(value)
+        if len(chunks) == 1:
+            self.body = chunks[0]
+        else:
+            self.body = b"".join(chunks) if chunks else b""
         self.length = len(self.body)
         return self.body
 
@@ -137,7 +161,7 @@ cdef class ASGIContent(Content):
             self.length = len(chunk)
             return self.body
 
-        value = bytearray(chunk)
+        cdef list chunks = [chunk] if chunk else []
         while True:
             if self.receive is None:
                 break  # disposed
@@ -147,12 +171,17 @@ cdef class ASGIContent(Content):
             if message.get('type') == 'http.disconnect':
                 raise MessageAborted()
 
-            value.extend(message.get('body', b''))
+            next_chunk = message.get('body', b'')
+            if next_chunk:
+                chunks.append(next_chunk)
 
             if not message.get('more_body'):
                 break
 
-        self.body = bytes(value)
+        if len(chunks) == 1:
+            self.body = chunks[0]
+        else:
+            self.body = b"".join(chunks) if chunks else b""
         self.length = len(self.body)
         return self.body
 
