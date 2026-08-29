@@ -22,6 +22,7 @@ from dreaming_electric_sheep.common.types import (
     normalize_params,
 )
 from dreaming_electric_sheep.messages import Request
+from dreaming_electric_sheep.routing import CythonRadixRouter
 from dreaming_electric_sheep.server.env import get_global_route_prefix
 from dreaming_electric_sheep.utils import ensure_bytes, ensure_str
 
@@ -125,21 +126,32 @@ class RouteNotFound(RouteException):
         self.name = name
 
 
-class RouteMatch:
-    __slots__ = ("_values", "pattern", "handler")
+try:
+    from dreaming_electric_sheep.routing import RouteMatch
+except ImportError:
+    class RouteMatch:
+        __slots__ = ("_values", "pattern", "handler", "route")
 
-    def __init__(self, route: "Route", values: dict[str, bytes | None]):
-        self.handler = route.handler
-        self.pattern = route.pattern
-        self._values: dict[str, str | None] = (
-            {k: unquote(v.decode("utf8")) for k, v in values.items()}
-            if values
-            else None
-        )
+        def __init__(
+            self,
+            route: "Route",
+            values: dict[str, bytes | None] | dict[str, str | None] | None,
+        ):
+            self.route = route
+            self.handler = route.handler
+            self.pattern = route.pattern
+            self._values: dict[str, str | None] = (
+                {
+                    k: unquote(v.decode("utf8")) if isinstance(v, bytes) else v
+                    for k, v in values.items()
+                }
+                if values
+                else None
+            )
 
-    @property
-    def values(self) -> dict[str, str | None]:
-        return self._values
+        @property
+        def values(self) -> dict[str, str | None]:
+            return self._values
 
 
 class RouteFilter(ABC):
@@ -739,6 +751,7 @@ class Router(RouterBase):
         "_prefix",
         "_registered_routes",
         "_named_routes",
+        "_radix_router",
     )
 
     def __init__(
@@ -768,6 +781,7 @@ class Router(RouterBase):
         self._sub_routers = sub_routers
         self._registered_routes = []  # used during setup
         self._named_routes: dict[str, Route] = {}
+        self._radix_router = CythonRadixRouter()
 
         if self._filters:
             extend(self, RouterFiltersMixin)
@@ -785,6 +799,7 @@ class Router(RouterBase):
         self._fallback = None
         self.routes = defaultdict(list)
         self._named_routes = {}
+        self._radix_router = CythonRadixRouter()
         self.controllers_routes.reset()
         if self._sub_routers:
             for sub_router in self._sub_routers:
@@ -968,6 +983,10 @@ class Router(RouterBase):
         method_bytes = ensure_bytes(method)
         if not isinstance(route, FilterRoute):
             self._check_duplicate(method_bytes, route)
+            if self._radix_router is not None:
+                self._radix_router.add_route(
+                    method_bytes, route.pattern, route, route.param_names
+                )
         self.routes[method_bytes].append(route)
 
     def sort_routes(self):
@@ -992,6 +1011,15 @@ class Router(RouterBase):
 
         self.routes = current_routes
 
+        # Re-populate radix router in sorted order
+        self._radix_router = CythonRadixRouter()
+        for method, routes_list in self.routes.items():
+            for route in routes_list:
+                if not isinstance(route, FilterRoute):
+                    self._radix_router.add_route(
+                        method, route.pattern, route, route.param_names
+                    )
+
         if self._sub_routers:
             for sub_router in self._sub_routers:
                 sub_router.sort_routes()
@@ -1006,8 +1034,16 @@ class Router(RouterBase):
     def get_match_by_method_and_path(
         self, method: AnyStr, path: AnyStr
     ) -> RouteMatch | None:
+        bytes_method = ensure_bytes(method)
         bytes_value = ensure_bytes(path)
-        for route in self.routes[ensure_bytes(method)]:
+
+        if self._radix_router is not None:
+            radix_res = self._radix_router.get_match(bytes_method, bytes_value)
+            if radix_res is not None:
+                route, values = radix_res
+                return RouteMatch(route, values)
+
+        for route in self.routes[bytes_method]:
             match = route.match_by_path(bytes_value)
             if match:
                 return match
