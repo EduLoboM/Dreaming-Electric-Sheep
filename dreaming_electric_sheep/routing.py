@@ -50,9 +50,11 @@ class RadixNode:
         "children",
         "param_child",
         "param_name",
+        "param_names",
         "param_validator",
         "wildcard_child",
         "wildcard_name",
+        "wildcard_suffix",
         "is_leaf",
     )
 
@@ -62,6 +64,7 @@ class RadixNode:
         self.children = {}
         self.param_child = None
         self.param_name = None
+        self.param_names = None
         self.param_validator = None
         self.wildcard_child = None
         self.wildcard_name = None

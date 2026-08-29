@@ -31,9 +31,9 @@ void *scratchpad_alloc(ScratchpadArena *arena, size_t size, size_t alignment) {
     }
 
     // Align offset
-    size_t current_addr = (size_t)(arena->buffer + arena->offset);
-    size_t aligned_addr = (current_addr + (alignment - 1)) & ~(alignment - 1);
-    size_t new_offset = (aligned_addr - (size_t)arena->buffer) + size;
+    uintptr_t current_addr = (uintptr_t)(arena->buffer + arena->offset);
+    uintptr_t aligned_addr = (current_addr + (alignment - 1)) & ~(uintptr_t)(alignment - 1);
+    size_t new_offset = (size_t)(aligned_addr - (uintptr_t)arena->buffer) + size;
 
     if (new_offset > arena->capacity) {
         // Arena overflow: attempt geometric resize if dynamically allocated
@@ -49,9 +49,9 @@ void *scratchpad_alloc(ScratchpadArena *arena, size_t size, size_t alignment) {
             arena->buffer = new_buf;
             arena->capacity = new_capacity;
 
-            current_addr = (size_t)(arena->buffer + arena->offset);
-            aligned_addr = (current_addr + (alignment - 1)) & ~(alignment - 1);
-            new_offset = (aligned_addr - (size_t)arena->buffer) + size;
+            current_addr = (uintptr_t)(arena->buffer + arena->offset);
+            aligned_addr = (current_addr + (alignment - 1)) & ~(uintptr_t)(alignment - 1);
+            new_offset = (size_t)(aligned_addr - (uintptr_t)arena->buffer) + size;
         } else {
             return NULL;
         }

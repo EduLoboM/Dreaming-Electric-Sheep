@@ -1,15 +1,25 @@
 #include "simd_ops.h"
 #include <string.h>
 
+#if defined(_MSC_VER) && !defined(__clang__)
+    #include <intrin.h>
+    static inline int __des_ctz(uint32_t mask) {
+        unsigned long index;
+        _BitScanForward(&index, mask);
+        return (int)index;
+    }
+    #define __builtin_ctz(x) __des_ctz(x)
+#endif
+
 #if defined(__x86_64__) || defined(_M_X64) || defined(__i386__) || defined(_M_IX86)
     #if defined(__AVX2__)
         #include <immintrin.h>
         #define HAS_AVX2 1
-    #elif defined(__SSE4_2__) || defined(__SSE2__)
+    #elif defined(__SSE4_2__) || defined(__SSE2__) || defined(_M_X64) || (defined(_M_IX86_FP) && _M_IX86_FP >= 2)
         #include <emmintrin.h>
         #define HAS_SSE2 1
     #endif
-#elif defined(__ARM_NEON) || defined(__aarch64__)
+#elif defined(__ARM_NEON) || defined(__aarch64__) || defined(_M_ARM64)
     #include <arm_neon.h>
     #define HAS_NEON 1
 #endif

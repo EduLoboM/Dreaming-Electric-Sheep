@@ -62,9 +62,11 @@ cdef class RadixNode:
         self.children = {}
         self.param_child = None
         self.param_name = None
+        self.param_names = None
         self.param_validator = None
         self.wildcard_child = None
         self.wildcard_name = None
+        self.wildcard_suffix = None
         self.is_leaf = False
 
 
@@ -165,10 +167,11 @@ cdef class RadixTree:
         cdef str param_name = ""
         cdef object validator = None
 
+        cdef Py_ssize_t seg_len = len(seg)
         if seg.startswith(b"{") and seg.endswith(b"}"):
-            inner = seg[1:-1].decode("utf8")
+            inner = seg[1 : seg_len - 1].decode("utf8")
         elif seg.startswith(b"<") and seg.endswith(b">"):
-            inner = seg[1:-1].decode("utf8")
+            inner = seg[1 : seg_len - 1].decode("utf8")
         elif seg.startswith(b":"):
             inner = seg[1:].decode("utf8")
         else:
@@ -275,7 +278,7 @@ cdef class RadixTree:
             if current.wildcard_suffix is not None:
                 if not tail_bytes.lower().endswith(current.wildcard_suffix):
                     return None
-                tail_bytes = tail_bytes[: -len(current.wildcard_suffix)]
+                tail_bytes = tail_bytes[: len(tail_bytes) - len(current.wildcard_suffix)]
             p_copy = params.copy() if params else {}
             tail_str = _fast_unquote(tail_bytes)
             if current.wildcard_child.param_names and len(current.wildcard_child.param_names) == len(params) + 1:

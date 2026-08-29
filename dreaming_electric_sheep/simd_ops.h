@@ -10,6 +10,10 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#if defined(_MSC_VER) && !defined(__clang__)
+#define __restrict__ __restrict
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif

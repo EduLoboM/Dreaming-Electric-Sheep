@@ -8,11 +8,10 @@ import os
 import sys
 from setuptools import Extension, setup
 
-COMPILE_ARGS = ["-O3", "-fPIC"]
-
-if sys.platform != "win32":
-    # On GCC/Clang enable pointer aliasing and math optimizations
-    COMPILE_ARGS.extend(["-fstrict-aliasing"])
+if sys.platform == "win32":
+    COMPILE_ARGS = ["/O2"]
+else:
+    COMPILE_ARGS = ["-O3", "-fPIC", "-fstrict-aliasing"]
 
 # Check for environment variable to skip extensions
 skip_ext = (
