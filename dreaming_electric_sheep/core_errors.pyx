@@ -8,36 +8,47 @@ Typed Python exception hierarchy for Dreaming Electric Sheep C-core results (des
 """
 
 cdef class DesCoreError(Exception):
-    def __init__(self, str message, int error_code = 0):
+    def __init__(self, str message, int error_code = 0, str diagnostic_code = "DES_E000"):
         super().__init__(message)
         self.message = message
         self.error_code = error_code
+        self.diagnostic_code = diagnostic_code
 
     def __repr__(self):
-        return f"{self.__class__.__name__}(code={self.error_code}, {self.message!r})"
+        return f"{self.__class__.__name__}(code={self.error_code}, diag={self.diagnostic_code}, {self.message!r})"
 
     def __str__(self):
-        return f"[{self.error_code}] {self.message}"
+        return f"[{self.diagnostic_code}:{self.error_code}] {self.message}"
+
+
+cdef class HeaderError(DesCoreError):
+    """Raised when header format or values violate HTTP/ASGI constraints (DES_E001)."""
+    def __init__(self, str message, int error_code = 1, str diagnostic_code = "DES_E001"):
+        super().__init__(message, error_code, diagnostic_code)
 
 
 cdef class MemoryExhaustedError(DesCoreError):
-    """Raised when memory allocation fails or scratchpad arena capacity is exhausted."""
-    pass
-
-
-cdef class ParseError(DesCoreError):
-    """Raised when parsing headers, integers, or tokens from a buffer fails or overflows."""
-    pass
+    """Raised when memory allocation fails or scratchpad arena capacity is exhausted (DES_E002)."""
+    def __init__(self, str message, int error_code = 5, str diagnostic_code = "DES_E002"):
+        super().__init__(message, error_code, diagnostic_code)
 
 
 cdef class SimdUnsupportedError(DesCoreError):
-    """Raised when required SIMD instruction sets (AVX-512, AVX2, NEON) are unavailable."""
-    pass
+    """Raised when required SIMD instruction sets are unavailable (DES_E003)."""
+    def __init__(self, str message, int error_code = 4, str diagnostic_code = "DES_E003"):
+        super().__init__(message, error_code, diagnostic_code)
+
+
+cdef class ParseError(DesCoreError):
+    """Raised when parsing buffer, integers, or tokens fails or overflows (DES_E004)."""
+    def __init__(self, str message, int error_code = 6, str diagnostic_code = "DES_E004"):
+        super().__init__(message, error_code, diagnostic_code)
 
 
 cdef class InvalidArgumentError(DesCoreError):
-    """Raised when an invalid argument or null pointer is passed to a C core API."""
-    pass
+    """Raised when an invalid argument or null pointer is passed to C core (DES_E005)."""
+    def __init__(self, str message, int error_code = 2, str diagnostic_code = "DES_E005"):
+        super().__init__(message, error_code, diagnostic_code)
 
 
 cpdef void check_des_err(int code, str msg=None) except *:

@@ -32,3 +32,4 @@ cdef class CythonRadixRouter:
     cdef public dict trees
     cpdef void add_route(self, bytes method, bytes pattern, object route, list param_names=*)
     cpdef tuple get_match(self, bytes method, bytes path)
+    cpdef void freeze(self)

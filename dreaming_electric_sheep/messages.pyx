@@ -963,8 +963,14 @@ cdef class Response(Message):
             raise FailedRequestError(self.status, await self.text())
 
 
-cdef list _REQUEST_FREELIST = []
-cdef list _RESPONSE_FREELIST = []
+import threading
+
+class _ThreadLocalFreelist(threading.local):
+    def __init__(self):
+        self.requests = []
+        self.responses = []
+
+_TLS = _ThreadLocalFreelist()
 cdef int _MAX_FREELIST_CAPACITY = 512
 
 
@@ -972,8 +978,14 @@ cpdef Request acquire_request(str method, bytes path, bytes raw_query, list head
     cdef Request req
     cdef str interned_method = intern_method_str(method)
     cdef list processed_headers = [(intern_header_name_bytes(h[0]), h[1]) if isinstance(h, tuple) and len(h) == 2 and isinstance(h[0], bytes) else h for h in headers] if headers is not None else []
-    if _REQUEST_FREELIST:
-        req = _REQUEST_FREELIST.pop()
+    cdef list req_list = getattr(_TLS, "requests", None)
+    if req_list is None:
+        _TLS.requests = []
+        _TLS.responses = []
+        req_list = _TLS.requests
+
+    if req_list:
+        req = req_list.pop()
         req.method = interned_method
         req._path = path
         req._raw_query = raw_query
@@ -987,15 +999,27 @@ cpdef Request acquire_request(str method, bytes path, bytes raw_query, list head
 
 
 cpdef void release_request(Request request):
-    if len(_REQUEST_FREELIST) < _MAX_FREELIST_CAPACITY:
+    cdef list req_list = getattr(_TLS, "requests", None)
+    if req_list is None:
+        _TLS.requests = []
+        _TLS.responses = []
+        req_list = _TLS.requests
+
+    if len(req_list) < _MAX_FREELIST_CAPACITY:
         request.reset()
-        _REQUEST_FREELIST.append(request)
+        req_list.append(request)
 
 
 cpdef Response acquire_response(int status=200, list headers=None, Content content=None):
     cdef Response resp
-    if _RESPONSE_FREELIST:
-        resp = _RESPONSE_FREELIST.pop()
+    cdef list resp_list = getattr(_TLS, "responses", None)
+    if resp_list is None:
+        _TLS.requests = []
+        _TLS.responses = []
+        resp_list = _TLS.responses
+
+    if resp_list:
+        resp = resp_list.pop()
         resp.status = status
         resp._raw_headers = headers if headers is not None else []
         resp.content = content
@@ -1004,9 +1028,15 @@ cpdef Response acquire_response(int status=200, list headers=None, Content conte
 
 
 cpdef void release_response(Response response):
-    if len(_RESPONSE_FREELIST) < _MAX_FREELIST_CAPACITY:
+    cdef list resp_list = getattr(_TLS, "responses", None)
+    if resp_list is None:
+        _TLS.requests = []
+        _TLS.responses = []
+        resp_list = _TLS.responses
+
+    if len(resp_list) < _MAX_FREELIST_CAPACITY:
         response.reset()
-        _RESPONSE_FREELIST.append(response)
+        resp_list.append(response)
 
 
 cpdef bint is_cors_request(Request request):

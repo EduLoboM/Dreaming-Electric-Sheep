@@ -26,7 +26,7 @@ def test_exception_hierarchy():
     assert err.error_code == 5
     assert err.message == "out of arena space"
     assert "MemoryExhaustedError" in repr(err)
-    assert "[5] out of arena space" in str(err)
+    assert "[DES_E002:5] out of arena space" in str(err)
 
 
 def test_check_des_err_dispatcher():

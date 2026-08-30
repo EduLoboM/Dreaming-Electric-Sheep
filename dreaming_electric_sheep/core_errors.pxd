@@ -14,6 +14,10 @@ cdef extern from "fast_parse.h":
 cdef class DesCoreError(Exception):
     cdef public int error_code
     cdef public str message
+    cdef public str diagnostic_code
+
+cdef class HeaderError(DesCoreError):
+    pass
 
 cdef class MemoryExhaustedError(DesCoreError):
     pass
