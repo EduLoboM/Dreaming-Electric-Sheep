@@ -160,5 +160,10 @@ if not skip_ext:
 setup(
     ext_modules=ext_modules,
     cmdclass={"build_ext": CustomBuildExt},
+    entry_points={
+        "console_scripts": [
+            "des = dreaming_electric_sheep.cli.main:main",
+        ],
+    },
 )
 

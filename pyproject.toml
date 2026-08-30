@@ -50,15 +50,52 @@ include = ["dreaming_electric_sheep*"]
 [tool.setuptools.dynamic]
 version = { attr = "dreaming_electric_sheep.__version__" }
 
+[project.scripts]
+des = "dreaming_electric_sheep.cli.main:main"
+
 [project.optional-dependencies]
-jinja = ["Jinja2~=3.1.6"]
+standard = [
+    "granian>=1.7.0",
+    "msgspec>=0.18.0",
+    "Jinja2~=3.1.6",
+    "uvloop>=0.21.0; sys_platform != 'win32'",
+]
+cli = [
+    "click>=8.1.0",
+    "rich>=13.0.0",
+]
+jwt = [
+    "cryptography>=45.0.2,<47.0.0",
+    "PyJWT>=2.10.1,<2.13.0",
+]
+openid = [
+    "cryptography>=45.0.2,<47.0.0",
+    "PyJWT>=2.10.1,<2.13.0",
+]
 xml = ["defusedxml>=0.7.1"]
+jinja = ["Jinja2~=3.1.6"]
+websockets = ["websockets~=15.0.1"]
 full = [
+    "granian>=1.7.0",
     "cryptography>=45.0.2,<47.0.0",
     "PyJWT>=2.10.1,<2.13.0",
     "websockets~=15.0.1",
     "Jinja2~=3.1.6",
     "defusedxml>=0.7.1",
+    "click>=8.1.0",
+    "rich>=13.0.0",
+    "uvloop>=0.21.0; sys_platform != 'win32'",
+]
+all = [
+    "granian>=1.7.0",
+    "cryptography>=45.0.2,<47.0.0",
+    "PyJWT>=2.10.1,<2.13.0",
+    "websockets~=15.0.1",
+    "Jinja2~=3.1.6",
+    "defusedxml>=0.7.1",
+    "click>=8.1.0",
+    "rich>=13.0.0",
+    "uvloop>=0.21.0; sys_platform != 'win32'",
 ]
 
 [project.urls]
