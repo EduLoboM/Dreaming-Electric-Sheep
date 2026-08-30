@@ -9,10 +9,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <stdbool.h>
-
-#if defined(_MSC_VER) && !defined(__clang__)
-#define __restrict__ __restrict
-#endif
+#include "fast_parse.h"
 
 #ifdef __cplusplus
 extern "C" {
