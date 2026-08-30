@@ -30,6 +30,18 @@ def is_stopping() -> bool:
     return _STOPPING
 
 
+def _iter_supported_signals():
+    for signal_name in ("SIGINT", "SIGTERM"):
+        signal_type = getattr(signal, signal_name, None)
+        if signal_type is None:
+            continue
+        try:
+            signal.getsignal(signal_type)
+        except (AttributeError, ValueError, OSError):
+            continue
+        yield signal_type
+
+
 def use_shutdown_handler(app: "Application"):
     """
     Configures an application start event handler that listens to SIGTERM and SIGINT
@@ -40,14 +52,17 @@ def use_shutdown_handler(app: "Application"):
     async def configure_shutdown_handler():
         # See the conversation here:
         # https://github.com/encode/uvicorn/issues/1579#issuecomment-1419635974
-        for signal_type in {signal.SIGINT, signal.SIGTERM}:
+        for signal_type in _iter_supported_signals():
             current_handler = signal.getsignal(signal_type)
 
-            def terminate_now(signum, frame):
+            def terminate_now(signum, frame, current_handler=current_handler):
                 global _STOPPING
                 _STOPPING = True
 
                 if callable(current_handler):
                     current_handler(signum, frame)  # type: ignore
 
-            signal.signal(signal_type, terminate_now)
+            try:
+                signal.signal(signal_type, terminate_now)
+            except (ValueError, OSError):
+                continue

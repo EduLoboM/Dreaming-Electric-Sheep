@@ -77,7 +77,10 @@ async def test_msgspec_binding_dataclass():
     )
     assert response.status == 422
     err = await response.json()
-    assert "error" in err or "Validation error" in str(err)
+    assert "detail" in err
+    assert isinstance(err["detail"], list)
+    assert err["detail"][0]["loc"] == ["body", "price"]
+    assert err["detail"][0]["type"] == "validation_error"
 
     # 3. Missing required field -> HTTP 422
     response = await client.post(

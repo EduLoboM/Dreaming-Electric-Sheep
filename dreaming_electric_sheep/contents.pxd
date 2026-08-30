@@ -20,6 +20,10 @@ cdef class ASGIContent(Content):
     cdef readonly object receive
 
 
+cdef class RSGIContent(Content):
+    cdef readonly object protocol
+
+
 cdef class TextContent(Content):
     pass
 

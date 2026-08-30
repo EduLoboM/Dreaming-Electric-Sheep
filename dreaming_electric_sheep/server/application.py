@@ -25,13 +25,18 @@ from dreaming_electric_sheep.common import extend
 from dreaming_electric_sheep.common.files.asyncfs import FilesHandler
 from dreaming_electric_sheep.contents import ASGIContent
 from dreaming_electric_sheep.exceptions import NotFound
-from dreaming_electric_sheep.messages import Request, Response
+from dreaming_electric_sheep.messages import Request, Response, release_request
 from dreaming_electric_sheep.middlewares import (
     MiddlewareCategory,
     MiddlewareList,
     get_middlewares_chain,
 )
-from dreaming_electric_sheep.scribe import send_asgi_response
+from dreaming_electric_sheep.scribe import (
+    instantiate_rsgi_request,
+    send_asgi_response,
+    send_rsgi_response,
+    send_rsgi_response_sync,
+)
 from dreaming_electric_sheep.server.asgi import get_request_url_from_scope
 from dreaming_electric_sheep.server.authentication import (
     AuthenticateChallenge,
@@ -928,6 +933,36 @@ class Application(BaseApplication):
             return await self._handle_lifespan(receive, send)
 
         raise TypeError(f"Unsupported scope type: {scope['type']}")
+
+    async def __rsgi__(self, scope, protocol):
+        if not self.started:
+            raise RuntimeError(
+                "Application has not been started. Ensure __rsgi_init__ was called or call app.start()."
+            )
+
+        proto = getattr(scope, "proto", "http")
+        if proto == "http":
+            request = instantiate_rsgi_request(scope, protocol)
+            try:
+                response = await self.handle(request)
+                res = send_rsgi_response_sync(response, protocol)
+                if res is not None:
+                    await res
+            finally:
+                request.scope = None
+                release_request(request)
+            return
+
+        protocol.response_empty(400, [])
+
+    def __rsgi_init__(self, loop):
+        if not self.started:
+            loop.run_until_complete(self.start())
+
+    def __rsgi_del__(self, loop):
+        if self.started:
+            loop.run_until_complete(self.stop())
+
 
 
 class PathPrefixMixin:

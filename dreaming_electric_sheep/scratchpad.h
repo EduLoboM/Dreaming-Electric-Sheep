@@ -10,6 +10,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include "fast_parse.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -17,7 +18,7 @@ extern "C" {
 
 #define DEFAULT_SCRATCHPAD_CAPACITY (64 * 1024) // 64 KB per request arena
 
-typedef struct {
+typedef struct DES_CACHE_ALIGNED {
     char *buffer;
     size_t capacity;
     size_t offset;
@@ -26,20 +27,26 @@ typedef struct {
 
 /*
  * Initializes a scratchpad arena with the specified capacity.
+ * Returns DES_OK on success, or des_err on failure.
  */
-int scratchpad_init(ScratchpadArena *arena, size_t capacity);
+DES_API des_err scratchpad_init(ScratchpadArena * __restrict__ arena, size_t capacity);
 
 /*
  * Allocates aligned memory from the scratchpad arena.
- * Returns pointer to allocated memory, or NULL on out-of-memory.
+ * Returns DES_OK on success with *out_ptr set to allocated buffer, or des_err on failure.
  */
-void *scratchpad_alloc(ScratchpadArena *arena, size_t size, size_t alignment);
+DES_API des_err scratchpad_alloc(
+    ScratchpadArena * __restrict__ arena,
+    size_t size,
+    size_t alignment,
+    void ** __restrict__ out_ptr
+);
 
 /*
- * Resets the scratchpad arena in O(1) time by rewinding the offset to 0.
+ * Resets the scratchpad arena in O(1) time by rewinding the offset to 0 with forced inlining.
  */
-static inline void scratchpad_reset(ScratchpadArena *arena) {
-    if (arena != NULL) {
+static DES_ALWAYS_INLINE void scratchpad_reset(ScratchpadArena * __restrict__ arena) {
+    if (DES_LIKELY(arena != NULL)) {
         arena->offset = 0;
     }
 }
@@ -47,7 +54,7 @@ static inline void scratchpad_reset(ScratchpadArena *arena) {
 /*
  * Destroys and frees the scratchpad arena buffer.
  */
-void scratchpad_destroy(ScratchpadArena *arena);
+DES_API void scratchpad_destroy(ScratchpadArena * __restrict__ arena);
 
 #ifdef __cplusplus
 }

@@ -95,17 +95,54 @@ async def handle_bad_request(app, Request request, HTTPException http_exception)
     return Response(400, content=TextContent(f'Bad Request: {str(http_exception)}'))
 
 
+cdef dict _format_validation_details(object details, object default_msg=None):
+    cdef list loc
+    cdef str msg, msg_clean, path, t
+    cdef list tokens
+    import re
+    if isinstance(details, dict):
+        if "detail" in details:
+            return details
+        if "loc" in details and "msg" in details:
+            return {"detail": [details]}
+        return {"detail": [{"loc": ["body"], "msg": str(details), "type": "validation_error"}]}
+    elif isinstance(details, list):
+        if details and isinstance(details[0], dict) and "loc" in details[0]:
+            return {"detail": details}
+        return {"detail": [{"loc": ["body"], "msg": str(item), "type": "validation_error"} for item in details]}
+    elif isinstance(details, str):
+        msg = str(details)
+        loc = ["body"]
+        if " - at `" in msg:
+            msg_clean, path = msg.rsplit(" - at `", 1)
+            path = path.rstrip("`")
+            if path.startswith("$"):
+                path = path[1:]
+            if path.startswith("."):
+                path = path[1:]
+            if path:
+                tokens = re.findall(r"[^.\[\]]+", path)
+                for t in tokens:
+                    if t.isdigit():
+                        loc.append(int(t))
+                    else:
+                        loc.append(t)
+            msg = msg_clean
+        return {"detail": [{"loc": loc, "msg": msg, "type": "validation_error"}]}
+    return {"detail": [{"loc": ["body"], "msg": str(default_msg or "Validation error"), "type": "validation_error"}]}
+
+
 async def handle_unprocessable_entity(app, Request request, HTTPException http_exception):
-    """Default 422 Unprocessable Entity handler with structured msgspec error details."""
+    """Default 422 Unprocessable Entity handler with FastAPI-compatible structured validation error details."""
     cdef object details = getattr(http_exception, "details", None)
+    cdef dict formatted
     cdef bytes body
     if details is not None:
-        if isinstance(details, (dict, list)):
-            body = msgspec.json.encode(details)
-        else:
-            body = msgspec.json.encode({"error": str(details), "type": "validation_error"})
-        return Response(422, content=Content(b"application/json", body))
-    return Response(422, content=TextContent(f'Unprocessable Entity: {str(http_exception)}'))
+        formatted = _format_validation_details(details, getattr(http_exception, "message", None))
+    else:
+        formatted = _format_validation_details(getattr(http_exception, "message", None) or "Unprocessable entity")
+    body = msgspec.json.encode(formatted)
+    return Response(422, content=Content(b"application/json", body))
 
 
 async def _default_pydantic_validation_error_handler(app, Request request, Exception error):

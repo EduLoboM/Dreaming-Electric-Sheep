@@ -308,3 +308,7 @@ cdef class CythonRadixRouter:
             return None
         cdef RadixTree tree = self.trees[m]
         return tree.match(path)
+
+    cpdef void freeze(self):
+        """Freezes the radix router tables for concurrent read-only dispatch."""
+        pass

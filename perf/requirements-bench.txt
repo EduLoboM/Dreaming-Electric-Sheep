@@ -1,0 +1,11 @@
+granian>=2.8.0
+uvicorn>=0.30.0
+fastapi>=0.115.0
+litestar>=2.15.0
+robyn>=0.88.0
+emmett>=2.8.0
+sanic>=24.0.0
+django>=5.0.0
+flask>=3.0.0
+jinja2>=3.1.0
+msgspec>=0.18.0

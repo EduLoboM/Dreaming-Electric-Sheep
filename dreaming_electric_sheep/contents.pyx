@@ -24,6 +24,22 @@ from dreaming_electric_sheep.settings.json import json_settings
 
 from .exceptions cimport MessageAborted
 
+from cpython.object cimport PyObject
+from cpython.bytes cimport PyBytes_AS_STRING, PyBytes_GET_SIZE
+
+cdef extern from "interning.h":
+    PyObject *get_interned_content_type_bytes(const char *type_str, size_t len)
+
+cdef inline bytes intern_content_type_bytes(bytes content_type):
+    if content_type is None:
+        return None
+    cdef char *raw = PyBytes_AS_STRING(content_type)
+    cdef Py_ssize_t size = PyBytes_GET_SIZE(content_type)
+    cdef PyObject *interned = get_interned_content_type_bytes(raw, <size_t>size)
+    if interned != NULL:
+        return <bytes><object>interned
+    return content_type
+
 logger = logging.getLogger("dreaming_electric_sheep.server")
 
 
@@ -53,7 +69,7 @@ cdef class Content:
         bytes content_type,
         object data
     ):
-        self.type = content_type
+        self.type = intern_content_type_bytes(content_type)
         self.body = data
         self.length = len(data) if data is not None else 0
 
@@ -182,6 +198,48 @@ cdef class ASGIContent(Content):
             self.body = chunks[0]
         else:
             self.body = b"".join(chunks) if chunks else b""
+        self.length = len(self.body)
+        return self.body
+
+
+cdef class RSGIContent(Content):
+
+    def __init__(self, object protocol):
+        self.type = None
+        self.body = None
+        self.length = -1
+        self.protocol = protocol
+
+    cpdef void dispose(self):
+        Content.dispose(self)
+        self.protocol = None
+
+    async def stream(self):
+        if self.protocol is None:
+            yield b""
+            return
+        async for chunk in self.protocol:
+            yield chunk
+        yield b""
+
+    async def read(self):
+        if self.body is not None:
+            return self.body
+
+        if self.protocol is None:
+            return b""
+
+        cdef object res = await self.protocol()
+        if isinstance(res, bytes):
+            self.body = res
+        elif isinstance(res, (bytearray, memoryview)):
+            self.body = bytes(res)
+        elif isinstance(res, str):
+            self.body = res.encode("utf8")
+        elif res is None:
+            self.body = b""
+        else:
+            self.body = bytes(res)
         self.length = len(self.body)
         return self.body
 

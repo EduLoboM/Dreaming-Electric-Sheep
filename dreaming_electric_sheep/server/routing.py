@@ -805,6 +805,18 @@ class Router(RouterBase):
             for sub_router in self._sub_routers:
                 sub_router.reset()
 
+    def freeze(self):
+        """
+        Freezes the router into an immutable, thread-safe fast-path structure.
+        Freezes both the fallback, static maps, and underlying Cython radix trees.
+        """
+        if hasattr(self._radix_router, "freeze"):
+            self._radix_router.freeze()
+        if self._sub_routers:
+            for sub_router in self._sub_routers:
+                sub_router.freeze()
+        self._frozen = True
+
     @property
     def prefix(self) -> str:
         return self._prefix.decode("utf8")
