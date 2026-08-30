@@ -977,7 +977,11 @@ cdef int _MAX_FREELIST_CAPACITY = 512
 cpdef Request acquire_request(str method, bytes path, bytes raw_query, list headers, object scope):
     cdef Request req
     cdef str interned_method = intern_method_str(method)
-    cdef list processed_headers = [(intern_header_name_bytes(h[0]), h[1]) if isinstance(h, tuple) and len(h) == 2 and isinstance(h[0], bytes) else h for h in headers] if headers is not None else []
+    cdef list processed_headers
+    if not headers:
+        processed_headers = []
+    else:
+        processed_headers = [(intern_header_name_bytes(h[0]), h[1]) if isinstance(h, tuple) and len(h) == 2 and isinstance(h[0], bytes) else h for h in headers]
     cdef list req_list = getattr(_TLS, "requests", None)
     if req_list is None:
         _TLS.requests = []
@@ -995,7 +999,9 @@ cpdef Request acquire_request(str method, bytes path, bytes raw_query, list head
         req._url = None
         req.route_values = None
         return req
-    return Request(interned_method, path, processed_headers)
+    req = Request.incoming(interned_method, path, raw_query, processed_headers)
+    req.scope = scope
+    return req
 
 
 cpdef void release_request(Request request):

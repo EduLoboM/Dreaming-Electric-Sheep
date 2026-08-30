@@ -121,3 +121,80 @@ async def test_rsgi_post_and_validation():
     assert proto_err.sent_status == 422
     assert b'"loc":["body","price"]' in proto_err.sent_body
     assert b'"type":"validation_error"' in proto_err.sent_body
+
+
+def test_rsgi_lifecycle_init_and_del():
+    import asyncio
+    loop = asyncio.new_event_loop()
+    app = Application()
+    assert not app.started
+
+    # 1. __rsgi_init__ starts the app using the provided loop
+    app.__rsgi_init__(loop)
+    assert app.started
+
+    # 2. __rsgi_del__ stops the app using the provided loop
+    app.__rsgi_del__(loop)
+    assert not app.started
+    loop.close()
+
+
+@pytest.mark.asyncio
+async def test_rsgi_unstarted_raises_runtime_error():
+    app = Application()
+    scope = MockRSGIScope(method="GET", path="/")
+    proto = MockRSGIProtocol()
+    with pytest.raises(RuntimeError, match="Application has not been started"):
+        await app.__rsgi__(scope, proto)
+
+
+@pytest.mark.asyncio
+async def test_rsgi_dynamic_path_and_query_string_and_freelist():
+    app = Application()
+
+    @get("/users/{user_id}")
+    async def get_user(user_id: int, request):
+        token = request.query.get("token", ["none"])[0]
+        return json({"user_id": user_id, "token": token})
+
+    app.router.add_get("/users/{user_id}", get_user)
+    await app.start()
+
+    # Hit with different dynamic paths and queries to ensure zero-cache correctness
+    for i in range(10):
+        scope = MockRSGIScope(
+            method="GET",
+            path=f"/users/{100 + i}",
+            query_string=f"token=secret_{i * 7}&extra=1",
+            headers={"Host": "example.com", "Accept": "application/json"}
+        )
+        proto = MockRSGIProtocol()
+        await app.__rsgi__(scope, proto)
+        assert proto.sent_status == 200
+        assert f'"user_id":{100 + i}'.encode() in proto.sent_body
+        assert f'"token":"secret_{i * 7}"'.encode() in proto.sent_body
+
+
+@pytest.mark.asyncio
+async def test_rsgi_custom_headers_outbound():
+    app = Application()
+    from dreaming_electric_sheep import Response, Content
+
+    @get("/custom-headers")
+    async def custom_headers():
+        resp = Response(200, [(b"x-custom-key", b"custom-val"), (b"server", b"DES-Test")], Content(b"text/plain", b"custom"))
+        return resp
+
+    app.router.add_get("/custom-headers", custom_headers)
+    await app.start()
+
+    scope = MockRSGIScope(method="GET", path="/custom-headers")
+    proto = MockRSGIProtocol()
+    await app.__rsgi__(scope, proto)
+    assert proto.sent_status == 200
+    assert proto.sent_body == b"custom"
+    headers_dict = dict(proto.sent_headers)
+    assert headers_dict.get("x-custom-key") == "custom-val"
+    assert headers_dict.get("server") == "DES-Test"
+    assert headers_dict.get("content-type") == "text/plain"
+

@@ -503,7 +503,7 @@ def main():
             DEFAULT_STACK_FRAMEWORKS, ROUTES, oha_bin, granian_bin, uvicorn_bin, host, port, duration, concurrency, num_runs
         )
 
-    if args.mode in ("all", "rsgi"):
+    if args.mode == "rsgi":
         print("\n==========================================================================================")
         print("  MODE C: PROTOCOL COMPARISON (RSGI vs ASGI vs Raw)")
         print("  DES RSGI vs DES ASGI vs Granian Raw ASGI")

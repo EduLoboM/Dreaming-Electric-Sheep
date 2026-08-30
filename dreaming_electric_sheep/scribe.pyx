@@ -14,12 +14,16 @@ import re
 
 from .contents cimport Content, StreamedContent, RSGIContent, ServerSentEvent
 from .cookies cimport Cookie, write_cookie_for_response
-from .messages cimport Request, Response
+from .messages cimport Request, Response, acquire_request, release_request
 from .url cimport URL
 
 from cpython.object cimport PyObject
 from cpython.bytes cimport PyBytes_AS_STRING, PyBytes_GET_SIZE, PyBytes_CheckExact
-from cpython.unicode cimport PyUnicode_CheckExact
+from cpython.unicode cimport (
+    PyUnicode_CheckExact,
+    PyUnicode_AsUTF8String,
+    PyUnicode_AsLatin1String,
+)
 
 # Caches for inbound RSGI
 cdef dict _KNOWN_HEADERS = {
@@ -50,8 +54,8 @@ cdef dict _KNOWN_HEADERS = {
     "x-forwarded-host": b"x-forwarded-host",
     "x-real-ip": b"x-real-ip",
 }
-cdef dict _HEADER_NAME_BYTES_CACHE = dict(_KNOWN_HEADERS)
-cdef dict _HEADER_VAL_BYTES_CACHE = {
+
+cdef dict _HEADER_VAL_BYTES = {
     "*/*": b"*/*",
     "keep-alive": b"keep-alive",
     "close": b"close",
@@ -59,10 +63,10 @@ cdef dict _HEADER_VAL_BYTES_CACHE = {
     "gzip, deflate, br": b"gzip, deflate, br",
     "application/json": b"application/json",
     "text/plain": b"text/plain",
+    "text/plain; charset=utf-8": b"text/plain; charset=utf-8",
+    "text/html": b"text/html",
+    "text/html; charset=utf-8": b"text/html; charset=utf-8",
 }
-
-cdef dict _PATH_BYTES_CACHE = {}
-cdef dict _QUERY_BYTES_CACHE = {}
 
 # Caches and prebuilt lists for outbound RSGI
 cdef list _PREBUILT_JSON_HEADERS = [("content-type", "application/json")]
@@ -70,6 +74,7 @@ cdef list _PREBUILT_TEXT_PLAIN_UTF8_HEADERS = [("content-type", "text/plain; cha
 cdef list _PREBUILT_TEXT_PLAIN_HEADERS = [("content-type", "text/plain")]
 cdef list _PREBUILT_TEXT_HTML_UTF8_HEADERS = [("content-type", "text/html; charset=utf-8")]
 cdef list _PREBUILT_TEXT_HTML_HEADERS = [("content-type", "text/html")]
+cdef list _EMPTY_HEADERS = []
 
 cdef dict _STATIC_HEADERS_BY_CT_BYTES = {
     b"application/json": _PREBUILT_JSON_HEADERS,
@@ -79,6 +84,46 @@ cdef dict _STATIC_HEADERS_BY_CT_BYTES = {
     b"text/html": _PREBUILT_TEXT_HTML_HEADERS,
 }
 
+cdef dict _KNOWN_OUTBOUND_HEADER_NAME_STR = {
+    b"content-type": "content-type",
+    b"content-length": "content-length",
+    b"server": "server",
+    b"date": "date",
+    b"set-cookie": "set-cookie",
+    b"location": "location",
+    b"connection": "connection",
+    b"cache-control": "cache-control",
+    b"vary": "vary",
+    b"access-control-allow-origin": "access-control-allow-origin",
+    b"access-control-allow-headers": "access-control-allow-headers",
+    b"access-control-allow-methods": "access-control-allow-methods",
+    b"access-control-allow-credentials": "access-control-allow-credentials",
+    b"access-control-expose-headers": "access-control-expose-headers",
+    b"access-control-max-age": "access-control-max-age",
+    b"transfer-encoding": "transfer-encoding",
+    b"www-authenticate": "www-authenticate",
+    b"authorization": "authorization",
+    b"accept": "accept",
+    b"host": "host",
+    b"etag": "etag",
+    b"last-modified": "last-modified",
+    b"strict-transport-security": "strict-transport-security",
+    b"x-content-type-options": "x-content-type-options",
+    b"x-frame-options": "x-frame-options",
+}
+
+cdef dict _KNOWN_OUTBOUND_HEADER_VAL_STR = {
+    b"application/json": "application/json",
+    b"text/plain; charset=utf-8": "text/plain; charset=utf-8",
+    b"text/plain": "text/plain",
+    b"text/html; charset=utf-8": "text/html; charset=utf-8",
+    b"text/html": "text/html",
+    b"chunked": "chunked",
+    b"keep-alive": "keep-alive",
+    b"close": "close",
+    b"0": "0",
+}
+
 cdef dict _CT_STR_CACHE = {
     b"text/html; charset=utf-8": "text/html; charset=utf-8",
     b"text/html": "text/html",
@@ -86,8 +131,6 @@ cdef dict _CT_STR_CACHE = {
     b"text/plain": "text/plain",
     b"text/plain; charset=utf-8": "text/plain; charset=utf-8",
 }
-
-cdef list _EMPTY_HEADERS = []
 
 cdef extern from "interning.h":
     PyObject *get_interned_content_type_bytes(const char *type_str, size_t len)
@@ -238,7 +281,7 @@ cpdef list extract_rsgi_headers(object raw_headers):
     cdef list headers = []
     cdef object items = getattr(raw_headers, "items", None)
     cdef object iter_source = items() if items is not None else raw_headers
-    cdef object name, value
+    cdef object pair, name, value
     cdef bytes name_bytes, value_bytes
 
     if iter_source is None:
@@ -249,22 +292,18 @@ cpdef list extract_rsgi_headers(object raw_headers):
         value = pair[1]
 
         if PyUnicode_CheckExact(name):
-            name_bytes = _HEADER_NAME_BYTES_CACHE.get(name)
+            name_bytes = _KNOWN_HEADERS.get(name)
             if name_bytes is None:
-                name_bytes = name.encode("latin-1")
-                if len(_HEADER_NAME_BYTES_CACHE) < 256:
-                    _HEADER_NAME_BYTES_CACHE[name] = name_bytes
+                name_bytes = <bytes>PyUnicode_AsLatin1String(name)
         elif PyBytes_CheckExact(name):
             name_bytes = <bytes>name
         else:
             name_bytes = str(name).encode("latin-1")
 
         if PyUnicode_CheckExact(value):
-            value_bytes = _HEADER_VAL_BYTES_CACHE.get(value)
+            value_bytes = _HEADER_VAL_BYTES.get(value)
             if value_bytes is None:
-                value_bytes = value.encode("latin-1")
-                if len(_HEADER_VAL_BYTES_CACHE) < 512:
-                    _HEADER_VAL_BYTES_CACHE[value] = value_bytes
+                value_bytes = <bytes>PyUnicode_AsLatin1String(value)
         elif PyBytes_CheckExact(value):
             value_bytes = <bytes>value
         else:
@@ -276,26 +315,14 @@ cpdef list extract_rsgi_headers(object raw_headers):
 
 cpdef Request instantiate_rsgi_request(object scope, object protocol):
     cdef str path_str = scope.path
-    cdef bytes raw_path = _PATH_BYTES_CACHE.get(path_str)
-    if raw_path is None:
-        raw_path = path_str.encode("utf-8")
-        if len(_PATH_BYTES_CACHE) < 1024:
-            _PATH_BYTES_CACHE[path_str] = raw_path
+    cdef bytes raw_path = <bytes>PyUnicode_AsUTF8String(path_str)
 
     cdef str query_str = scope.query_string
-    cdef bytes raw_query
-    if not query_str:
-        raw_query = b""
-    else:
-        raw_query = _QUERY_BYTES_CACHE.get(query_str)
-        if raw_query is None:
-            raw_query = query_str.encode("latin-1")
-            if len(_QUERY_BYTES_CACHE) < 512:
-                _QUERY_BYTES_CACHE[query_str] = raw_query
+    cdef bytes raw_query = <bytes>PyUnicode_AsLatin1String(query_str) if query_str else b""
 
     cdef list headers = extract_rsgi_headers(scope.headers)
-    cdef Request request = Request.incoming(scope.method, raw_path, raw_query, headers)
-    request.scope = scope
+    cdef str method = scope.method
+    cdef Request request = acquire_request(method, raw_path, raw_query, headers, scope)
     request.content = RSGIContent(protocol)
     return request
 
@@ -315,8 +342,6 @@ cpdef object send_rsgi_response_sync(Response response, object protocol):
                 ct_str = _CT_STR_CACHE.get(content.type)
                 if ct_str is None:
                     ct_str = content.type.decode("latin-1") if PyBytes_CheckExact(content.type) else str(content.type)
-                    if len(_CT_STR_CACHE) < 256:
-                        _CT_STR_CACHE[content.type] = ct_str
                 headers = [("content-type", ct_str)]
         else:
             headers = _EMPTY_HEADERS
@@ -327,20 +352,24 @@ cpdef object send_rsgi_response_sync(Response response, object protocol):
             name = h[0]
             val = h[1]
             if PyBytes_CheckExact(name):
-                name_str = (<bytes>name).decode("latin-1")
+                name_str = _KNOWN_OUTBOUND_HEADER_NAME_STR.get(name)
+                if name_str is None:
+                    name_str = (<bytes>name).decode("latin-1")
             elif PyUnicode_CheckExact(name):
                 name_str = <str>name
             else:
                 name_str = str(name)
 
             if PyBytes_CheckExact(val):
-                val_str = (<bytes>val).decode("latin-1")
+                val_str = _KNOWN_OUTBOUND_HEADER_VAL_STR.get(val)
+                if val_str is None:
+                    val_str = (<bytes>val).decode("latin-1")
             elif PyUnicode_CheckExact(val):
                 val_str = <str>val
             else:
                 val_str = str(val)
 
-            if name_str.lower() == "content-type":
+            if name == b"content-type" or name == "content-type" or name_str == "content-type":
                 has_ct = True
             headers.append((name_str, val_str))
 
@@ -348,8 +377,6 @@ cpdef object send_rsgi_response_sync(Response response, object protocol):
             ct_str = _CT_STR_CACHE.get(content.type)
             if ct_str is None:
                 ct_str = content.type.decode("latin-1") if PyBytes_CheckExact(content.type) else str(content.type)
-                if len(_CT_STR_CACHE) < 256:
-                    _CT_STR_CACHE[content.type] = ct_str
             headers.append(("content-type", ct_str))
 
     if content is not None:

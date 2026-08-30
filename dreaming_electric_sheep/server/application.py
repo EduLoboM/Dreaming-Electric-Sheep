@@ -25,7 +25,7 @@ from dreaming_electric_sheep.common import extend
 from dreaming_electric_sheep.common.files.asyncfs import FilesHandler
 from dreaming_electric_sheep.contents import ASGIContent
 from dreaming_electric_sheep.exceptions import NotFound
-from dreaming_electric_sheep.messages import Request, Response
+from dreaming_electric_sheep.messages import Request, Response, release_request
 from dreaming_electric_sheep.middlewares import (
     MiddlewareCategory,
     MiddlewareList,
@@ -934,58 +934,35 @@ class Application(BaseApplication):
 
         raise TypeError(f"Unsupported scope type: {scope['type']}")
 
-    async def _handle_rsgi_http(self, scope, protocol) -> None:
-        if not self.started:
-            await self.start()
-
-        request = instantiate_rsgi_request(scope, protocol)
-        response = await self.handle(request)
-        res = send_rsgi_response_sync(response, protocol)
-        if res is not None:
-            await res
-
-        request.scope = None
-        request.dispose()
-
     async def __rsgi__(self, scope, protocol):
         if not self.started:
-            await self.start()
+            raise RuntimeError(
+                "Application has not been started. Ensure __rsgi_init__ was called or call app.start()."
+            )
 
         proto = getattr(scope, "proto", "http")
         if proto == "http":
             request = instantiate_rsgi_request(scope, protocol)
-            response = await self.handle(request)
-            res = send_rsgi_response_sync(response, protocol)
-            if res is not None:
-                await res
-
-            request.scope = None
-            request.dispose()
+            try:
+                response = await self.handle(request)
+                res = send_rsgi_response_sync(response, protocol)
+                if res is not None:
+                    await res
+            finally:
+                request.scope = None
+                release_request(request)
             return
 
         protocol.response_empty(400, [])
 
-    def __rsgi_init__(self, loop=None, *args, **kwargs):
+    def __rsgi_init__(self, loop):
         if not self.started:
-            if loop is not None:
-                loop.run_until_complete(self.start())
-            else:
-                try:
-                    import asyncio
-                    asyncio.get_event_loop().run_until_complete(self.start())
-                except RuntimeError:
-                    pass
+            loop.run_until_complete(self.start())
 
-    def __rsgi_del__(self, loop=None, *args, **kwargs):
+    def __rsgi_del__(self, loop):
         if self.started:
-            if loop is not None:
-                loop.run_until_complete(self.stop())
-            else:
-                try:
-                    import asyncio
-                    asyncio.get_event_loop().run_until_complete(self.stop())
-                except RuntimeError:
-                    pass
+            loop.run_until_complete(self.stop())
+
 
 
 class PathPrefixMixin:
