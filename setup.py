@@ -140,6 +140,13 @@ if not skip_ext:
             extra_compile_args=COMPILE_ARGS,
             extra_link_args=CYTHON_LINK_ARGS,
         ),
+        Extension(
+            "dreaming_electric_sheep.core_errors",
+            [f"dreaming_electric_sheep/core_errors{ext}"],
+            include_dirs=["dreaming_electric_sheep"],
+            extra_compile_args=COMPILE_ARGS,
+            extra_link_args=CYTHON_LINK_ARGS,
+        ),
     ]
 
     if USE_CYTHON:

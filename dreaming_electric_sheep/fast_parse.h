@@ -44,11 +44,13 @@
 
 typedef enum {
     DES_OK = 0,
-    DES_ERR_NULL_ARG = 1,
-    DES_ERR_OVERFLOW = 2,
-    DES_ERR_INVALID = 3,
-    DES_ERR_NOMEM = 4,
-    DES_ERR_NOT_FOUND = 5,
+    DES_ERR_NOMEM = 1,
+    DES_ERR_BAD_ARG = 2,
+    DES_ERR_OVERFLOW = 3,
+    DES_ERR_SIMD_UNSUPPORTED = 4,
+    DES_ERR_ARENA_EXHAUSTED = 5,
+    DES_ERR_PARSE_FAILED = 6,
+    DES_ERR_NOT_FOUND = 7,
 } des_err;
 
 #ifdef __cplusplus
@@ -57,45 +59,45 @@ extern "C" {
 
 /*
  * Fast parsing of unsigned 64-bit integer from ASCII byte buffer with forced inlining.
- * Returns 1 on success, 0 on invalid characters or overflow.
+ * Returns DES_OK on success, or des_err error code on failure.
  */
-static DES_ALWAYS_INLINE int fast_parse_uint64(
+static DES_ALWAYS_INLINE des_err fast_parse_uint64(
     const char * __restrict__ s,
     size_t len,
     uint64_t * __restrict__ out
 ) {
     if (DES_UNLIKELY(s == NULL || len == 0 || out == NULL)) {
-        return 0;
+        return DES_ERR_BAD_ARG;
     }
 
     uint64_t val = 0;
     for (size_t i = 0; i < len; ++i) {
         unsigned char c = (unsigned char)s[i];
         if (DES_UNLIKELY(c < '0' || c > '9')) {
-            return 0;
+            return DES_ERR_PARSE_FAILED;
         }
         uint64_t digit = (uint64_t)(c - '0');
         if (DES_UNLIKELY(val > (UINT64_MAX - digit) / 10)) {
-            return 0; // Overflow
+            return DES_ERR_OVERFLOW;
         }
         val = val * 10 + digit;
     }
 
     *out = val;
-    return 1;
+    return DES_OK;
 }
 
 /*
  * Fast parsing of signed 64-bit integer from ASCII byte buffer with forced inlining.
- * Returns 1 on success, 0 on invalid characters or overflow.
+ * Returns DES_OK on success, or des_err error code on failure.
  */
-static DES_ALWAYS_INLINE int fast_parse_int64(
+static DES_ALWAYS_INLINE des_err fast_parse_int64(
     const char * __restrict__ s,
     size_t len,
     int64_t * __restrict__ out
 ) {
     if (DES_UNLIKELY(s == NULL || len == 0 || out == NULL)) {
-        return 0;
+        return DES_ERR_BAD_ARG;
     }
 
     int negative = 0;
@@ -105,12 +107,12 @@ static DES_ALWAYS_INLINE int fast_parse_int64(
         negative = 1;
         start = 1;
         if (DES_UNLIKELY(len == 1)) {
-            return 0;
+            return DES_ERR_PARSE_FAILED;
         }
     } else if (s[0] == '+') {
         start = 1;
         if (DES_UNLIKELY(len == 1)) {
-            return 0;
+            return DES_ERR_PARSE_FAILED;
         }
     }
 
@@ -118,41 +120,41 @@ static DES_ALWAYS_INLINE int fast_parse_int64(
     for (size_t i = start; i < len; ++i) {
         unsigned char c = (unsigned char)s[i];
         if (DES_UNLIKELY(c < '0' || c > '9')) {
-            return 0;
+            return DES_ERR_PARSE_FAILED;
         }
         uint64_t digit = (uint64_t)(c - '0');
         if (DES_UNLIKELY(uval > (UINT64_MAX - digit) / 10)) {
-            return 0;
+            return DES_ERR_OVERFLOW;
         }
         uval = uval * 10 + digit;
     }
 
     if (negative) {
         if (DES_UNLIKELY(uval > (uint64_t)INT64_MAX + 1)) {
-            return 0;
+            return DES_ERR_OVERFLOW;
         }
         *out = -(int64_t)uval;
     } else {
         if (DES_UNLIKELY(uval > (uint64_t)INT64_MAX)) {
-            return 0;
+            return DES_ERR_OVERFLOW;
         }
         *out = (int64_t)uval;
     }
 
-    return 1;
+    return DES_OK;
 }
 
 /*
  * Fast parsing of hexadecimal unsigned 64-bit integer (e.g. for HTTP chunked transfer sizes).
- * Returns 1 on success, 0 on invalid characters or overflow.
+ * Returns DES_OK on success, or des_err error code on failure.
  */
-static DES_ALWAYS_INLINE int fast_parse_hex_uint64(
+static DES_ALWAYS_INLINE des_err fast_parse_hex_uint64(
     const char * __restrict__ s,
     size_t len,
     uint64_t * __restrict__ out
 ) {
     if (DES_UNLIKELY(s == NULL || len == 0 || out == NULL)) {
-        return 0;
+        return DES_ERR_BAD_ARG;
     }
 
     uint64_t val = 0;
@@ -167,17 +169,17 @@ static DES_ALWAYS_INLINE int fast_parse_hex_uint64(
         } else if (c >= 'A' && c <= 'F') {
             digit = (uint64_t)(c - 'A' + 10);
         } else {
-            return 0;
+            return DES_ERR_PARSE_FAILED;
         }
 
         if (DES_UNLIKELY(val > (UINT64_MAX >> 4))) {
-            return 0; // Overflow
+            return DES_ERR_OVERFLOW;
         }
         val = (val << 4) | digit;
     }
 
     *out = val;
-    return 1;
+    return DES_OK;
 }
 
 /*

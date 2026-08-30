@@ -43,6 +43,13 @@ from .cookies import datetime_to_cookie_format as datetime_to_cookie_format
 from .cookies import parse_cookie as parse_cookie
 from .exceptions import HTTPException as HTTPException
 from .exceptions import UnprocessableEntity as UnprocessableEntity
+from .core_errors import (
+    DesCoreError as DesCoreError,
+    MemoryExhaustedError as MemoryExhaustedError,
+    ParseError as ParseError,
+    SimdUnsupportedError as SimdUnsupportedError,
+    InvalidArgumentError as InvalidArgumentError,
+)
 from .headers import Header as Header
 from .headers import Headers as Headers
 from .messages import Message as Message

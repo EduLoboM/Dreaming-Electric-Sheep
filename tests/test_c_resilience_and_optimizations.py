@@ -215,8 +215,13 @@ def test_scratchpad_cache_alignment():
     scratchpad_init.argtypes = [ctypes.POINTER(ScratchpadArenaStruct), ctypes.c_size_t]
 
     scratchpad_alloc = dll.scratchpad_alloc
-    scratchpad_alloc.restype = ctypes.c_void_p
-    scratchpad_alloc.argtypes = [ctypes.POINTER(ScratchpadArenaStruct), ctypes.c_size_t, ctypes.c_size_t]
+    scratchpad_alloc.restype = ctypes.c_int
+    scratchpad_alloc.argtypes = [
+        ctypes.POINTER(ScratchpadArenaStruct),
+        ctypes.c_size_t,
+        ctypes.c_size_t,
+        ctypes.POINTER(ctypes.c_void_p),
+    ]
 
     scratchpad_destroy = dll.scratchpad_destroy
     scratchpad_destroy.restype = None
@@ -229,14 +234,18 @@ def test_scratchpad_cache_alignment():
     assert arena.capacity == 1024
 
     # Alloc 128 bytes with 64-byte alignment
-    ptr1 = scratchpad_alloc(ctypes.byref(arena), 128, 64)
-    assert ptr1 is not None
-    assert ptr1 % 64 == 0, "Allocated arena address must respect 64-byte alignment"
+    ptr1 = ctypes.c_void_p()
+    err = scratchpad_alloc(ctypes.byref(arena), 128, 64, ctypes.byref(ptr1))
+    assert err == 0
+    assert ptr1.value is not None
+    assert ptr1.value % 64 == 0, "Allocated arena address must respect 64-byte alignment"
 
     # Reset offset
     arena.offset = 0
-    ptr2 = scratchpad_alloc(ctypes.byref(arena), 64, 64)
-    assert ptr2 == ptr1, "Reset must allow fast zero-cost O(1) buffer reuse"
+    ptr2 = ctypes.c_void_p()
+    err2 = scratchpad_alloc(ctypes.byref(arena), 64, 64, ctypes.byref(ptr2))
+    assert err2 == 0
+    assert ptr2.value == ptr1.value, "Reset must allow fast zero-cost O(1) buffer reuse"
 
     scratchpad_destroy(ctypes.byref(arena))
     assert arena.capacity == 0

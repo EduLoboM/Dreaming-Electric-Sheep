@@ -1,9 +1,9 @@
 #include "scratchpad.h"
 #include <string.h>
 
-int scratchpad_init(ScratchpadArena * __restrict__ arena, size_t capacity) {
+des_err scratchpad_init(ScratchpadArena * __restrict__ arena, size_t capacity) {
     if (DES_UNLIKELY(arena == NULL)) {
-        return -1;
+        return DES_ERR_BAD_ARG;
     }
     if (capacity == 0) {
         capacity = DEFAULT_SCRATCHPAD_CAPACITY;
@@ -14,17 +14,22 @@ int scratchpad_init(ScratchpadArena * __restrict__ arena, size_t capacity) {
         arena->capacity = 0;
         arena->offset = 0;
         arena->is_dynamic = 0;
-        return -1;
+        return DES_ERR_NOMEM;
     }
     arena->capacity = capacity;
     arena->offset = 0;
     arena->is_dynamic = 1;
-    return 0;
+    return DES_OK;
 }
 
-void *scratchpad_alloc(ScratchpadArena * __restrict__ arena, size_t size, size_t alignment) {
-    if (DES_UNLIKELY(arena == NULL || arena->buffer == NULL || size == 0)) {
-        return NULL;
+des_err scratchpad_alloc(
+    ScratchpadArena * __restrict__ arena,
+    size_t size,
+    size_t alignment,
+    void ** __restrict__ out_ptr
+) {
+    if (DES_UNLIKELY(arena == NULL || arena->buffer == NULL || size == 0 || out_ptr == NULL)) {
+        return DES_ERR_BAD_ARG;
     }
 
     if (alignment == 0) {
@@ -45,7 +50,8 @@ void *scratchpad_alloc(ScratchpadArena * __restrict__ arena, size_t size, size_t
             }
             char *new_buf = (char *)realloc(arena->buffer, new_capacity);
             if (DES_UNLIKELY(new_buf == NULL)) {
-                return NULL;
+                *out_ptr = NULL;
+                return DES_ERR_ARENA_EXHAUSTED;
             }
             arena->buffer = new_buf;
             arena->capacity = new_capacity;
@@ -54,13 +60,14 @@ void *scratchpad_alloc(ScratchpadArena * __restrict__ arena, size_t size, size_t
             aligned_addr = (current_addr + (alignment - 1)) & ~(uintptr_t)(alignment - 1);
             new_offset = (size_t)(aligned_addr - (uintptr_t)arena->buffer) + size;
         } else {
-            return NULL;
+            *out_ptr = NULL;
+            return DES_ERR_ARENA_EXHAUSTED;
         }
     }
 
-    void *ptr = (void *)aligned_addr;
+    *out_ptr = (void *)aligned_addr;
     arena->offset = new_offset;
-    return ptr;
+    return DES_OK;
 }
 
 void scratchpad_destroy(ScratchpadArena * __restrict__ arena) {

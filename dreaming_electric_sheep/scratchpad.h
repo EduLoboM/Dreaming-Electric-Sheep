@@ -27,14 +27,20 @@ typedef struct DES_CACHE_ALIGNED {
 
 /*
  * Initializes a scratchpad arena with the specified capacity.
+ * Returns DES_OK on success, or des_err on failure.
  */
-DES_API int scratchpad_init(ScratchpadArena * __restrict__ arena, size_t capacity);
+DES_API des_err scratchpad_init(ScratchpadArena * __restrict__ arena, size_t capacity);
 
 /*
  * Allocates aligned memory from the scratchpad arena.
- * Returns pointer to allocated memory, or NULL on out-of-memory.
+ * Returns DES_OK on success with *out_ptr set to allocated buffer, or des_err on failure.
  */
-DES_API void *scratchpad_alloc(ScratchpadArena * __restrict__ arena, size_t size, size_t alignment);
+DES_API des_err scratchpad_alloc(
+    ScratchpadArena * __restrict__ arena,
+    size_t size,
+    size_t alignment,
+    void ** __restrict__ out_ptr
+);
 
 /*
  * Resets the scratchpad arena in O(1) time by rewinding the offset to 0 with forced inlining.
