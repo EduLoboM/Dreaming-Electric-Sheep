@@ -262,7 +262,7 @@ class StatusController(Controller):
 
 ---
 
-## 🧠 Benchmarks & Performance Comparison
+## Benchmarks & Performance Comparison
 
 Localhost framework overhead measured against a shared in-memory fixture (not the TechEmpower Framework Benchmarks; no Postgres). Numbers represent the **median of 3 independent runs** (5s duration each, total 15s sampling per route, 50 concurrency keep-alive connections via `oha` on localhost, 1 worker process).
 
@@ -272,11 +272,11 @@ Measures framework tax against raw server ceilings when all targets encode JSON 
 
 | Framework | Plaintext (req/s) | JSON (req/s) | Mem get (req/s) | Mem get ×20 (req/s) | HTML fortunes (req/s) | Mem update ×20 (req/s) | Server / Runtime |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| Granian (Raw RSGI) | 138,854 | 137,812 | 113,809 | 66,489 | 41,633 | 57,719 | Granian (Raw RSGI, 1 worker, msgspec) |
-| Granian (Raw ASGI) | 107,360 | 100,361 | 87,288 | 50,060 | 34,578 | 42,689 | Granian (Raw ASGI, 1 worker, msgspec) |
-| Dreaming Electric Sheep (RSGI) | 97,085 | 78,761 | 77,264 | 45,909 | 33,417 | 40,696 | Granian (RSGI, 1 worker, msgspec) |
-| Dreaming Electric Sheep (ASGI) | 92,161 | 83,733 | 86,533 | 46,565 | 30,907 | 37,505 | Granian (ASGI, 1 worker, msgspec) |
-| Uvicorn (Raw ASGI) | 58,130 | 60,001 | 60,467 | 40,726 | 29,582 | 36,595 | Uvicorn (Raw ASGI, 1 worker, msgspec) |
+| Granian (Raw RSGI) | 117,442 | 119,968 | 111,050 | 64,274 | 39,612 | 50,653 | Granian (Raw RSGI, 1 worker, msgspec) |
+| Granian (Raw ASGI) | 87,485 | 89,325 | 93,173 | 54,325 | 33,106 | 42,095 | Granian (Raw ASGI, 1 worker, msgspec) |
+| Dreaming Electric Sheep (RSGI) | 96,475 | 102,165 | 99,583 | 50,405 | 34,805 | 41,960 | Granian (RSGI, 1 worker, msgspec) |
+| Dreaming Electric Sheep (ASGI) | 80,249 | 77,850 | 67,813 | 40,160 | 27,781 | 37,844 | Granian (ASGI, 1 worker, msgspec) |
+| Uvicorn (Raw ASGI) | 62,200 | 61,807 | 59,051 | 38,666 | 27,323 | 33,610 | Uvicorn (Raw ASGI, 1 worker, msgspec) |
 
 ### Table B: Default Stack Comparison (Stock Helpers Out-of-the-Box)
 
@@ -284,15 +284,15 @@ Measures out-of-the-box performance using each framework's stock response/serial
 
 | Framework | Plaintext (req/s) | JSON (req/s) | Mem get (req/s) | Mem get ×20 (req/s) | HTML fortunes (req/s) | Mem update ×20 (req/s) | Server / Runtime |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| Dreaming Electric Sheep (RSGI) | 88,418 | 90,436 | 82,081 | 49,562 | 33,656 | 39,616 | Granian (RSGI, 1 worker, stock helpers) |
-| Dreaming Electric Sheep (ASGI) | 88,039 | 88,357 | 75,512 | 43,014 | 30,975 | 37,504 | Granian (ASGI, 1 worker, stock helpers) |
-| Emmett | 65,220 | 58,314 | 55,359 | 30,876 | 26,780 | 27,452 | Granian (RSGI/ASGI, 1 worker) |
-| Sanic | 51,107 | 45,731 | 43,522 | 24,903 | 20,618 | 22,566 | Sanic (1 worker) |
-| Litestar | 37,113 | 35,600 | 32,190 | 21,960 | 19,152 | 20,358 | Granian (ASGI, 1 worker) |
-| Robyn | 32,201 | 29,349 | 29,264 | 19,346 | 17,508 | 17,435 | Robyn Rust (1 worker process) |
-| FastAPI | 26,605 | 21,278 | 20,808 | 7,490 | 15,236 | 7,181 | Granian (ASGI, 1 worker) |
-| Flask | 26,136 | 22,372 | 20,611 | 7,769 | 15,175 | 7,333 | Granian (WSGI, 1 worker) |
-| Django | 26,190 | 22,070 | 20,194 | 7,429 | 14,641 | 7,054 | Granian (WSGI, 1 worker, stripped middleware) |
+| Dreaming Electric Sheep (RSGI) | 104,354 | 110,095 | 104,914 | 50,967 | 33,632 | 41,765 | Granian (RSGI, 1 worker, stock helpers) |
+| Dreaming Electric Sheep (ASGI) | 77,615 | 84,108 | 79,872 | 43,295 | 31,480 | 38,154 | Granian (ASGI, 1 worker, stock helpers) |
+| Emmett | 63,468 | 59,357 | 56,625 | 29,150 | 27,723 | 26,811 | Granian (RSGI/ASGI, 1 worker) |
+| Sanic | 48,484 | 45,650 | 42,668 | 24,894 | 21,859 | 22,373 | Sanic (1 worker) |
+| Litestar | 36,973 | 34,305 | 29,963 | 18,702 | 16,971 | 19,040 | Granian (ASGI, 1 worker) |
+| Robyn | 32,057 | 29,080 | 28,693 | 19,157 | 19,070 | 18,024 | Robyn Rust (1 worker process) |
+| FastAPI | 24,214 | 21,112 | 20,591 | 7,129 | 15,146 | 7,445 | Granian (ASGI, 1 worker) |
+| Flask | 26,404 | 20,186 | 20,538 | 7,567 | 14,761 | 7,084 | Granian (WSGI, 1 worker) |
+| Django | 23,844 | 21,106 | 20,741 | 7,701 | 13,998 | 6,967 | Granian (WSGI, 1 worker, stripped middleware) |
 
 > **Environment & System Specifications**:
 >

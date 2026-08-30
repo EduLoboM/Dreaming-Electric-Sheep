@@ -14,3 +14,9 @@ cdef int MAX_RESPONSE_CHUNK_SIZE
 cpdef void set_headers_for_response_content(Response message)
 
 cpdef bytes write_sse(ServerSentEvent event)
+
+cpdef list extract_rsgi_headers(object raw_headers)
+
+cpdef Request instantiate_rsgi_request(object scope, object protocol)
+
+cpdef object send_rsgi_response_sync(Response response, object protocol)

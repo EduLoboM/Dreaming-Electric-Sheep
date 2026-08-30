@@ -31,7 +31,12 @@ from dreaming_electric_sheep.middlewares import (
     MiddlewareList,
     get_middlewares_chain,
 )
-from dreaming_electric_sheep.scribe import send_asgi_response
+from dreaming_electric_sheep.scribe import (
+    instantiate_rsgi_request,
+    send_asgi_response,
+    send_rsgi_response,
+    send_rsgi_response_sync,
+)
 from dreaming_electric_sheep.server.asgi import get_request_url_from_scope
 from dreaming_electric_sheep.server.authentication import (
     AuthenticateChallenge,
@@ -933,11 +938,11 @@ class Application(BaseApplication):
         if not self.started:
             await self.start()
 
-        from .rsgi import instantiate_rsgi_request, send_rsgi_response
-
         request = instantiate_rsgi_request(scope, protocol)
         response = await self.handle(request)
-        await send_rsgi_response(response, protocol)
+        res = send_rsgi_response_sync(response, protocol)
+        if res is not None:
+            await res
 
         request.scope = None
         request.dispose()
@@ -948,15 +953,39 @@ class Application(BaseApplication):
 
         proto = getattr(scope, "proto", "http")
         if proto == "http":
-            return await self._handle_rsgi_http(scope, protocol)
+            request = instantiate_rsgi_request(scope, protocol)
+            response = await self.handle(request)
+            res = send_rsgi_response_sync(response, protocol)
+            if res is not None:
+                await res
+
+            request.scope = None
+            request.dispose()
+            return
 
         protocol.response_empty(400, [])
 
-    def __rsgi_init__(self, *args, **kwargs):
-        pass
+    def __rsgi_init__(self, loop=None, *args, **kwargs):
+        if not self.started:
+            if loop is not None:
+                loop.run_until_complete(self.start())
+            else:
+                try:
+                    import asyncio
+                    asyncio.get_event_loop().run_until_complete(self.start())
+                except RuntimeError:
+                    pass
 
-    def __rsgi_del__(self, *args, **kwargs):
-        pass
+    def __rsgi_del__(self, loop=None, *args, **kwargs):
+        if self.started:
+            if loop is not None:
+                loop.run_until_complete(self.stop())
+            else:
+                try:
+                    import asyncio
+                    asyncio.get_event_loop().run_until_complete(self.stop())
+                except RuntimeError:
+                    pass
 
 
 class PathPrefixMixin:
