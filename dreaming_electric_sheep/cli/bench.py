@@ -6,15 +6,17 @@ import time
 import asyncio
 import shutil
 import subprocess
+from urllib.parse import urlparse
 from typing import Dict, Any, List
 
 
 async def _run_async_bench(url: str, duration: int = 5, concurrency: int = 50) -> Dict[str, Any]:
-    try:
-        import httpx
-    except ImportError:
-        import urllib.request
-        httpx = None
+    parsed = urlparse(url)
+    host = parsed.hostname or "127.0.0.1"
+    port = parsed.port or (443 if parsed.scheme == "https" else 80)
+    path = (parsed.path or "/") + (f"?{parsed.query}" if parsed.query else "")
+
+    request_bytes = f"GET {path} HTTP/1.1\r\nHost: {host}:{port}\r\nUser-Agent: des-bench/1.0\r\nAccept: */*\r\nConnection: keep-alive\r\n\r\n".encode("latin1")
 
     latencies: List[float] = []
     total_requests = 0
@@ -23,35 +25,27 @@ async def _run_async_bench(url: str, duration: int = 5, concurrency: int = 50) -
 
     async def worker():
         nonlocal total_requests, errors
-        if httpx:
-            async with httpx.AsyncClient(timeout=10.0) as client:
+        while not stop_event.is_set():
+            try:
+                reader, writer = await asyncio.open_connection(host, port)
                 while not stop_event.is_set():
                     t0 = time.perf_counter()
-                    try:
-                        res = await client.get(url)
-                        if res.status_code < 400:
-                            latencies.append((time.perf_counter() - t0) * 1000.0)
-                            total_requests += 1
-                        else:
-                            errors += 1
-                    except Exception:
-                        errors += 1
-        else:
-            loop = asyncio.get_running_loop()
-            while not stop_event.is_set():
-                t0 = time.perf_counter()
+                    writer.write(request_bytes)
+                    await writer.drain()
+                    resp_buf = await reader.read(4096)
+                    if not resp_buf:
+                        break
+                    lat = (time.perf_counter() - t0) * 1000.0
+                    latencies.append(lat)
+                    total_requests += 1
                 try:
-                    def req():
-                        with urllib.request.urlopen(url) as res:
-                            return res.status
-                    status = await loop.run_in_executor(None, req)
-                    if status < 400:
-                        latencies.append((time.perf_counter() - t0) * 1000.0)
-                        total_requests += 1
-                    else:
-                        errors += 1
+                    writer.close()
+                    await writer.wait_closed()
                 except Exception:
-                    errors += 1
+                    pass
+            except Exception:
+                errors += 1
+                await asyncio.sleep(0.01)
 
     t_start = time.perf_counter()
     tasks = [asyncio.create_task(worker()) for _ in range(concurrency)]
@@ -63,6 +57,7 @@ async def _run_async_bench(url: str, duration: int = 5, concurrency: int = 50) -
     latencies.sort()
     rps = total_requests / actual_duration if actual_duration > 0 else 0
     p50 = latencies[int(len(latencies) * 0.50)] if latencies else 0.0
+    p90 = latencies[int(len(latencies) * 0.90)] if latencies else 0.0
     p95 = latencies[int(len(latencies) * 0.95)] if latencies else 0.0
     p99 = latencies[int(len(latencies) * 0.99)] if latencies else 0.0
 
@@ -74,6 +69,7 @@ async def _run_async_bench(url: str, duration: int = 5, concurrency: int = 50) -
         "errors": errors,
         "requests_per_second": round(rps, 2),
         "latency_p50_ms": round(p50, 3),
+        "latency_p90_ms": round(p90, 3),
         "latency_p95_ms": round(p95, 3),
         "latency_p99_ms": round(p99, 3),
     }
@@ -101,8 +97,9 @@ def run_benchmark(url: str = "http://127.0.0.1:8000/", duration: int = 5, concur
     print(f"  Concurrency:       {res['concurrency']}")
     print(f"  Total Completed:   {res['total_requests']}")
     print(f"  Total Errors:      {res['errors']}")
-    print(f"  Throughput:        🚀 {res['requests_per_second']} req/s")
+    print(f"  Throughput:        🚀 {res['requests_per_second']:,} req/s")
     print(f"  Latency p50:       {res['latency_p50_ms']} ms")
+    print(f"  Latency p90:       {res['latency_p90_ms']} ms")
     print(f"  Latency p95:       {res['latency_p95_ms']} ms")
     print(f"  Latency p99:       {res['latency_p99_ms']} ms")
     print("=" * 50 + "\n")
