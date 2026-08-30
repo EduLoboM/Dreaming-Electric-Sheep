@@ -116,6 +116,7 @@ tests/out/
 dreaming_electric_sheep/*.c
 !dreaming_electric_sheep/simd_ops.c
 !dreaming_electric_sheep/scratchpad.c
+!dreaming_electric_sheep/interning.c
 dreaming_electric_sheep/*.html
 dreaming_electric_sheep/includes/*.html
 out/*
