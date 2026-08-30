@@ -1,3 +1,5 @@
+#define DES_BUILDING_CORE 1
+
 #include "simd_ops.h"
 #include <string.h>
 

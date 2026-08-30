@@ -1,3 +1,5 @@
+#define DES_BUILDING_CORE 1
+
 #include "interning.h"
 #include <string.h>
 

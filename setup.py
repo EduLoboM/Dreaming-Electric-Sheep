@@ -18,10 +18,25 @@ import sysconfig
 import shutil
 from setuptools.command.build_ext import build_ext as _build_ext
 
+_cflags_env = os.environ.get("CFLAGS", "")
+_is_sanitizer_build = "-fsanitize" in _cflags_env
+
 if sys.platform == "win32":
     COMPILE_ARGS = ["/O2", "/GL"]
     LINK_ARGS = ["/LTCG"]
     CYTHON_LINK_ARGS = LINK_ARGS
+elif _is_sanitizer_build:
+    # LTO (-flto) and -fuse-linker-plugin strip sanitizer instrumentation at
+    # link time; -fstrict-aliasing triggers UBSAN false-positives in Cython C.
+    # Use only basic safe flags when building under ASAN/UBSAN/TSAN.
+    COMPILE_ARGS = ["-O1", "-fPIC", "-fno-omit-frame-pointer"]
+    LINK_ARGS = []
+    ext_suffix = sysconfig.get_config_var("EXT_SUFFIX") or ".so"
+    CYTHON_LINK_ARGS = [
+        "-Wl,-rpath,$ORIGIN",
+        "-Ldreaming_electric_sheep",
+        f"-l:_des_core{ext_suffix}",
+    ]
 else:
     COMPILE_ARGS = ["-O3", "-fPIC", "-fstrict-aliasing", "-flto", "-fuse-linker-plugin"]
     LINK_ARGS = ["-flto", "-fuse-linker-plugin"]
@@ -43,11 +58,30 @@ class CustomBuildExt(_build_ext):
             if os.path.exists(core_so_path):
                 shutil.copy(core_so_path, target_dir)
             build_target_dir = os.path.abspath(os.path.dirname(core_so_path))
-            for e in other_exts:
-                if target_dir not in e.library_dirs:
-                    e.library_dirs.append(target_dir)
-                if build_target_dir not in e.library_dirs:
-                    e.library_dirs.append(build_target_dir)
+
+            # On MSVC the linker needs the import library (.lib), which lives in
+            # the temp build dir, not in the output dir.  Add both locations and
+            # tell every Cython extension to link against _des_core explicitly.
+            if sys.platform == "win32":
+                # temp dir: build/temp.*/dreaming_electric_sheep/
+                core_obj_dir = os.path.abspath(
+                    self.get_ext_fullpath(core_ext.name)
+                    .replace(self.build_lib, self.build_temp)
+                    .replace(os.path.basename(core_so_path), "")
+                )
+                for e in other_exts:
+                    for lib_dir in (target_dir, build_target_dir, core_obj_dir):
+                        if lib_dir not in e.library_dirs:
+                            e.library_dirs.append(lib_dir)
+                    # Import-lib basename without extension
+                    core_lib_name = os.path.splitext(os.path.basename(core_so_path))[0]
+                    if core_lib_name not in e.libraries:
+                        e.libraries.append(core_lib_name)
+            else:
+                for e in other_exts:
+                    for lib_dir in (target_dir, build_target_dir):
+                        if lib_dir not in e.library_dirs:
+                            e.library_dirs.append(lib_dir)
         for ext in other_exts:
             self.build_extension(ext)
 
@@ -71,6 +105,7 @@ if not skip_ext:
             "dreaming_electric_sheep/simd_ops.c",
         ],
         include_dirs=["dreaming_electric_sheep"],
+        define_macros=[("DES_BUILDING_CORE", "1")],
         extra_compile_args=COMPILE_ARGS,
         extra_link_args=LINK_ARGS,
     )

@@ -16,7 +16,8 @@ def test_simd_isa_runtime_dispatch_token():
     assert isa in {"AVX2", "SSE2", "NEON", "SCALAR"}
 
     arch = platform.machine().lower()
-    if arch in {"x86_64", "amd64"}:
+    # MSVC does not support __builtin_cpu_supports; SCALAR is expected on Windows.
+    if arch in {"x86_64", "amd64"} and sys.platform != "win32":
         assert isa in {"AVX2", "SSE2"}, f"Expected AVX2 or SSE2 on x86_64 Linux, got: {isa}"
 
 
@@ -25,7 +26,7 @@ def test_simd_doctor_diagnostics_report():
     report = run_doctor()
     assert report["c_core_loaded"] is True
     assert report["simd_isa"] in {"AVX2", "SSE2", "NEON", "SCALAR"}
-    if platform.machine().lower() in {"x86_64", "amd64"}:
+    if platform.machine().lower() in {"x86_64", "amd64"} and sys.platform != "win32":
         assert report["simd_isa"] in {"AVX2", "SSE2"}
 
 

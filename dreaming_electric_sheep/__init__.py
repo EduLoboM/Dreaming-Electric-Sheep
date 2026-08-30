@@ -7,7 +7,7 @@ __author__ = (
     "Eduardo Lobo <eduardolobomoreira@tuta.io> (Fork author), "
     "Roberto Prevato <roberto.prevato@gmail.com> (Original BlackSheep author)"
 )
-__version__ = "1.0.0"
+__version__ = "1.1.0"
 
 import os
 import sys

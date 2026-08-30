@@ -27,7 +27,7 @@ def _get_isolated_env(extra_path: Path | str | None = None) -> dict[str, str]:
     if extra_path is not None:
         paths.append(str(Path(extra_path).resolve()))
     paths.append(REPO_ROOT)
-    env["PYTHONPATH"] = ":".join(paths)
+    env["PYTHONPATH"] = os.pathsep.join(paths)
     return env
 
 

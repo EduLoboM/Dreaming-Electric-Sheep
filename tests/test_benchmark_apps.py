@@ -23,36 +23,43 @@ TARGETS = [
         "name": "Granian Raw RSGI",
         "type": "granian_rsgi",
         "module": "perf.compare.granian_raw_rsgi_app:app",
+        "requires": ["granian"],
     },
     {
         "name": "Granian Raw ASGI",
         "type": "granian",
         "module": "perf.compare.granian_raw_app:app",
+        "requires": ["granian"],
     },
     {
         "name": "Dreaming Electric Sheep (RSGI)",
         "type": "granian_rsgi",
         "module": "perf.compare.des_app:app",
+        "requires": ["granian"],
     },
     {
         "name": "Dreaming Electric Sheep (Default ASGI)",
         "type": "granian",
         "module": "perf.compare.des_app:app",
+        "requires": ["granian"],
     },
     {
         "name": "Dreaming Electric Sheep (Ceiling)",
         "type": "granian",
         "module": "perf.compare.des_ceiling_app:app",
+        "requires": ["granian"],
     },
     {
         "name": "Uvicorn Raw ASGI",
         "type": "uvicorn",
         "module": "perf.compare.uvicorn_raw_app:app",
+        "requires": ["uvicorn"],
     },
     {
         "name": "Emmett",
         "type": "granian",
         "module": "perf.compare.emmett_app:app",
+        "requires": ["granian", "emmett"],
     },
     {
         "name": "Sanic",
@@ -68,16 +75,19 @@ TARGETS = [
             "--no-access-logs",
             "--no-motd",
         ],
+        "requires": ["sanic"],
     },
     {
         "name": "FastAPI",
         "type": "granian",
         "module": "perf.compare.fastapi_app:app",
+        "requires": ["granian", "fastapi"],
     },
     {
         "name": "Litestar",
         "type": "granian",
         "module": "perf.compare.litestar_app:app",
+        "requires": ["granian", "litestar"],
     },
     {
         "name": "Robyn",
@@ -91,18 +101,30 @@ TARGETS = [
             "--log-level", "WARN",
             "--disable-openapi",
         ],
+        "requires": ["robyn"],
     },
     {
         "name": "Flask",
         "type": "granian_wsgi",
         "module": "perf.compare.flask_app:app",
+        "requires": ["granian", "flask"],
     },
     {
         "name": "Django",
         "type": "granian_wsgi",
         "module": "perf.compare.django_app:app",
+        "requires": ["granian", "django"],
     },
 ]
+
+
+_GRANIAN_BIN = shutil.which("granian") or str(Path(sys.executable).parent / "granian")
+_GRANIAN_AVAILABLE = shutil.which("granian") is not None or Path(_GRANIAN_BIN).exists()
+
+pytestmark_bench = pytest.mark.skipif(
+    not _GRANIAN_AVAILABLE,
+    reason="granian binary not found; install granian to run benchmark smoke tests",
+)
 
 
 def wait_for_server(url: str, timeout: float = 10.0) -> bool:
@@ -117,8 +139,16 @@ def wait_for_server(url: str, timeout: float = 10.0) -> bool:
     return False
 
 
+@pytestmark_bench
 @pytest.mark.parametrize("target", TARGETS, ids=[t["name"] for t in TARGETS])
 def test_benchmark_app_routes(target, unused_tcp_port):
+    # Skip immediately if any required package is not installed
+    for pkg in target.get("requires", []):
+        try:
+            __import__(pkg)
+        except ImportError:
+            pytest.skip(f"Required package '{pkg}' not installed")
+
     port = unused_tcp_port
     host = "127.0.0.1"
     env = os.environ.copy()
@@ -128,7 +158,7 @@ def test_benchmark_app_routes(target, unused_tcp_port):
             del env[k]
 
     venv_bin = Path(sys.executable).parent
-    granian_bin = shutil.which("granian") or str(venv_bin / "granian")
+    granian_bin = _GRANIAN_BIN
     uvicorn_bin = shutil.which("uvicorn") or str(venv_bin / "uvicorn")
 
     t_type = target["type"]

@@ -13,6 +13,8 @@ websockets~=15.0.1
 httptools==0.6.4
 msgspec>=0.18.0
 async-timeout>=4.0.0; python_version < '3.11'
+typer>=0.16.0
+granian>=2.0.0
 # For tests:
 Cython==3.1.4
 setuptools==80.7.1

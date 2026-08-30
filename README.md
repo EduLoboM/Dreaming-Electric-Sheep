@@ -262,7 +262,7 @@ class StatusController(Controller):
 
 ---
 
-## Benchmarks & Performance Comparison
+## 🧠 Benchmarks & Performance Comparison
 
 Localhost framework overhead measured against a shared in-memory fixture (not the TechEmpower Framework Benchmarks; no Postgres). Numbers represent the **median of 3 independent runs** (5s duration each, total 15s sampling per route, 50 concurrency keep-alive connections via `oha` on localhost, 1 worker process).
 
