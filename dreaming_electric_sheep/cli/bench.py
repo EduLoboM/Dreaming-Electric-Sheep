@@ -75,17 +75,31 @@ async def _run_async_bench(url: str, duration: int = 5, concurrency: int = 50) -
     }
 
 
-def run_benchmark(url: str = "http://127.0.0.1:8000/", duration: int = 5, concurrency: int = 50):
+def run_benchmark(
+    url: str = "http://127.0.0.1:8000/",
+    duration: int = 5,
+    concurrency: int = 50,
+    compare: bool = False,
+):
+    if compare:
+        from pathlib import Path
+        compare_script = Path(__file__).resolve().parent.parent.parent / "perf" / "compare" / "run.py"
+        if compare_script.exists():
+            subprocess.run([sys.executable, str(compare_script)])
+            return
+
     # Check for external tools first (oha / wrk)
-    if shutil.which("oha"):
+    local_oha = shutil.which("oha") or shutil.which(".venv/bin/oha")
+    if local_oha:
         print(f"Running oha benchmark on {url} (concurrency: {concurrency}, duration: {duration}s)...")
-        subprocess.run(["oha", "-z", f"{duration}s", "-c", str(concurrency), url])
+        subprocess.run([local_oha, "-z", f"{duration}s", "-c", str(concurrency), url])
         return
     elif shutil.which("wrk"):
         print(f"Running wrk benchmark on {url} (threads: 4, connections: {concurrency}, duration: {duration}s)...")
         subprocess.run(["wrk", "-t", "4", "-c", str(concurrency), "-d", f"{duration}s", url])
         return
 
+    print("⚠️  NOTE: 'des bench' is a development/smoke test client. For reproducible/comparative framework benchmarks, use 'perf/compare/run.sh' with 'oha'.")
     print(f"Running in-tree async load test on {url} (concurrency: {concurrency}, duration: {duration}s)...")
     res = asyncio.run(_run_async_bench(url, duration=duration, concurrency=concurrency))
     

@@ -78,7 +78,35 @@ make pgo
 
 ## 4. Architecture & Hot Path Components
 
-- `_des_core`: Shared singleton owning the static intern table, SIMD intrinsics, and scratchpad arenas.
+- `_des_core`: Shared singleton owning the static intern table, SIMD runtime dispatch, and scratchpad arenas.
 - `fast_parse.h`: C `des_err` Result codes and integer / hex parsers.
-- `simd_ops.c`: Vectorized ASCII lowercasing, CRLF scanning, and URL validation.
+- `simd_ops.c`: Multi-ISA vectorization kernels (`AVX2`, `SSE2`, `NEON`, `SCALAR`) with runtime CPUID dispatch.
 - `scratchpad.c`: 64-byte cacheline aligned bump allocator for standard request lifecycles.
+
+---
+
+## 5. SIMD Runtime CPUID Dispatch & Portable Wheels
+
+To guarantee that binary wheels remain universally portable across all x86_64 machines without causing `SIGILL` on older CPUs, `setup.py` compiles with generic baseline flags (no global `-mavx2` or `-march=native`).
+
+Multi-ISA dispatch is implemented inside `simd_ops.c`:
+1. **Multiple Kernel Targets**: Functions are compiled with GCC/Clang target attributes (`__attribute__((target("avx2")))`, `__attribute__((target("sse2")))`, portable scalar SWAR, and ARM NEON).
+2. **CPUID Initialization**: When `_des_core` initializes, `__builtin_cpu_init()` checks host CPU features (`__builtin_cpu_supports("avx2")`) and fills the global `DesSimdOps` function pointer table once.
+3. **Zero-Overhead Call Sites**: Cython and C call sites dispatch directly through the resolved function pointers without per-request CPUID checks.
+
+---
+
+## 6. Honest Comparative Benchmarks (`perf/compare`)
+
+To measure framework overhead accurately against FastAPI and Litestar:
+
+```bash
+# Install comparison dependencies (Granian, FastAPI, Litestar, oha)
+pip install -r perf/requirements-bench.txt
+
+# Run the automated benchmark harness
+./perf/compare/run.sh
+```
+
+- **Tooling**: Uses `oha` (Rust HTTP load generator) across identical Granian (Rust ASGI) server configurations (1 worker, 50 concurrency, 10s duration).
+- **Smoke Tests**: The `des bench` CLI command is a lightweight development and smoke-testing tool. Published comparison numbers come strictly from `perf/compare/run.sh` with `oha`.

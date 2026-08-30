@@ -61,7 +61,12 @@ def cmd_doctor(args):
 
 
 def cmd_bench(args):
-    run_benchmark(url=args.url, duration=args.duration, concurrency=args.concurrency)
+    run_benchmark(
+        url=args.url,
+        duration=args.duration,
+        concurrency=args.concurrency,
+        compare=getattr(args, "compare", False),
+    )
 
 
 def build_parser():
@@ -107,6 +112,7 @@ def build_parser():
     p_bench.add_argument("url", nargs="?", default="http://127.0.0.1:8000/", help="Target URL to benchmark")
     p_bench.add_argument("--duration", "-d", type=int, default=5, help="Test duration in seconds (default: 5)")
     p_bench.add_argument("--concurrency", "-c", type=int, default=50, help="Concurrent connections (default: 50)")
+    p_bench.add_argument("--compare", action="store_true", help="Run comparative benchmark harness across ASGI frameworks")
     p_bench.set_defaults(func=cmd_bench)
 
     return parser
