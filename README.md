@@ -237,6 +237,7 @@ class StatusController(Controller):
     @get("/api/status")
     def get_status(self, db: DatabaseService):
         return {"status": "ok", "db": db.get_stats()}
+```
 
 ---
 
@@ -256,15 +257,18 @@ Published numbers represent the **median of 3 independent runs** (10s duration e
 | FastAPI | json | Granian (ASGI, 1 worker) | oha | 8,352 | 5.59 ms | 14.26 ms | 0 |
 
 > **Environment & System Specifications**:
+>
 > - **CPU / OS**: x86_64 Linux (CachyOS Kernel 7.2), SIMD ISA: AVX2
 > - **Runtimes**: CPython 3.14.7 | Granian 2.8.0 (Rust ASGI) | Robyn 0.88.0 (Native Rust Server)
 > - **Load Tester**: `oha 1.16.0` (Rust)
 >
 > To reproduce on your machine:
+>
 > ```bash
 > pip install -r perf/requirements-bench.txt
 > ./perf/compare/run.sh
 > ```
+>
 > *Note: `des bench` is a development smoke-testing client; published comparative numbers are generated using `perf/compare/run.sh` with `oha`.*
 
 ---
