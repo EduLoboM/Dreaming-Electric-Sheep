@@ -29,7 +29,10 @@ elif _is_sanitizer_build:
     # LTO (-flto) and -fuse-linker-plugin strip sanitizer instrumentation at
     # link time; -fstrict-aliasing triggers UBSAN false-positives in Cython C.
     # Use only basic safe flags when building under ASAN/UBSAN/TSAN.
-    COMPILE_ARGS = ["-O1", "-fPIC", "-fno-omit-frame-pointer"]
+    # -fno-sanitize=null: Cython generates offsetof()-style null pointer
+    # arithmetic (&((struct T*)NULL)->member) which UBSAN halt_on_error=1
+    # aborts on; this is an ISO-blessed pattern and a known false positive.
+    COMPILE_ARGS = ["-O1", "-fPIC", "-fno-omit-frame-pointer", "-fno-sanitize=null"]
     LINK_ARGS = []
     ext_suffix = sysconfig.get_config_var("EXT_SUFFIX") or ".so"
     CYTHON_LINK_ARGS = [

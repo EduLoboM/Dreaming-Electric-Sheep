@@ -253,7 +253,29 @@ def test_benchmark_app_routes(target, unused_tcp_port):
             assert len(data) == 5
 
     finally:
-        proc.send_signal(signal.SIGINT)
+        shutdown_signal = None
+        for sig_name in ("SIGINT", "SIGTERM"):
+            sig = getattr(signal, sig_name, None)
+            if sig is None:
+                continue
+            try:
+                signal.getsignal(sig)
+                shutdown_signal = sig
+                break
+            except (AttributeError, ValueError, OSError):
+                continue
+
+        if shutdown_signal is not None:
+            try:
+                proc.send_signal(shutdown_signal)
+            except (ValueError, OSError):
+                pass
+        else:
+            try:
+                proc.terminate()
+            except OSError:
+                pass
+
         try:
             proc.wait(timeout=3.0)
         except subprocess.TimeoutExpired:

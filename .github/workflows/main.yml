@@ -154,13 +154,17 @@ jobs:
           make compile
 
       - name: Run tests
+        env:
+          PYTHONFAULTHANDLER: "1"
+          PYTHONDEVMODE: "1"
         run: |
           echo "Running unit tests..."
-          pytest tests
+          ulimit -c unlimited
+          pytest tests -v --tb=long
 
           echo "Running integration tests..."
           export APP_DEFAULT_ROUTER=false
-          pytest itests
+          pytest itests -v --tb=long
 
       - name: Run linters
         continue-on-error: true
