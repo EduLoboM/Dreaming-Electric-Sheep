@@ -15,9 +15,11 @@ except ImportError:
     USE_CYTHON = False
 
 if sys.platform == "win32":
-    COMPILE_ARGS = ["/O2"]
+    COMPILE_ARGS = ["/O2", "/GL"]
+    LINK_ARGS = ["/LTCG"]
 else:
-    COMPILE_ARGS = ["-O3", "-fPIC", "-fstrict-aliasing"]
+    COMPILE_ARGS = ["-O3", "-fPIC", "-fstrict-aliasing", "-flto", "-fuse-linker-plugin"]
+    LINK_ARGS = ["-flto", "-fuse-linker-plugin"]
 
 # Check for environment variable to skip extensions
 skip_ext = (
@@ -35,57 +37,79 @@ if not skip_ext:
             [
                 f"dreaming_electric_sheep/url{ext}",
                 "dreaming_electric_sheep/simd_ops.c",
+                "dreaming_electric_sheep/interning.c",
             ],
             extra_compile_args=COMPILE_ARGS,
+            extra_link_args=LINK_ARGS,
         ),
         Extension(
             "dreaming_electric_sheep.exceptions",
             [f"dreaming_electric_sheep/exceptions{ext}"],
             extra_compile_args=COMPILE_ARGS,
+            extra_link_args=LINK_ARGS,
         ),
         Extension(
             "dreaming_electric_sheep.headers",
-            [f"dreaming_electric_sheep/headers{ext}"],
+            [
+                f"dreaming_electric_sheep/headers{ext}",
+                "dreaming_electric_sheep/interning.c",
+            ],
             extra_compile_args=COMPILE_ARGS,
+            extra_link_args=LINK_ARGS,
         ),
         Extension(
             "dreaming_electric_sheep.cookies",
             [f"dreaming_electric_sheep/cookies{ext}"],
             extra_compile_args=COMPILE_ARGS,
+            extra_link_args=LINK_ARGS,
         ),
         Extension(
             "dreaming_electric_sheep.contents",
-            [f"dreaming_electric_sheep/contents{ext}"],
+            [
+                f"dreaming_electric_sheep/contents{ext}",
+                "dreaming_electric_sheep/interning.c",
+            ],
             extra_compile_args=COMPILE_ARGS,
+            extra_link_args=LINK_ARGS,
         ),
         Extension(
             "dreaming_electric_sheep.messages",
             [
                 f"dreaming_electric_sheep/messages{ext}",
                 "dreaming_electric_sheep/scratchpad.c",
+                "dreaming_electric_sheep/interning.c",
             ],
             extra_compile_args=COMPILE_ARGS,
+            extra_link_args=LINK_ARGS,
         ),
         Extension(
             "dreaming_electric_sheep.scribe",
             [
                 f"dreaming_electric_sheep/scribe{ext}",
                 "dreaming_electric_sheep/simd_ops.c",
+                "dreaming_electric_sheep/interning.c",
             ],
             extra_compile_args=COMPILE_ARGS,
+            extra_link_args=LINK_ARGS,
         ),
         Extension(
             "dreaming_electric_sheep.baseapp",
-            [f"dreaming_electric_sheep/baseapp{ext}"],
+            [
+                f"dreaming_electric_sheep/baseapp{ext}",
+                "dreaming_electric_sheep/interning.c",
+            ],
             extra_compile_args=COMPILE_ARGS,
+            extra_link_args=LINK_ARGS,
         ),
         Extension(
             "dreaming_electric_sheep.routing",
             [
                 f"dreaming_electric_sheep/routing{ext}",
                 "dreaming_electric_sheep/simd_ops.c",
+                "dreaming_electric_sheep/interning.c",
             ],
             extra_compile_args=COMPILE_ARGS,
+            extra_link_args=LINK_ARGS,
         ),
     ]
 
