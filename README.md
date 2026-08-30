@@ -246,12 +246,14 @@ Published numbers are generated using `oha` (Rust HTTP load tester) under identi
 
 | Framework | Route | Tool | Workers | RPS | p50 ms | p99 ms | Errors |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **Dreaming Electric Sheep** | plaintext | oha | 1 | **26,094** | **1.70 ms** | **4.66 ms** | 0 |
-| **Dreaming Electric Sheep** | json | oha | 1 | **22,034** | **2.02 ms** | **5.12 ms** | 0 |
-| Litestar | plaintext | oha | 1 | 11,953 | 3.83 ms | 10.25 ms | 0 |
-| Litestar | json | oha | 1 | 11,915 | 3.93 ms | 7.79 ms | 0 |
-| FastAPI | plaintext | oha | 1 | 9,259 | 5.01 ms | 11.99 ms | 0 |
-| FastAPI | json | oha | 1 | 8,111 | 5.88 ms | 10.11 ms | 0 |
+| **Dreaming Electric Sheep** | plaintext | oha | 1 | **32,039** | **1.39 ms** | **3.89 ms** | 0 |
+| **Dreaming Electric Sheep** | json | oha | 1 | **27,307** | **1.68 ms** | **4.05 ms** | 0 |
+| Robyn | plaintext | oha | 1 | 12,114 | 4.20 ms | 7.98 ms | 0 |
+| Robyn | json | oha | 1 | 10,664 | 4.61 ms | 12.21 ms | 0 |
+| Litestar | plaintext | oha | 1 | 14,232 | 3.29 ms | 8.28 ms | 0 |
+| Litestar | json | oha | 1 | 9,446 | 4.53 ms | 12.27 ms | 0 |
+| FastAPI | plaintext | oha | 1 | 7,186 | 5.43 ms | 15.63 ms | 0 |
+| FastAPI | json | oha | 1 | 6,995 | 5.83 ms | 14.69 ms | 0 |
 
 > **Reproducibility Note**:
 > To reproduce these benchmarks on your machine:

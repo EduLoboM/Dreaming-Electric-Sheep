@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
-Honest ASGI framework benchmark runner for Dreaming Electric Sheep vs FastAPI vs Litestar.
-Runs each framework under identical Granian (Rust ASGI) server settings and measures
+Honest ASGI / Rust runtime framework benchmark runner for:
+Dreaming Electric Sheep vs Robyn vs Litestar vs FastAPI.
+Runs each framework under 1 worker / 1 process and measures
 true throughput & latency with oha (Rust HTTP load tester).
 """
 import sys
@@ -21,14 +22,29 @@ COMPARE_DIR = Path(__file__).resolve().parent
 FRAMEWORKS = [
     {
         "name": "Dreaming Electric Sheep",
+        "type": "granian",
         "module": "perf.compare.des_app:app",
     },
     {
+        "name": "Robyn",
+        "type": "standalone",
+        "command": [
+            sys.executable,
+            str(COMPARE_DIR / "robyn_app.py"),
+            "--processes", "1",
+            "--workers", "1",
+            "--log-level", "WARN",
+            "--disable-openapi",
+        ],
+    },
+    {
         "name": "Litestar",
+        "type": "granian",
         "module": "perf.compare.litestar_app:app",
     },
     {
         "name": "FastAPI",
+        "type": "granian",
         "module": "perf.compare.fastapi_app:app",
     },
 ]
@@ -122,24 +138,27 @@ def main():
     results: List[Dict[str, Any]] = []
 
     print(f"Starting comparison benchmarks using oha ({oha_bin})...")
-    print(f"Duration per run: {duration}s | Concurrency: {concurrency} | Workers: 1 (Granian ASGI)\n")
+    print(f"Duration per run: {duration}s | Concurrency: {concurrency} | Workers: 1\n")
 
     for fw in FRAMEWORKS:
         name = fw["name"]
-        module = fw["module"]
-        print(f"--- Benchmarking {name} ({module}) ---")
+        fw_type = fw["type"]
+        print(f"--- Benchmarking {name} ---")
 
-        # Launch Granian
         env = os.environ.copy()
         env["PYTHONPATH"] = str(WORKSPACE_ROOT)
-        cmd = [
-            granian_bin,
-            "--interface", "asgi",
-            "--host", host,
-            "--port", str(port),
-            "--workers", "1",
-            module,
-        ]
+
+        if fw_type == "granian":
+            cmd = [
+                granian_bin,
+                "--interface", "asgi",
+                "--host", host,
+                "--port", str(port),
+                "--workers", "1",
+                fw["module"],
+            ]
+        else:
+            cmd = fw["command"]
 
         server_proc = subprocess.Popen(cmd, env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         try:
@@ -199,14 +218,14 @@ def main():
     table_str = "\n".join(md_table)
 
     results_file = COMPARE_DIR / "results.md"
-    results_content = f"""# Honest ASGI Framework Comparison Results
+    results_content = f"""# Honest ASGI / Web Framework Comparison Results
 
 Generated with `perf/compare/run.sh` on {time.strftime('%Y-%m-%d %H:%M:%S')}.
-Test parameters: 1 Granian ASGI worker, duration 10s, concurrency 50 keep-alive connections via `oha`.
+Test parameters: 1 worker process, duration 10s, concurrency 50 keep-alive connections via `oha`.
 
 {table_str}
 
-*Note: Benchmarks measure framework + Granian overhead on localhost. Published numbers represent honest local measurements.*
+*Note: Benchmarks measure framework overhead on localhost. Published numbers represent honest local measurements.*
 """
     results_file.write_text(results_content)
 
