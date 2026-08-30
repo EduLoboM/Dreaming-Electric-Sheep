@@ -929,6 +929,35 @@ class Application(BaseApplication):
 
         raise TypeError(f"Unsupported scope type: {scope['type']}")
 
+    async def _handle_rsgi_http(self, scope, protocol) -> None:
+        if not self.started:
+            await self.start()
+
+        from .rsgi import instantiate_rsgi_request, send_rsgi_response
+
+        request = instantiate_rsgi_request(scope, protocol)
+        response = await self.handle(request)
+        await send_rsgi_response(response, protocol)
+
+        request.scope = None
+        request.dispose()
+
+    async def __rsgi__(self, scope, protocol):
+        if not self.started:
+            await self.start()
+
+        proto = getattr(scope, "proto", "http")
+        if proto == "http":
+            return await self._handle_rsgi_http(scope, protocol)
+
+        protocol.response_empty(400, [])
+
+    def __rsgi_init__(self, *args, **kwargs):
+        pass
+
+    def __rsgi_del__(self, *args, **kwargs):
+        pass
+
 
 class PathPrefixMixin:
     router: Router

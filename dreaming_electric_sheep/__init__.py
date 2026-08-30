@@ -107,6 +107,8 @@ _LAZY_EXPORTS = {
     "temporary_redirect": ".server.responses",
     "text": ".server.responses",
     "unauthorized": ".server.responses",
+    "view": ".server.responses",
+    "view_async": ".server.responses",
     # server.routing
     "Route": ".server.routing",
     "RouteException": ".server.routing",

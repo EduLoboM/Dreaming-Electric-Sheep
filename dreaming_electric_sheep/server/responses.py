@@ -4,6 +4,8 @@ from functools import lru_cache
 from io import BytesIO
 from typing import Any, AnyStr, AsyncIterable, Callable
 
+import msgspec.json
+
 from dreaming_electric_sheep import Content, JSONContent, Response, StreamedContent, TextContent
 from dreaming_electric_sheep.common.files.asyncfs import FilesHandler
 from dreaming_electric_sheep.settings.html import html_settings
@@ -166,24 +168,27 @@ def permanent_redirect(location: AnyStr) -> Response:
     return Response(308, [(b"Location", _ensure_bytes(location))])
 
 
-def text(value: str, status: int = 200) -> Response:
+_TEXT_PLAIN_CT = b"text/plain; charset=utf-8"
+_TEXT_HTML_CT = b"text/html; charset=utf-8"
+_APP_JSON_CT = b"application/json"
+
+
+def text(value: str | bytes, status: int = 200) -> Response:
     """
     Returns a response with text/plain content,
     and given status (default HTTP 200 OK).
     """
-    return Response(
-        status, None, Content(b"text/plain; charset=utf-8", value.encode("utf8"))
-    )
+    raw = value if isinstance(value, bytes) else value.encode("utf8")
+    return Response(status, None, Content(_TEXT_PLAIN_CT, raw))
 
 
-def html(value: str, status: int = 200) -> Response:
+def html(value: str | bytes, status: int = 200) -> Response:
     """
     Returns a response with text/html content,
     and given status (default HTTP 200 OK).
     """
-    return Response(
-        status, None, Content(b"text/html; charset=utf-8", value.encode("utf8"))
-    )
+    raw = value if isinstance(value, bytes) else value.encode("utf8")
+    return Response(status, None, Content(_TEXT_HTML_CT, raw))
 
 
 def json(data: Any, status: int = 200) -> Response:
@@ -191,14 +196,16 @@ def json(data: Any, status: int = 200) -> Response:
     Returns a response with application/json content,
     and given status (default HTTP 200 OK).
     """
-    return Response(
-        status,
-        None,
-        Content(
-            b"application/json",
-            json_settings.dumps(data).encode("utf8"),
-        ),
-    )
+    if not json_settings.has_custom_dumps:
+        try:
+            return Response(
+                status, None, Content(_APP_JSON_CT, msgspec.json.encode(data))
+            )
+        except (TypeError, msgspec.EncodeError):
+            pass
+    raw = json_settings.dumps(data)
+    raw_bytes = raw if isinstance(raw, bytes) else raw.encode("utf8")
+    return Response(status, None, Content(_APP_JSON_CT, raw_bytes))
 
 
 def pretty_json(

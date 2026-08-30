@@ -202,6 +202,48 @@ cdef class ASGIContent(Content):
         return self.body
 
 
+cdef class RSGIContent(Content):
+
+    def __init__(self, object protocol):
+        self.type = None
+        self.body = None
+        self.length = -1
+        self.protocol = protocol
+
+    cpdef void dispose(self):
+        Content.dispose(self)
+        self.protocol = None
+
+    async def stream(self):
+        if self.protocol is None:
+            yield b""
+            return
+        async for chunk in self.protocol:
+            yield chunk
+        yield b""
+
+    async def read(self):
+        if self.body is not None:
+            return self.body
+
+        if self.protocol is None:
+            return b""
+
+        cdef object res = await self.protocol()
+        if isinstance(res, bytes):
+            self.body = res
+        elif isinstance(res, (bytearray, memoryview)):
+            self.body = bytes(res)
+        elif isinstance(res, str):
+            self.body = res.encode("utf8")
+        elif res is None:
+            self.body = b""
+        else:
+            self.body = bytes(res)
+        self.length = len(self.body)
+        return self.body
+
+
 cdef class TextContent(Content):
 
     def __init__(self, str text):

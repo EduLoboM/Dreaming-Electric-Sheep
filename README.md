@@ -188,33 +188,54 @@ async def ingest_msgpack(data: FromMsgPack[SensorPayload]):
 
 ---
 
-## 🚀 Running the Application (CLI & ASGI Servers)
+## 🛠️ Developer CLI (`des`)
 
-Dreaming Electric Sheep is a standard ASGI 3 application compatible with all ASGI servers.
+The `des` CLI is the default, first-class interface for development, inspection, and operations.
 
-### 1. Granian (Recommended for Extreme Throughput)
-
-[Granian](https://github.com/emmett-framework/granian) is a high-performance Rust-based HTTP server.
+### Quick Cheat Sheet
 
 ```bash
-# Production: Multi-threaded & Multi-worker
-granian --interface asgi app:app --port 8000 --workers 4 --threads 2
-
-# Development: Auto-reload
-granian --interface asgi app:app --port 8000 --reload
+des new demo -t api          # Scaffold REST API project (Scalar UI default)
+cd demo && des dev           # Start development server with auto-reload (http://127.0.0.1:8000)
+des run app:app --workers 4  # Start production server (Granian first, Uvicorn fallback)
+des check                    # Validate routes, compiled binders, and configuration
+des routes                   # Inspect compiled radix routing table
+des why GET /items/1         # Explain route match, parameters, binders, and pipeline
+des doctor                   # Inspect C-core, SIMD ISA, and runtime environment health
 ```
 
-### 2. Uvicorn (with `uvloop` & `httptools`)
+### OpenAPI Documentation Model
 
-[Uvicorn](https://www.uvicorn.org/) provides a battle-tested Python/C networking stack.
+There is **one** OpenAPI 3.0 specification served at `/openapi.json`. Scalar, Swagger UI, and ReDoc are renderers reading that same spec:
 
 ```bash
-# Production: uvloop + httptools
-uvicorn app:app --port 8000 --loop uvloop --http httptools --workers 4
-
-# Development: Auto-reload
-uvicorn app:app --port 8000 --reload
+# Scaffold with your preferred UI renderer
+des new demo -t api --docs scalar   # Scalar (default) -> http://127.0.0.1:8000/docs
+des new demo -t api --docs swagger  # Swagger UI      -> http://127.0.0.1:8000/docs
+des new demo -t api --docs redoc    # ReDoc           -> http://127.0.0.1:8000/docs
 ```
+
+### Validation Errors (FastAPI-Compatible HTTP 422)
+
+Request validation produces standard, structured JSON errors with explicit field locations:
+
+```json
+{
+  "detail": [
+    {
+      "loc": ["body", "price"],
+      "msg": "Expected `float`, got `str`",
+      "type": "validation_error"
+    }
+  ]
+}
+```
+
+### Server Support & Migration
+
+- **Granian (Default)**: Runs via high-performance **RSGI** protocol by default (`des run` / `des dev`), eliminating ASGI ceremony, with `--interface asgi` supported.
+- **Uvicorn**: Supported portable ASGI fallback (`uvicorn app:app --reload`).
+- **Docs & Migration**: See [FastAPI to DES Cheat Sheet](docs/fastapi-to-des.md) and [15-Minute Quickstart Tutorial](docs/tutorial.md).
 
 ---
 
@@ -241,25 +262,42 @@ class StatusController(Controller):
 
 ---
 
-## 📊 Benchmarks & Performance Comparison
+## 🧠 Benchmarks & Performance Comparison
 
-Published numbers represent the **median of 3 independent runs** (10s duration each, 50 concurrency keep-alive connections via `oha` on localhost).
+Localhost framework overhead measured against a shared in-memory fixture (not the TechEmpower Framework Benchmarks; no Postgres). Numbers represent the **median of 3 independent runs** (5s duration each, total 15s sampling per route, 50 concurrency keep-alive connections via `oha` on localhost, 1 worker process).
 
-| Framework | Route | Server / Runtime | Tool | RPS (Median) | p50 ms | p99 ms | Errors |
+### Table A: Ceiling Comparison (Apples-to-Apples msgspec Encoder)
+
+Measures framework tax against raw server ceilings when all targets encode JSON per request using `msgspec.json.encode` and run with `optimize_gc=False`.
+
+| Framework | Plaintext (req/s) | JSON (req/s) | Mem get (req/s) | Mem get ×20 (req/s) | HTML fortunes (req/s) | Mem update ×20 (req/s) | Server / Runtime |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **Dreaming Electric Sheep** | plaintext | Granian (ASGI, 1 worker) | oha | **27,971** | **1.53 ms** | **4.59 ms** | 0 |
-| **Dreaming Electric Sheep** | json | Granian (ASGI, 1 worker) | oha | **20,932** | **1.91 ms** | **5.91 ms** | 0 |
-| Litestar | plaintext | Granian (ASGI, 1 worker) | oha | 13,048 | 3.45 ms | 9.45 ms | 0 |
-| Litestar | json | Granian (ASGI, 1 worker) | oha | 13,640 | 3.41 ms | 7.40 ms | 0 |
-| Robyn | plaintext | Robyn Rust (1 worker process) | oha | 10,453 | 4.39 ms | 12.15 ms | 0 |
-| Robyn | json | Robyn Rust (1 worker process) | oha | 9,715 | 4.84 ms | 14.46 ms | 0 |
-| FastAPI | plaintext | Granian (ASGI, 1 worker) | oha | 10,203 | 4.62 ms | 10.98 ms | 0 |
-| FastAPI | json | Granian (ASGI, 1 worker) | oha | 8,352 | 5.59 ms | 14.26 ms | 0 |
+| Granian (Raw RSGI) | 138,854 | 137,812 | 113,809 | 66,489 | 41,633 | 57,719 | Granian (Raw RSGI, 1 worker, msgspec) |
+| Granian (Raw ASGI) | 107,360 | 100,361 | 87,288 | 50,060 | 34,578 | 42,689 | Granian (Raw ASGI, 1 worker, msgspec) |
+| Dreaming Electric Sheep (RSGI) | 97,085 | 78,761 | 77,264 | 45,909 | 33,417 | 40,696 | Granian (RSGI, 1 worker, msgspec) |
+| Dreaming Electric Sheep (ASGI) | 92,161 | 83,733 | 86,533 | 46,565 | 30,907 | 37,505 | Granian (ASGI, 1 worker, msgspec) |
+| Uvicorn (Raw ASGI) | 58,130 | 60,001 | 60,467 | 40,726 | 29,582 | 36,595 | Uvicorn (Raw ASGI, 1 worker, msgspec) |
+
+### Table B: Default Stack Comparison (Stock Helpers Out-of-the-Box)
+
+Measures out-of-the-box performance using each framework's stock response/serialization helpers (e.g. DES `json()`/`html()`/`text()`, Emmett `json.dumps`, Sanic `json()`, Robyn `jsonify`, Litestar msgspec default, FastAPI `JSONResponse`, Flask `jsonify`/`Response`, Django `JsonResponse`/`HttpResponse`).
+
+| Framework | Plaintext (req/s) | JSON (req/s) | Mem get (req/s) | Mem get ×20 (req/s) | HTML fortunes (req/s) | Mem update ×20 (req/s) | Server / Runtime |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| Dreaming Electric Sheep (RSGI) | 88,418 | 90,436 | 82,081 | 49,562 | 33,656 | 39,616 | Granian (RSGI, 1 worker, stock helpers) |
+| Dreaming Electric Sheep (ASGI) | 88,039 | 88,357 | 75,512 | 43,014 | 30,975 | 37,504 | Granian (ASGI, 1 worker, stock helpers) |
+| Emmett | 65,220 | 58,314 | 55,359 | 30,876 | 26,780 | 27,452 | Granian (RSGI/ASGI, 1 worker) |
+| Sanic | 51,107 | 45,731 | 43,522 | 24,903 | 20,618 | 22,566 | Sanic (1 worker) |
+| Litestar | 37,113 | 35,600 | 32,190 | 21,960 | 19,152 | 20,358 | Granian (ASGI, 1 worker) |
+| Robyn | 32,201 | 29,349 | 29,264 | 19,346 | 17,508 | 17,435 | Robyn Rust (1 worker process) |
+| FastAPI | 26,605 | 21,278 | 20,808 | 7,490 | 15,236 | 7,181 | Granian (ASGI, 1 worker) |
+| Flask | 26,136 | 22,372 | 20,611 | 7,769 | 15,175 | 7,333 | Granian (WSGI, 1 worker) |
+| Django | 26,190 | 22,070 | 20,194 | 7,429 | 14,641 | 7,054 | Granian (WSGI, 1 worker, stripped middleware) |
 
 > **Environment & System Specifications**:
 >
 > - **CPU / OS**: x86_64 Linux (CachyOS Kernel 7.2), SIMD ISA: AVX2
-> - **Runtimes**: CPython 3.14.7 | Granian 2.8.0 (Rust ASGI) | Robyn 0.88.0 (Native Rust Server)
+> - **Runtimes**: CPython 3.14.7 | Granian 2.8.2 | Uvicorn 0.34.2 | Emmett 2.8.1 | Sanic 25.12.1 | Robyn 0.88.0 | Litestar 2.24.0 | FastAPI 0.141.1 | Flask 3.1.1 | Django 6.1
 > - **Load Tester**: `oha 1.16.0` (Rust)
 >
 > To reproduce on your machine:
@@ -268,11 +306,9 @@ Published numbers represent the **median of 3 independent runs** (10s duration e
 > pip install -r perf/requirements-bench.txt
 > ./perf/compare/run.sh
 > ```
->
-> *Note: `des bench` is a development smoke-testing client; published comparative numbers are generated using `perf/compare/run.sh` with `oha`.*
 
 ---
 
 <p align="center">
-  made with <img src="assets/love.png" width="18" alt="love.png" style="vertical-align: middle;"> by <b>EduLoboM</b>
+  made with <img src="assets/love.png" width="25" alt="love.png" style="vertical-align: middle;"> by <b>EduLoboM</b>
 </p>
