@@ -68,6 +68,62 @@ jobs:
         run: |
           pytest
 
+  asan-ubsan-validation:
+    name: ASAN/UBSAN C Sanitizers
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 9
+          submodules: false
+
+      - name: Set up Python 3.14
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: Build with AddressSanitizer & UndefinedBehaviorSanitizer
+        env:
+          CFLAGS: "-fsanitize=address,undefined -fno-omit-frame-pointer"
+          LDFLAGS: "-fsanitize=address,undefined"
+        run: |
+          python setup.py build_ext --inplace
+
+      - name: Run test suite under ASAN/UBSAN
+        env:
+          ASAN_OPTIONS: "detect_leaks=0:symbolize=1:abort_on_error=1"
+          UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1"
+          LD_PRELOAD: "/usr/lib/x86_64-linux-gnu/libasan.so.8"
+        run: |
+          pytest tests
+
+  pgo-validation:
+    name: Profile-Guided Optimization (PGO) Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 9
+          submodules: false
+
+      - name: Set up Python 3.14
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: PGO 2-Stage Compilation & Verification
+        run: |
+          make pgo
+          pytest tests
+
   build:
     strategy:
       fail-fast: false
