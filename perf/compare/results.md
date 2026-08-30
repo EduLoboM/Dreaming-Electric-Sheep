@@ -1,17 +1,24 @@
-# Honest ASGI / Web Framework Comparison Results
+# Honest ASGI / Rust Runtime Framework Benchmark Results
 
-Generated with `perf/compare/run.sh` on 2026-08-30 12:05:32.
-Test parameters: 1 worker process, duration 10s, concurrency 50 keep-alive connections via `oha`.
+Generated with `perf/compare/run.sh` on 2026-08-30 12:16:48.
+Test parameters: 3 runs of 10s per route (median reported), concurrency 50 keep-alive connections via `oha`.
 
-| framework | route | tool | workers | RPS | p50 ms | p99 ms | errors |
+| Framework | Route | Server / Runtime | Tool | RPS (Median) | p50 ms | p99 ms | Errors |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| Dreaming Electric Sheep | plaintext | oha | 1 | 32,039.34 | 1.388 | 3.888 | 0 |
-| Dreaming Electric Sheep | json | oha | 1 | 27,307.1 | 1.68 | 4.052 | 0 |
-| Robyn | plaintext | oha | 1 | 12,114.67 | 4.199 | 7.98 | 0 |
-| Robyn | json | oha | 1 | 10,664.65 | 4.611 | 12.205 | 0 |
-| Litestar | plaintext | oha | 1 | 14,231.52 | 3.286 | 8.281 | 0 |
-| Litestar | json | oha | 1 | 9,446.17 | 4.529 | 12.269 | 0 |
-| FastAPI | plaintext | oha | 1 | 7,186.5 | 5.429 | 15.631 | 0 |
-| FastAPI | json | oha | 1 | 6,994.55 | 5.826 | 14.693 | 0 |
+| Dreaming Electric Sheep | plaintext | Granian (ASGI, 1 worker) | oha | 27,971.07 | 1.527 | 4.593 | 0 |
+| Dreaming Electric Sheep | json | Granian (ASGI, 1 worker) | oha | 20,931.71 | 1.91 | 5.91 | 0 |
+| Robyn | plaintext | Robyn Rust (1 worker process) | oha | 10,453.47 | 4.386 | 12.147 | 0 |
+| Robyn | json | Robyn Rust (1 worker process) | oha | 9,714.83 | 4.835 | 14.458 | 0 |
+| Litestar | plaintext | Granian (ASGI, 1 worker) | oha | 13,048.45 | 3.447 | 9.451 | 0 |
+| Litestar | json | Granian (ASGI, 1 worker) | oha | 13,639.51 | 3.412 | 7.398 | 0 |
+| FastAPI | plaintext | Granian (ASGI, 1 worker) | oha | 10,203.49 | 4.621 | 10.979 | 0 |
+| FastAPI | json | Granian (ASGI, 1 worker) | oha | 8,351.62 | 5.587 | 14.257 | 0 |
 
-*Note: Benchmarks measure framework overhead on localhost. Published numbers represent honest local measurements.*
+### Environment & System Specifications
+- **Python**: 3.14.7 (CPython)
+- **OS / Platform**: Linux-7.2.2-1-cachyos-x86_64-with-glibc2.44 (x86_64)
+- **Active SIMD ISA**: AVX2
+- **Granian**: 2.8.2 | **Robyn**: 0.88.0 | **Litestar**: 2.24.0 | **FastAPI**: 0.141.1
+- **Load Generator**: oha 1.16.0
+
+*Note: Dreaming Electric Sheep, Litestar, and FastAPI execute as ASGI applications under Granian (1 worker). Robyn executes under its standalone native Rust server runtime (1 process, 1 worker). Benchmarks measure framework + server overhead on localhost.*

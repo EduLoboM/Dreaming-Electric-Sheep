@@ -242,26 +242,30 @@ class StatusController(Controller):
 
 ## 📊 Benchmarks & Performance Comparison
 
-Published numbers are generated using `oha` (Rust HTTP load tester) under identical [Granian](https://github.com/emmett-framework/granian) (Rust ASGI) server configurations (1 worker, 50 concurrency, 10s duration, localhost).
+Published numbers represent the **median of 3 independent runs** (10s duration each, 50 concurrency keep-alive connections via `oha` on localhost).
 
-| Framework | Route | Tool | Workers | RPS | p50 ms | p99 ms | Errors |
+| Framework | Route | Server / Runtime | Tool | RPS (Median) | p50 ms | p99 ms | Errors |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **Dreaming Electric Sheep** | plaintext | oha | 1 | **32,039** | **1.39 ms** | **3.89 ms** | 0 |
-| **Dreaming Electric Sheep** | json | oha | 1 | **27,307** | **1.68 ms** | **4.05 ms** | 0 |
-| Robyn | plaintext | oha | 1 | 12,114 | 4.20 ms | 7.98 ms | 0 |
-| Robyn | json | oha | 1 | 10,664 | 4.61 ms | 12.21 ms | 0 |
-| Litestar | plaintext | oha | 1 | 14,232 | 3.29 ms | 8.28 ms | 0 |
-| Litestar | json | oha | 1 | 9,446 | 4.53 ms | 12.27 ms | 0 |
-| FastAPI | plaintext | oha | 1 | 7,186 | 5.43 ms | 15.63 ms | 0 |
-| FastAPI | json | oha | 1 | 6,995 | 5.83 ms | 14.69 ms | 0 |
+| **Dreaming Electric Sheep** | plaintext | Granian (ASGI, 1 worker) | oha | **27,971** | **1.53 ms** | **4.59 ms** | 0 |
+| **Dreaming Electric Sheep** | json | Granian (ASGI, 1 worker) | oha | **20,932** | **1.91 ms** | **5.91 ms** | 0 |
+| Litestar | plaintext | Granian (ASGI, 1 worker) | oha | 13,048 | 3.45 ms | 9.45 ms | 0 |
+| Litestar | json | Granian (ASGI, 1 worker) | oha | 13,640 | 3.41 ms | 7.40 ms | 0 |
+| Robyn | plaintext | Robyn Rust (1 worker process) | oha | 10,453 | 4.39 ms | 12.15 ms | 0 |
+| Robyn | json | Robyn Rust (1 worker process) | oha | 9,715 | 4.84 ms | 14.46 ms | 0 |
+| FastAPI | plaintext | Granian (ASGI, 1 worker) | oha | 10,203 | 4.62 ms | 10.98 ms | 0 |
+| FastAPI | json | Granian (ASGI, 1 worker) | oha | 8,352 | 5.59 ms | 14.26 ms | 0 |
 
-> **Reproducibility Note**:
-> To reproduce these benchmarks on your machine:
+> **Environment & System Specifications**:
+> - **CPU / OS**: x86_64 Linux (CachyOS Kernel 7.2), SIMD ISA: AVX2
+> - **Runtimes**: CPython 3.14.7 | Granian 2.8.0 (Rust ASGI) | Robyn 0.88.0 (Native Rust Server)
+> - **Load Tester**: `oha 1.16.0` (Rust)
+>
+> To reproduce on your machine:
 > ```bash
 > pip install -r perf/requirements-bench.txt
 > ./perf/compare/run.sh
 > ```
-> *`des bench` is a development and smoke-testing tool; published comparative numbers are generated using `perf/compare/run.sh` with `oha`.*
+> *Note: `des bench` is a development smoke-testing client; published comparative numbers are generated using `perf/compare/run.sh` with `oha`.*
 
 ---
 
