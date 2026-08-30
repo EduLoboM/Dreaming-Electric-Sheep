@@ -289,3 +289,113 @@ uint32_t simd_fast_hash(const char * __restrict__ buffer, size_t length) {
 
     return hash;
 }
+
+void simd_lowercase_ascii(const char * __restrict__ src, char * __restrict__ dst, size_t length) {
+    if (DES_UNLIKELY(src == NULL || dst == NULL || length == 0)) {
+        return;
+    }
+
+    size_t i = 0;
+
+#if defined(HAS_AVX2)
+    __m256i a_minus_1 = _mm256_set1_epi8('A' - 1);
+    __m256i z_plus_1 = _mm256_set1_epi8('Z' + 1);
+    __m256i diff = _mm256_set1_epi8(32);
+
+    while (i + 32 <= length) {
+        DES_PREFETCH(src + i + 64, 0, 3);
+        __m256i chunk = _mm256_loadu_si256((const __m256i *)(src + i));
+        __m256i ge_a = _mm256_cmpgt_epi8(chunk, a_minus_1);
+        __m256i le_z = _mm256_cmpgt_epi8(z_plus_1, chunk);
+        __m256i is_upper = _mm256_and_si256(ge_a, le_z);
+        __m256i to_add = _mm256_and_si256(is_upper, diff);
+        __m256i result = _mm256_add_epi8(chunk, to_add);
+        _mm256_storeu_si256((__m256i *)(dst + i), result);
+        i += 32;
+    }
+#elif defined(HAS_SSE2)
+    __m128i a_minus_1 = _mm_set1_epi8('A' - 1);
+    __m128i z_plus_1 = _mm_set1_epi8('Z' + 1);
+    __m128i diff = _mm_set1_epi8(32);
+
+    while (i + 16 <= length) {
+        DES_PREFETCH(src + i + 32, 0, 3);
+        __m128i chunk = _mm_loadu_si128((const __m128i *)(src + i));
+        __m128i ge_a = _mm_cmpgt_epi8(chunk, a_minus_1);
+        __m128i le_z = _mm_cmpgt_epi8(z_plus_1, chunk);
+        __m128i is_upper = _mm_and_si128(ge_a, le_z);
+        __m128i to_add = _mm_and_si128(is_upper, diff);
+        __m128i result = _mm_add_epi8(chunk, to_add);
+        _mm_storeu_si128((__m128i *)(dst + i), result);
+        i += 16;
+    }
+#endif
+
+    while (i + 8 <= length) {
+        uint64_t v;
+        memcpy(&v, src + i, 8);
+        for (int k = 0; k < 8; ++k) {
+            unsigned char c = (unsigned char)((v >> (k * 8)) & 0xFF);
+            if (c >= 'A' && c <= 'Z') {
+                c = (unsigned char)(c + 32);
+            }
+            dst[i + k] = (char)c;
+        }
+        i += 8;
+    }
+
+    for (; i < length; ++i) {
+        unsigned char c = (unsigned char)src[i];
+        if (c >= 'A' && c <= 'Z') {
+            c = (unsigned char)(c + 32);
+        }
+        dst[i] = (char)c;
+    }
+}
+
+int simd_is_ascii_lowercase(const char * __restrict__ s, size_t length) {
+    if (DES_UNLIKELY(s == NULL || length == 0)) {
+        return 1;
+    }
+
+    size_t i = 0;
+
+#if defined(HAS_AVX2)
+    __m256i a_minus_1 = _mm256_set1_epi8('A' - 1);
+    __m256i z_plus_1 = _mm256_set1_epi8('Z' + 1);
+
+    while (i + 32 <= length) {
+        __m256i chunk = _mm256_loadu_si256((const __m256i *)(s + i));
+        __m256i ge_a = _mm256_cmpgt_epi8(chunk, a_minus_1);
+        __m256i le_z = _mm256_cmpgt_epi8(z_plus_1, chunk);
+        __m256i is_upper = _mm256_and_si256(ge_a, le_z);
+        if (DES_UNLIKELY(_mm256_movemask_epi8(is_upper) != 0)) {
+            return 0;
+        }
+        i += 32;
+    }
+#elif defined(HAS_SSE2)
+    __m128i a_minus_1 = _mm_set1_epi8('A' - 1);
+    __m128i z_plus_1 = _mm_set1_epi8('Z' + 1);
+
+    while (i + 16 <= length) {
+        __m128i chunk = _mm_loadu_si128((const __m128i *)(s + i));
+        __m128i ge_a = _mm_cmpgt_epi8(chunk, a_minus_1);
+        __m128i le_z = _mm_cmpgt_epi8(z_plus_1, chunk);
+        __m128i is_upper = _mm_and_si128(ge_a, le_z);
+        if (DES_UNLIKELY(_mm_movemask_epi8(is_upper) != 0)) {
+            return 0;
+        }
+        i += 16;
+    }
+#endif
+
+    for (; i < length; ++i) {
+        unsigned char c = (unsigned char)s[i];
+        if (DES_UNLIKELY(c >= 'A' && c <= 'Z')) {
+            return 0;
+        }
+    }
+
+    return 1;
+}

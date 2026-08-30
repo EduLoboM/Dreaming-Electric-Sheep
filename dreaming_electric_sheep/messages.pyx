@@ -551,6 +551,14 @@ cpdef bint method_without_body(str method):
 
 cdef class Request(Message):
 
+    def __cinit__(self, *args, **kwargs):
+        self._arena_initialized = False
+
+    def __dealloc__(self):
+        if self._arena_initialized:
+            scratchpad_destroy(&self._arena)
+            self._arena_initialized = False
+
     def __init__(
         self,
         str method,
@@ -565,6 +573,22 @@ cdef class Request(Message):
         if _url:
             self._path = _url.path
             self._raw_query = _url.query
+
+    cdef void *alloc_scratchpad(self, size_t size, size_t alignment=64):
+        if not self._arena_initialized:
+            scratchpad_init(&self._arena, 65536)
+            self._arena_initialized = True
+        cdef void *ptr = NULL
+        cdef des_err err = scratchpad_alloc(&self._arena, size, alignment, &ptr)
+        if err != DES_OK:
+            return NULL
+        return ptr
+
+    def scratchpad_arena_stats(self):
+        """Returns (capacity, offset, is_initialized) for arena debugging/monitoring."""
+        if not self._arena_initialized:
+            return (0, 0, False)
+        return (self._arena.capacity, self._arena.offset, True)
 
     # TODO: deprecate the 'identity' property in the future. This requires a
     # breaking change in guardpost, too.
@@ -689,6 +713,8 @@ cdef class Request(Message):
         if self.content is not None:
             self.content.dispose()
             self.content = None
+        if self._arena_initialized:
+            scratchpad_reset(&self._arena)
 
     @classmethod
     def incoming(cls, str method, bytes path, bytes query, list headers):

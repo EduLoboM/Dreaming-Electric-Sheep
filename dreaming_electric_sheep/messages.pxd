@@ -47,6 +47,22 @@ cdef class Message:
     cpdef bint declares_xml(self)
 
 
+cdef extern from "fast_parse.h":
+    ctypedef enum des_err:
+        DES_OK
+
+cdef extern from "scratchpad.h":
+    ctypedef struct ScratchpadArena:
+        char *buffer
+        size_t capacity
+        size_t offset
+        int is_dynamic
+    des_err scratchpad_init(ScratchpadArena *arena, size_t capacity)
+    des_err scratchpad_alloc(ScratchpadArena *arena, size_t size, size_t alignment, void **out_ptr)
+    void scratchpad_reset(ScratchpadArena *arena)
+    void scratchpad_destroy(ScratchpadArena *arena)
+
+
 cdef class Request(Message):
     cdef public str method
     cdef public URL _url
@@ -65,9 +81,12 @@ cdef class Request(Message):
     cdef public object _context
     cdef public object services
     cdef public object _is_disconnected
+    cdef ScratchpadArena _arena
+    cdef bint _arena_initialized
 
     cpdef bint expect_100_continue(self)
     cpdef void reset(self)
+    cdef void *alloc_scratchpad(self, size_t size, size_t alignment=*)
 
 
 cdef class Response(Message):

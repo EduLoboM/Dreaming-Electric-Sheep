@@ -42,7 +42,17 @@ DES_API int simd_validate_url_ascii(const char * __restrict__ buffer, size_t len
 /*
  * Computes a fast 32-bit hash of a byte buffer using SWAR / SIMD unrolling.
  */
-DES_API uint32_t simd_fast_hash(const char * __restrict__ buffer, size_t length);
+/*
+ * Converts an ASCII string to lowercase using SIMD vectorization.
+ * Supports in-place conversion (src == dst) or distinct destination buffer.
+ */
+DES_API void simd_lowercase_ascii(const char * __restrict__ src, char * __restrict__ dst, size_t length);
+
+/*
+ * Checks if an ASCII string is entirely lowercase (contains no uppercase 'A'-'Z').
+ * Returns 1 if all characters are lowercase / non-uppercase, 0 if uppercase exists.
+ */
+DES_API int simd_is_ascii_lowercase(const char * __restrict__ s, size_t length);
 
 #ifdef __cplusplus
 }
