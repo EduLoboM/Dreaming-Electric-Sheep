@@ -8,17 +8,12 @@ static inline PyObject *create_interned_str(const char *s) {
     PyObject *u = PyUnicode_FromString(s);
     if (u != NULL) {
         PyUnicode_InternInPlace(&u);
-        Py_INCREF(u);
     }
     return u;
 }
 
 static inline PyObject *create_bytes(const char *s) {
-    PyObject *b = PyBytes_FromString(s);
-    if (b != NULL) {
-        Py_INCREF(b);
-    }
-    return b;
+    return PyBytes_FromString(s);
 }
 
 int init_static_interning(void) {
@@ -27,6 +22,10 @@ int init_static_interning(void) {
     }
 
     PyGILState_STATE gstate = PyGILState_Ensure();
+    if (g_interning_initialized) {
+        PyGILState_Release(gstate);
+        return 0;
+    }
 
     // Methods (Unicode)
     g_des_intern_table.method_get_str     = create_interned_str("GET");

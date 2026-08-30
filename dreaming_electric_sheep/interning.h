@@ -71,33 +71,35 @@ typedef struct DES_CACHE_ALIGNED {
     PyObject *val_zero;
 } StaticInternTable;
 
-extern StaticInternTable g_des_intern_table;
+extern DES_API StaticInternTable g_des_intern_table;
 
 /*
  * Initializes and interns all static PyObjects in the global table.
- * Safe to call multiple times (idempotent).
+ * Safe to call multiple times (idempotent, thread/GIL-safe).
+ * Process-lifetime ownership is held by g_des_intern_table.
  */
-int init_static_interning(void);
+DES_API int init_static_interning(void);
 
 /*
- * Returns interned Unicode method object or NULL if not in static table.
+ * Returns a BORROWED reference to interned Unicode method object or NULL if not in static table.
+ * The caller does not steal reference; Cython auto-increfs when assigning to PyObject/object.
  */
-PyObject *get_interned_method_str(const char * __restrict__ method_str, size_t len);
+DES_API PyObject *get_interned_method_str(const char * __restrict__ method_str, size_t len);
 
 /*
- * Returns interned Bytes method object or NULL if not in static table.
+ * Returns a BORROWED reference to interned Bytes method object or NULL if not in static table.
  */
-PyObject *get_interned_method_bytes(const char * __restrict__ method_str, size_t len);
+DES_API PyObject *get_interned_method_bytes(const char * __restrict__ method_str, size_t len);
 
 /*
- * Returns interned Bytes header name or NULL if not in static table.
+ * Returns a BORROWED reference to interned Bytes header name or NULL if not in static table.
  */
-PyObject *get_interned_header_name_bytes(const char * __restrict__ name_str, size_t len);
+DES_API PyObject *get_interned_header_name_bytes(const char * __restrict__ name_str, size_t len);
 
 /*
- * Returns interned Bytes content type or NULL if not in static table.
+ * Returns a BORROWED reference to interned Bytes content type or NULL if not in static table.
  */
-PyObject *get_interned_content_type_bytes(const char * __restrict__ type_str, size_t len);
+DES_API PyObject *get_interned_content_type_bytes(const char * __restrict__ type_str, size_t len);
 
 #ifdef __cplusplus
 }

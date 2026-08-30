@@ -10,12 +10,28 @@
 # the MIT License https://opensource.org/licenses/MIT
 
 from collections.abc import Mapping, MutableSequence
+from cpython.object cimport PyObject
+from cpython.bytes cimport PyBytes_AS_STRING, PyBytes_GET_SIZE
+
+cdef extern from "interning.h":
+    PyObject *get_interned_header_name_bytes(const char *name_str, size_t len)
+    PyObject *get_interned_content_type_bytes(const char *type_str, size_t len)
+
+cdef inline bytes intern_header_name_bytes(bytes name):
+    if name is None:
+        return None
+    cdef char *raw = PyBytes_AS_STRING(name)
+    cdef Py_ssize_t size = PyBytes_GET_SIZE(name)
+    cdef PyObject *interned = get_interned_header_name_bytes(raw, <size_t>size)
+    if interned != NULL:
+        return <bytes><object>interned
+    return name
 
 
 cdef class Header:
 
     def __init__(self, bytes name, bytes value):
-        self.name = name
+        self.name = intern_header_name_bytes(name)
         self.value = value
 
     def __repr__(self):
@@ -27,7 +43,7 @@ cdef class Header:
 
     def __eq__(self, other):
         if isinstance(other, Header):
-            return other.name.lower() == self.name.lower() and other.value == self.value
+            return (other.name is self.name or other.name.lower() == self.name.lower()) and other.value == self.value
         return NotImplemented
 
 
@@ -41,26 +57,26 @@ cdef class Headers:
     cpdef tuple get(self, bytes name):
         cdef list results = []
         cdef tuple header
-        name = name.lower()
+        cdef bytes low_name = intern_header_name_bytes(name.lower())
         for header in self.values:
-            if header[0].lower() == name:
+            if header[0] is low_name or header[0].lower() == low_name:
                 results.append(header[1])
         return tuple(results)
 
     cpdef list get_tuples(self, bytes name):
         cdef list results = []
         cdef tuple header
-        name = name.lower()
+        cdef bytes low_name = intern_header_name_bytes(name.lower())
         for header in self.values:
-            if header[0].lower() == name:
+            if header[0] is low_name or header[0].lower() == low_name:
                 results.append(header)
         return results
 
     cpdef bytes get_first(self, bytes key):
         cdef tuple header
-        key = key.lower()
+        cdef bytes low_key = intern_header_name_bytes(key.lower())
         for header in self.values:
-            if header[0].lower() == key:
+            if header[0] is low_key or header[0].lower() == low_key:
                 return header[1]
 
     cpdef bytes get_single(self, bytes key):
@@ -162,7 +178,7 @@ cdef class Headers:
         return tuple(results)
 
     cpdef void add(self, bytes name, bytes value):
-        self.values.append((name, value))
+        self.values.append((intern_header_name_bytes(name), value))
 
     cpdef void set(self, bytes name, bytes value):
         if self.contains(name):
@@ -172,10 +188,10 @@ cdef class Headers:
     cpdef void remove(self, bytes key):
         cdef tuple item
         cdef list to_remove = []
-        key = key.lower()
+        cdef bytes low_key = intern_header_name_bytes(key.lower())
 
         for item in self.values:
-            if item[0].lower() == key:
+            if item[0] is low_key or item[0].lower() == low_key:
                 to_remove.append(item)
 
         for item in to_remove:
@@ -183,10 +199,10 @@ cdef class Headers:
 
     cpdef bint contains(self, bytes key):
         cdef bytes name, value
-        key = key.lower()
+        cdef bytes low_key = intern_header_name_bytes(key.lower())
 
         for name, value in self.values:
-            if name.lower() == key:
+            if name is low_key or name.lower() == low_key:
                 return True
         return False
 

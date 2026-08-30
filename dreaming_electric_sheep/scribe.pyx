@@ -17,6 +17,23 @@ from .cookies cimport Cookie, write_cookie_for_response
 from .messages cimport Request, Response
 from .url cimport URL
 
+from cpython.object cimport PyObject
+from cpython.bytes cimport PyBytes_AS_STRING, PyBytes_GET_SIZE
+
+cdef extern from "interning.h":
+    PyObject *get_interned_content_type_bytes(const char *type_str, size_t len)
+    PyObject *get_interned_header_name_bytes(const char *name_str, size_t len)
+
+cdef inline bytes intern_ct_bytes(bytes ct):
+    if ct is None:
+        return None
+    cdef char *raw = PyBytes_AS_STRING(ct)
+    cdef Py_ssize_t size = PyBytes_GET_SIZE(ct)
+    cdef PyObject *interned = get_interned_content_type_bytes(raw, <size_t>size)
+    if interned != NULL:
+        return <bytes><object>interned
+    return ct
+
 MAX_RESPONSE_CHUNK_SIZE = 61440  # 64kb — Python-accessible
 cdef int _MAX_RESPONSE_CHUNK_SIZE = MAX_RESPONSE_CHUNK_SIZE
 
@@ -32,7 +49,7 @@ cpdef void set_headers_for_response_content(Response message):
         message._add_header(b'content-length', b'0')
         return
 
-    message._add_header(b'content-type', content.type or b'application/octet-stream')
+    message._add_header(b'content-type', intern_ct_bytes(content.type) if content.type else b'application/octet-stream')
 
     if should_use_chunked_encoding(content):
         message._add_header(b'transfer-encoding', b'chunked')

@@ -70,9 +70,10 @@ def test_url_simd_operations_and_prefetch():
 
 def test_simd_c_intrinsics_direct():
     """
-    Test SIMD C library functions directly via ctypes.
+    Test SIMD C library functions directly via ctypes on _des_core.
     """
-    lib_path = url_mod.__file__
+    import dreaming_electric_sheep._des_core as core
+    lib_path = core.__file__
     dll = ctypes.CDLL(lib_path)
 
     # 1. simd_find_crlf
@@ -120,24 +121,22 @@ def test_simd_c_intrinsics_direct():
 
 def test_c_interning_symbols_loaded():
     """
-    Verify that the static interning table and C intrinsics compile and load cleanly into extensions.
+    Verify that the static interning table and C intrinsics compile and load cleanly into _des_core.
     """
-    # Messages module loads interning.c and scratchpad.c
+    import dreaming_electric_sheep._des_core as core
     import dreaming_electric_sheep.messages as m
     assert hasattr(m, "acquire_request")
     assert hasattr(m, "acquire_response")
 
-    # URL module loads simd_ops.c and interning.c
     import dreaming_electric_sheep.url as u
     assert hasattr(u, "URL")
 
-    # Headers module loads interning.c
     import dreaming_electric_sheep.headers as hd
     assert hasattr(hd, "Headers")
     assert hasattr(hd, "Header")
 
     # Verify static interning function in C extension
-    dll = ctypes.CDLL(m.__file__)
+    dll = ctypes.CDLL(core.__file__)
     assert hasattr(dll, "init_static_interning")
     assert hasattr(dll, "get_interned_method_str")
     assert hasattr(dll, "get_interned_header_name_bytes")
@@ -148,39 +147,47 @@ def test_c_interning_symbols_loaded():
     init_fn.argtypes = []
     assert init_fn() == 0
 
-    # Test get_interned_method_str
+    # Test get_interned_method_str (returns borrowed PyObject*, use c_void_p to avoid ctypes decref)
     get_method = dll.get_interned_method_str
-    get_method.restype = ctypes.py_object
+    get_method.restype = ctypes.c_void_p
     get_method.argtypes = [ctypes.c_char_p, ctypes.c_size_t]
 
-    m_get1 = get_method(b"GET", 3)
-    m_get2 = get_method(b"GET", 3)
+    m_get1_ptr = get_method(b"GET", 3)
+    m_get2_ptr = get_method(b"GET", 3)
+    m_get1 = ctypes.cast(m_get1_ptr, ctypes.py_object).value
+    m_get2 = ctypes.cast(m_get2_ptr, ctypes.py_object).value
     assert m_get1 == "GET"
     assert m_get1 is m_get2, "Interned strings must share identical PyObject pointer"
 
-    m_post1 = get_method(b"POST", 4)
+    m_post1_ptr = get_method(b"POST", 4)
+    m_post1 = ctypes.cast(m_post1_ptr, ctypes.py_object).value
     assert m_post1 == "POST"
 
     # Test get_interned_header_name_bytes
     get_header = dll.get_interned_header_name_bytes
-    get_header.restype = ctypes.py_object
+    get_header.restype = ctypes.c_void_p
     get_header.argtypes = [ctypes.c_char_p, ctypes.c_size_t]
 
-    h_ct1 = get_header(b"content-type", 12)
-    h_ct2 = get_header(b"content-type", 12)
+    h_ct1_ptr = get_header(b"content-type", 12)
+    h_ct2_ptr = get_header(b"content-type", 12)
+    h_ct1 = ctypes.cast(h_ct1_ptr, ctypes.py_object).value
+    h_ct2 = ctypes.cast(h_ct2_ptr, ctypes.py_object).value
     assert h_ct1 == b"content-type"
     assert h_ct1 is h_ct2, "Interned header bytes must share identical PyObject pointer"
 
-    h_host = get_header(b"host", 4)
+    h_host_ptr = get_header(b"host", 4)
+    h_host = ctypes.cast(h_host_ptr, ctypes.py_object).value
     assert h_host == b"host"
 
     # Test get_interned_content_type_bytes
     get_ct = dll.get_interned_content_type_bytes
-    get_ct.restype = ctypes.py_object
+    get_ct.restype = ctypes.c_void_p
     get_ct.argtypes = [ctypes.c_char_p, ctypes.c_size_t]
 
-    ct_json1 = get_ct(b"application/json", 16)
-    ct_json2 = get_ct(b"application/json", 16)
+    ct_json1_ptr = get_ct(b"application/json", 16)
+    ct_json2_ptr = get_ct(b"application/json", 16)
+    ct_json1 = ctypes.cast(ct_json1_ptr, ctypes.py_object).value
+    ct_json2 = ctypes.cast(ct_json2_ptr, ctypes.py_object).value
     assert ct_json1 == b"application/json"
     assert ct_json1 is ct_json2, "Interned content type bytes must share identical PyObject pointer"
 
@@ -189,8 +196,8 @@ def test_scratchpad_cache_alignment():
     """
     Verify 64-byte cache line alignment of ScratchpadArena structure.
     """
-    import dreaming_electric_sheep.messages as m
-    dll = ctypes.CDLL(m.__file__)
+    import dreaming_electric_sheep._des_core as core
+    dll = ctypes.CDLL(core.__file__)
 
     # ScratchpadArena fields: buffer(ptr), capacity(size_t), offset(size_t), is_dynamic(int)
     # With 64-byte alignment, sizeof(ScratchpadArena) must be a multiple of 64 bytes.

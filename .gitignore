@@ -114,6 +114,7 @@ tests/out/
 *,cover
 
 dreaming_electric_sheep/*.c
+!dreaming_electric_sheep/_des_core.c
 !dreaming_electric_sheep/simd_ops.c
 !dreaming_electric_sheep/scratchpad.c
 !dreaming_electric_sheep/interning.c

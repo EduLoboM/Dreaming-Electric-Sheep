@@ -39,6 +39,38 @@ from .exceptions cimport (
 from .headers cimport Headers
 from .url cimport URL, build_absolute_url
 
+from cpython.object cimport PyObject
+from cpython.bytes cimport PyBytes_AS_STRING, PyBytes_GET_SIZE
+from cpython.unicode cimport PyUnicode_AsUTF8AndSize
+
+cdef extern from "interning.h":
+    PyObject *get_interned_method_str(const char *method_str, size_t len)
+    PyObject *get_interned_method_bytes(const char *method_str, size_t len)
+    PyObject *get_interned_header_name_bytes(const char *name_str, size_t len)
+    PyObject *get_interned_content_type_bytes(const char *type_str, size_t len)
+
+cdef inline str intern_method_str(str method):
+    if method is None:
+        return None
+    cdef Py_ssize_t size = 0
+    cdef const char *raw = PyUnicode_AsUTF8AndSize(method, &size)
+    if raw == NULL or size == 0:
+        return method
+    cdef PyObject *interned = get_interned_method_str(raw, <size_t>size)
+    if interned != NULL:
+        return <str><object>interned
+    return method
+
+cdef inline bytes intern_header_name_bytes(bytes name):
+    if name is None:
+        return None
+    cdef char *raw = PyBytes_AS_STRING(name)
+    cdef Py_ssize_t size = PyBytes_GET_SIZE(name)
+    cdef PyObject *interned = get_interned_header_name_bytes(raw, <size_t>size)
+    if interned != NULL:
+        return <bytes><object>interned
+    return name
+
 _charset_rx = re.compile(rb"charset=([\w\-]+)", re.I)
 
 
@@ -126,7 +158,7 @@ async def _multipart_to_dict_streaming(
 cdef class Message:
 
     def __init__(self, list headers):
-        self._raw_headers = headers or []
+        self._raw_headers = [(intern_header_name_bytes(h[0]), h[1]) if isinstance(h, tuple) and len(h) == 2 and isinstance(h[0], bytes) else h for h in headers] if headers else []
 
     @property
     def headers(self):
@@ -141,17 +173,17 @@ cdef class Message:
 
     cpdef bytes get_first_header(self, bytes key):
         cdef tuple header
-        key = key.lower()
+        cdef bytes low_key = intern_header_name_bytes(key.lower())
         for header in self._raw_headers:
-            if header[0].lower() == key:
+            if header[0] is low_key or header[0].lower() == low_key:
                 return header[1]
 
     cpdef list get_headers(self, bytes key):
         cdef list results = []
         cdef tuple header
-        key = key.lower()
+        cdef bytes low_key = intern_header_name_bytes(key.lower())
         for header in self._raw_headers:
-            if header[0].lower() == key:
+            if header[0] is low_key or header[0].lower() == low_key:
                 results.append(header[1])
         return results
 
@@ -172,9 +204,9 @@ cdef class Message:
     cdef list get_headers_tuples(self, bytes key):
         cdef list results = []
         cdef tuple header
-        key = key.lower()
+        cdef bytes low_key = intern_header_name_bytes(key.lower())
         for header in self._raw_headers:
-            if header[0].lower() == key:
+            if header[0] is low_key or header[0].lower() == low_key:
                 results.append(header)
         return results
 
@@ -189,9 +221,9 @@ cdef class Message:
     cpdef void remove_header(self, bytes key):
         cdef tuple header
         cdef list to_remove = []
-        key = key.lower()
+        cdef bytes low_key = intern_header_name_bytes(key.lower())
         for header in self._raw_headers:
-            if header[0].lower() == key:
+            if header[0] is low_key or header[0].lower() == low_key:
                 to_remove.append(header)
 
         for header in to_remove:
@@ -204,9 +236,9 @@ cdef class Message:
 
     cdef bint _has_header(self, bytes key):
         cdef bytes existing_key, existing_value
-        key = key.lower()
+        cdef bytes low_key = intern_header_name_bytes(key.lower())
         for existing_key, existing_value in self._raw_headers:
-            if existing_key.lower() == key:
+            if existing_key is low_key or existing_key.lower() == low_key:
                 return True
         return False
 
@@ -214,18 +246,18 @@ cdef class Message:
         return self._has_header(key)
 
     cdef void _add_header(self, bytes key, bytes value):
-        self._raw_headers.append((key, value))
+        self._raw_headers.append((intern_header_name_bytes(key), value))
 
     cdef void _add_header_if_missing(self, bytes key, bytes value):
         if not self._has_header(key):
-            self._raw_headers.append((key, value))
+            self._raw_headers.append((intern_header_name_bytes(key), value))
 
     cpdef void add_header(self, bytes key, bytes value):
-        self._raw_headers.append((key, value))
+        self._raw_headers.append((intern_header_name_bytes(key), value))
 
     cpdef void set_header(self, bytes key, bytes value):
         self.remove_header(key)
-        self._raw_headers.append((key, value))
+        self._raw_headers.append((intern_header_name_bytes(key), value))
 
     cpdef bytes content_type(self):
         if self.content and self.content.type:
@@ -526,8 +558,8 @@ cdef class Request(Message):
         list headers
     ):
         cdef URL _url = URL(url) if url else None
-        self._raw_headers = headers or []
-        self.method = method
+        self._raw_headers = [(intern_header_name_bytes(h[0]), h[1]) if isinstance(h, tuple) and len(h) == 2 and isinstance(h[0], bytes) else h for h in headers] if headers else []
+        self.method = intern_method_str(method)
         self._url = _url
         self._session = None
         if _url:
@@ -912,18 +944,20 @@ cdef int _MAX_FREELIST_CAPACITY = 512
 
 cpdef Request acquire_request(str method, bytes path, bytes raw_query, list headers, object scope):
     cdef Request req
+    cdef str interned_method = intern_method_str(method)
+    cdef list processed_headers = [(intern_header_name_bytes(h[0]), h[1]) if isinstance(h, tuple) and len(h) == 2 and isinstance(h[0], bytes) else h for h in headers] if headers is not None else []
     if _REQUEST_FREELIST:
         req = _REQUEST_FREELIST.pop()
-        req.method = method
+        req.method = interned_method
         req._path = path
         req._raw_query = raw_query
-        req._raw_headers = headers if headers is not None else []
+        req._raw_headers = processed_headers
         req.scope = scope
         req.content = None
         req._url = None
         req.route_values = None
         return req
-    return Request(method, path, headers)
+    return Request(interned_method, path, processed_headers)
 
 
 cpdef void release_request(Request request):

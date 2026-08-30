@@ -24,6 +24,22 @@ from dreaming_electric_sheep.settings.json import json_settings
 
 from .exceptions cimport MessageAborted
 
+from cpython.object cimport PyObject
+from cpython.bytes cimport PyBytes_AS_STRING, PyBytes_GET_SIZE
+
+cdef extern from "interning.h":
+    PyObject *get_interned_content_type_bytes(const char *type_str, size_t len)
+
+cdef inline bytes intern_content_type_bytes(bytes content_type):
+    if content_type is None:
+        return None
+    cdef char *raw = PyBytes_AS_STRING(content_type)
+    cdef Py_ssize_t size = PyBytes_GET_SIZE(content_type)
+    cdef PyObject *interned = get_interned_content_type_bytes(raw, <size_t>size)
+    if interned != NULL:
+        return <bytes><object>interned
+    return content_type
+
 logger = logging.getLogger("dreaming_electric_sheep.server")
 
 
@@ -53,7 +69,7 @@ cdef class Content:
         bytes content_type,
         object data
     ):
-        self.type = content_type
+        self.type = intern_content_type_bytes(content_type)
         self.body = data
         self.length = len(data) if data is not None else 0
 

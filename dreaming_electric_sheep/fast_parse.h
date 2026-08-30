@@ -26,6 +26,31 @@
     #define DES_PREFETCH(ptr, rw, loc) __builtin_prefetch((ptr), (rw), (loc))
 #endif
 
+#ifndef DES_API
+    #if defined(_WIN32) || defined(__CYGWIN__)
+        #if defined(DES_BUILDING_CORE)
+            #define DES_API __declspec(dllexport)
+        #else
+            #define DES_API __declspec(dllimport)
+        #endif
+    #else
+        #if defined(__GNUC__) && __GNUC__ >= 4
+            #define DES_API __attribute__((visibility("default")))
+        #else
+            #define DES_API
+        #endif
+    #endif
+#endif
+
+typedef enum {
+    DES_OK = 0,
+    DES_ERR_NULL_ARG = 1,
+    DES_ERR_OVERFLOW = 2,
+    DES_ERR_INVALID = 3,
+    DES_ERR_NOMEM = 4,
+    DES_ERR_NOT_FOUND = 5,
+} des_err;
+
 #ifdef __cplusplus
 extern "C" {
 #endif

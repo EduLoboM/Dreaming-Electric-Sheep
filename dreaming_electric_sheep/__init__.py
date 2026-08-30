@@ -9,6 +9,23 @@ __author__ = (
 )
 __version__ = "1.0.0"
 
+import os
+import sys
+import ctypes
+
+try:
+    _pkg_dir = os.path.dirname(__file__)
+    _core_path = None
+    for _name in os.listdir(_pkg_dir):
+        if _name.startswith("_des_core") and (_name.endswith(".so") or _name.endswith(".pyd")):
+            _core_path = os.path.join(_pkg_dir, _name)
+            break
+    if _core_path and hasattr(ctypes, "RTLD_GLOBAL"):
+        ctypes.CDLL(_core_path, mode=ctypes.RTLD_GLOBAL)
+    from . import _des_core as _des_core
+except Exception:
+    _des_core = None
+
 from .contents import Content as Content
 from .contents import FileBuffer as FileBuffer
 from .contents import FormContent as FormContent
