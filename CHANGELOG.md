@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.1] - 2026-08-31
+
+### Added
+- **Zero-Copy Buffers & Fast I/O (`read_buffer`)**:
+  - Direct memory buffer access via `Request.read_buffer()` and `Content.read_buffer()` to eliminate copying when interacting with binary payloads or file writes.
+- **NDJSON Streaming**:
+  - `NDJSONContent` and `ndjson(...)` response helper for high-throughput Newline-Delimited JSON streaming with async and sync iterable support.
+- **Enhanced SSE (Server-Sent Events)**:
+  - `ServerSentEventsContent` with automatic keep-alive / ping interval, `ServerSentEvent` objects, and graceful client disconnect cleanup.
+- **Developer Experience (DX) & Interactive Diagnostics**:
+  - Interactive, modern 500 error diagnostic page featuring highlighted code frames, expandable local variable scopes, request headers/context, and environment info.
+  - `--debug` flag in `des dev` CLI command to toggle verbose diagnostics and interactive error views.
+  - Native `msgspec.Struct` schema generation and model binding in OpenAPI v3 documentation handler.
+
+### Changed
+- **Sync-First Vectorcall Fast Path**:
+  - Optimized route dispatching for synchronous handlers to bypass unnecessary coroutine/task scheduling overhead.
+- **Lazy RSGI Body Allocation**:
+  - RSGI request body reading is now lazily deferred until accessed.
+- Updated documentation and tutorials with modern examples, SIMD architecture details, and 5-run large-scale benchmark results.
+
 ## [1.1.0] - 2026-08-30
 
 ### Added
