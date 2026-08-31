@@ -4,7 +4,7 @@ used types to reduce the verbosity of the imports statements.
 """
 
 __author__ = "Eduardo Lobo <eduardolobomoreira@tuta.io>"
-__version__ = "1.1.1"
+__version__ = "1.1.2"
 
 import ctypes
 import importlib

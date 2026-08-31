@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > **Version Line Policy**: Release `2.6.3` was an upstream version leak from BlackSheep and has been yanked from PyPI. Dreaming Electric Sheep versions remain strictly in the independent `1.x` release line. Upstream BlackSheep version numbers will never be reused.
 
+## [1.1.2] - 2026-08-31
+
+### Added
+- **Native-str RSGI Routing & Header Pipeline**:
+  - `routing.pyx`, `scribe.pyx`, `headers.pyx`, and `messages.pyx` consume and emit native `str` on RSGI with zero intermediate byte conversions.
+- **Synchronous Handler Normalization**:
+  - Direct execution of synchronous route handlers with synchronous parameter binders, avoiding coroutine allocation overhead.
+- **Top-Level `des` Package & Agent Guidelines**:
+  - Added `des` alias package and `AGENTS.md` / `llms.txt` for AI coding agents and CLI tooling.
+  - Project scaffolding (`des new`) with automatic FastAPI-compatible structured `422` validation errors.
+
+### Changed
+- Refactored framework tax and benchmarks to accurately document the ~20% serving tax on raw Granian RSGI.
+
 ## [1.1.1] - 2026-08-31
 
 ### Added
