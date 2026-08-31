@@ -18,58 +18,7 @@
 **Dreaming Electric Sheep** is an ultra-high-performance, bare-metal asynchronous ASGI web framework for modern **CPython (3.13–3.14+)**. Born as an aggressively optimized evolution of [BlackSheep](https://github.com/Neoteroi/BlackSheep), it discards legacy runtime compromises (such as PyPy compatibility shims) to squeeze maximum throughput, microsecond-level latency, and direct C/C++/CUDA interoperability from standard CPython.
 
 ---
-
-## 🔮 Key Highlights & Low-Level Architectural Features
-
-### 1. 👾 PEP 590 Vectorcall Direct C-API Dispatch
-
-All handler, middleware, and route dispatching bypasses Python `*args` tuple and `**kwargs` dict allocations. Handlers are invoked using `PyObject_Vectorcall` passing contiguous pointer arrays directly in CPU registers.
-
-### 2. ⚓ Pure `cdef class` Extension Types (Zero `__dict__` Overhead)
-
-`Request`, `Response`, `RouteMatch`, `Header`, and `Scope` are pure Cython extension classes. All fields reside at fixed C-level struct offsets (`pointer offset`), eliminating dictionary lookups in the hot path.
-
-### 3. 🌊 C-Level Object Freelists & Fast Pools
-
-`Request` and `Response` instances are managed through dedicated C freelists (`acquire_request`, `release_request`, `acquire_response`, `release_response`), recycling objects across HTTP lifecycles and reducing Python heap pressure to near zero.
-
-### 4. 🚄 SIMD Vectorization (AVX2 / SSE2 / ARM NEON / SCALAR)
-
-Custom C SIMD kernels dynamically dispatch at runtime:
-
-- CRLF and header boundary scanning (`\r\n\r\n`).
-- URL path separator tokenization (`/`).
-- ASCII header validation with fallback scalar dispatch.
-
-### 5. 🧊 In-Memory Request Scratchpad Arenas
-
-Per-request linear arenas (`scratchpad.h`/`.c`) allow $\mathcal{O}(1)$ allocation and instant bulk resets without invoking `malloc()` or `free()` during request lifecycle processing.
-
-### 6. 💎 Zero-Copy ASGI/RSGI Ingestion & ML Tensor Serving
-
-Direct `memoryview` and buffer passing (`await request.read_buffer()`) from server transport layers into `msgspec` decoders or PyTorch tensors (`torch.frombuffer`) without intermediate string copies or heap duplications.
-
-### 7. 🔋 Pre-Compiled Type Decoders & Fast DI Bindings
-
-Endpoint payload decoders (`msgspec.json.Decoder(type=...)`) and controller activation paths are compiled ahead-of-time during application startup, eradicating runtime reflection.
-
----
-
-## 🐍 CPython & C / C++ / CUDA Native Interoperability
-
-> [!IMPORTANT]
-> **Why CPython exclusively?**
-> Dreaming Electric Sheep purposefully targets modern CPython C-APIs (3.13, 3.14+). If your workloads utilize:
->
-> - **C / C++ Native Extensions** (e.g., custom Cython, pybind11, nanobind)
-> - **CUDA / TensorRT / PyTorch / ONNX Runtime** for high-throughput AI/ML serving
-> - **SIMD hardware intrinsics** (AVX2, SSE2, NEON)
->
-> CPython provides the tightest possible low-overhead binding without JIT tracing overhead or foreign function interface (FFI) penalties.
-
----
-
-## ⭐ Installation
+## 🔮 Installation
 
 ```bash
 pip install dreaming-electric-sheep
@@ -83,7 +32,7 @@ pip install dreaming-electric-sheep httptools uvloop uvicorn granian msgspec
 
 ---
 
-## ⚡ Quick Start & `msgspec` Integration
+## 👾 Quick Start & `msgspec` Integration
 
 Dreaming Electric Sheep provides first-class, zero-overhead support for `msgspec.Struct`, `dataclasses`, and `pydantic` models with startup-cached pre-compiled decoders.
 
@@ -108,6 +57,54 @@ async def create_item(data: CreateItemInput):
     # Bound automatically with zero-copy buffer ingestion
     return {"status": "created", "item": data}
 ```
+
+## ⚓ Key Highlights & Low-Level Architectural Features
+
+### 1. 🌊 PEP 590 Vectorcall Direct C-API Dispatch
+
+All handler, middleware, and route dispatching bypasses Python `*args` tuple and `**kwargs` dict allocations. Handlers are invoked using `PyObject_Vectorcall` passing contiguous pointer arrays directly in CPU registers.
+
+### 2. 🚄 Pure `cdef class` Extension Types (Zero `__dict__` Overhead)
+
+`Request`, `Response`, `RouteMatch`, `Header`, and `Scope` are pure Cython extension classes. All fields reside at fixed C-level struct offsets (`pointer offset`), eliminating dictionary lookups in the hot path.
+
+### 3. 🧊 C-Level Object Freelists & Fast Pools
+
+`Request` and `Response` instances are managed through dedicated C freelists (`acquire_request`, `release_request`, `acquire_response`, `release_response`), recycling objects across HTTP lifecycles and reducing Python heap pressure to near zero.
+
+### 4. 💎 SIMD Vectorization (AVX2 / SSE4.2 / ARM NEON / SWAR)
+
+Custom C SIMD kernels dynamically dispatch at runtime:
+
+- CRLF and header boundary scanning (`\r\n\r\n`).
+- URL path separator tokenization (`/`).
+- ASCII header validation with fallback scalar dispatch.
+
+### 5. 🔋 In-Memory Request Scratchpad Arenas
+
+Per-request linear arenas (`scratchpad.h`/`.c`) allow $\mathcal{O}(1)$ allocation and instant bulk resets without invoking `malloc()` or `free()` during request lifecycle processing.
+
+### 6. 🐍 Zero-Copy ASGI Ingestion
+
+Direct `memoryview` and buffer passing (`await request.read_buffer()`) from server transport layers into `msgspec` decoders or PyTorch tensors (`torch.frombuffer`) without intermediate string copies or heap duplications.
+
+### 7. ⭐ Pre-Compiled Type Decoders & Fast DI Bindings
+
+Endpoint payload decoders (`msgspec.json.Decoder(type=...)`) and controller activation paths are compiled ahead-of-time during application startup, eradicating runtime reflection.
+
+---
+
+## ⚡ CPython & C / C++ / CUDA Native Interoperability
+
+> [!IMPORTANT]
+> **Why CPython exclusively?**
+> Dreaming Electric Sheep purposefully targets modern CPython C-APIs (3.13, 3.14+). If your workloads utilize:
+>
+> - **C / C++ Native Extensions** (e.g., custom Cython, pybind11, nanobind)
+> - **CUDA / TensorRT / PyTorch / ONNX Runtime** for high-throughput AI/ML serving
+> - **SIMD hardware intrinsics** (AVX2, SSE2, NEON)
+>
+> CPython provides the tightest possible low-overhead binding without JIT tracing overhead or foreign function interface (FFI) penalties.
 
 ---
 
@@ -262,13 +259,13 @@ class StatusController(Controller):
 
 ---
 
-## 🧠 Benchmarks & Performance Comparison
+## 🛍️ Benchmarks & Performance Comparison
 
 Localhost framework overhead measured against a shared in-memory fixture (not the TechEmpower Framework Benchmarks; no Postgres). Numbers represent the **median of 5 independent runs** (5s duration each, total 25s sampling per route, 50 concurrency keep-alive connections via `oha` on localhost, 1 worker process).
 
 DES RSGI beats DES ASGI, stays close to Granian raw ceilings, and provides ultra-low latency across all routes.
 
-### Table A: Ceiling Comparison (Apples-to-Apples msgspec Encoder)
+### 🧠 Table A: Ceiling Comparison (Apples-to-Apples msgspec Encoder)
 
 Measures framework tax against raw server ceilings when all targets encode JSON per request using `msgspec.json.encode` and run with `optimize_gc=False`.
 
@@ -280,7 +277,7 @@ Measures framework tax against raw server ceilings when all targets encode JSON 
 | Dreaming Electric Sheep (ASGI) | 102,121 | 100,048 | 95,956 | 50,587 | 35,781 | 42,548 | Granian (ASGI, 1 worker, msgspec) |
 | Uvicorn (Raw ASGI) | 66,784 | 67,646 | 65,406 | 43,118 | 30,661 | 37,882 | Uvicorn (Raw ASGI, 1 worker, msgspec) |
 
-### Table B: Default Stack Comparison (Stock Helpers Out-of-the-Box)
+### 🧶 Table B: Default Stack Comparison (Stock Helpers Out-of-the-Box)
 
 Measures out-of-the-box performance using each framework's stock response/serialization helpers (e.g. DES `json()`/`html()`/`text()`, Emmett `json.dumps`, Sanic `json()`, Robyn `jsonify`, Litestar msgspec default, FastAPI `JSONResponse`, Flask `jsonify`/`Response`, Django `JsonResponse`/`HttpResponse`).
 
