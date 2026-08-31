@@ -20,6 +20,12 @@ class Content:
     async def read(self) -> Any:
         return self.body
 
+    async def read_buffer(self) -> memoryview:
+        """
+        Returns a memoryview of the content body for zero-copy operations.
+        """
+        ...
+
     @property
     def body_buffer(self) -> memoryview: ...
 
@@ -64,26 +70,21 @@ class StreamedContent(Content):
         """
         ...
 
+    async def read_buffer(self) -> memoryview:
+        """
+        Read and return all content as a memoryview.
+        """
+        ...
+
     async def stream(self) -> AsyncIterable[bytes]:
         """
-        Stream the content in chunks.
-
-        This method is the recommended way to process large content as it yields
-        chunks of data without loading everything into memory at once.
-
-        Yields:
-            Chunks of bytes from the content stream.
+        Stream content chunks asynchronously.
         """
         ...
 
     async def get_parts(self) -> AsyncIterable[bytes]:
         """
-        Stream the content in chunks.
-
-        This is an alias for `stream()` and provides the same functionality.
-
-        Yields:
-            Chunks of bytes from the content stream.
+        Get parts of the streamed content for ASGI/RSGI chunk handling.
         """
         ...
 
@@ -154,6 +155,28 @@ class ASGIContent(Content):
             MessageAborted: If the HTTP connection is disconnected.
         """
         ...
+
+    async def read_buffer(self) -> memoryview:
+        ...
+
+class RSGIContent(Content):
+    """
+    Represents content received from an RSGI (Granian) application.
+    """
+
+    def __init__(self, protocol: Any):
+        self.type = None
+        self.body = None
+        self.length = -1
+        self.protocol = protocol
+
+    def dispose(self) -> None: ...
+
+    def stream(self) -> AsyncIterable[bytes]: ...
+
+    async def read(self) -> bytes: ...
+
+    async def read_buffer(self) -> memoryview: ...
 
 class TextContent(Content):
     def __init__(self, text: str):

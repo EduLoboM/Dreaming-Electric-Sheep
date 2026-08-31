@@ -4,10 +4,10 @@
 # cython: cdivision=True
 # cython: initializedcheck=False
 # cython: language_level=3
-# Copyright (C) 2018-present Roberto Prevato
+# Copyright (C) 2018-present Roberto Prevato and Dreaming Electric Sheep contributors
 #
-# This module is part of Dreaming Electric Sheep and is released under
-# the MIT License https://opensource.org/licenses/MIT
+# This module is part of Dreaming Electric Sheep (derived from BlackSheep)
+# and is released under the MIT License https://opensource.org/licenses/MIT
 
 import asyncio
 import json
@@ -76,6 +76,12 @@ cdef class Content:
     async def read(self):
         return self.body if self.body is not None else b""
 
+    async def read_buffer(self):
+        """
+        Returns a memoryview over the body buffer for zero-copy operations.
+        """
+        return self.body_buffer
+
     @property
     def body_buffer(self):
         if self.body is None:
@@ -104,9 +110,17 @@ cdef class StreamedContent(Content):
         self.body = None
         self.length = data_length
         self.generator = data_provider
+        self.file_path = None
+        self.file_range = None
 
         if not isasyncgenfunction(data_provider):
             raise ValueError("Data provider must be an async generator")
+
+    cpdef void dispose(self):
+        Content.dispose(self)
+        self.generator = None
+        self.file_path = None
+        self.file_range = None
 
     async def read(self):
         cdef list chunks = []
@@ -123,12 +137,28 @@ cdef class StreamedContent(Content):
         return self.body
 
     async def stream(self):
-        async for chunk in self.generator():
-            yield chunk
+        cdef object gen = self.generator()
+        try:
+            async for chunk in gen:
+                yield chunk
+        finally:
+            if hasattr(gen, "aclose"):
+                try:
+                    await gen.aclose()
+                except Exception:
+                    pass
 
     async def get_parts(self):
-        async for chunk in self.generator():
-            yield chunk
+        cdef object gen = self.generator()
+        try:
+            async for chunk in gen:
+                yield chunk
+        finally:
+            if hasattr(gen, "aclose"):
+                try:
+                    await gen.aclose()
+                except Exception:
+                    pass
 
 
 cdef class ASGIContent(Content):
@@ -201,6 +231,14 @@ cdef class ASGIContent(Content):
         self.length = len(self.body)
         return self.body
 
+    async def read_buffer(self):
+        """
+        Reads request body returning a memoryview over the buffer.
+        """
+        if self.body is None:
+            await self.read()
+        return self.body_buffer
+
 
 cdef class RSGIContent(Content):
 
@@ -224,7 +262,7 @@ cdef class RSGIContent(Content):
 
     async def read(self):
         if self.body is not None:
-            return self.body
+            return self.body if isinstance(self.body, bytes) else bytes(self.body)
 
         if self.protocol is None:
             return b""
@@ -242,6 +280,31 @@ cdef class RSGIContent(Content):
             self.body = bytes(res)
         self.length = len(self.body)
         return self.body
+
+    async def read_buffer(self):
+        """
+        Reads request body returning a memoryview suitable for zero-copy
+        interoperability with PyTorch tensors (torch.frombuffer), DLPack, and NumPy.
+        """
+        if self.body is not None:
+            return self.body_buffer
+
+        if self.protocol is None:
+            return memoryview(b"")
+
+        cdef object res = await self.protocol()
+        if isinstance(res, memoryview):
+            self.body = res
+        elif isinstance(res, (bytes, bytearray)):
+            self.body = res
+        elif isinstance(res, str):
+            self.body = res.encode("utf8")
+        elif res is None:
+            self.body = b""
+        else:
+            self.body = bytes(res)
+        self.length = len(self.body)
+        return self.body_buffer
 
 
 cdef class TextContent(Content):
@@ -579,7 +642,7 @@ cdef class FormPart:
         return NotImplemented
 
     def __repr__(self):
-        return f'<FormPart {self.name} - at {id(self)}>'
+        return f"<FormPart {self.name.decode('utf8', errors='replace') if self.name else ''}>"
 
 
 cdef class FileBuffer:
@@ -765,7 +828,7 @@ cdef class StreamedFormPart:
         return total_bytes
 
     def __repr__(self):
-        return f"<StreamedFormPart {self.name} - at {id(self)}>"
+        return f"<StreamedFormPart {self.name}>"
 
 
 cdef class MultiPartFormData(StreamedContent):

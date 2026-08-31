@@ -4,10 +4,10 @@
 # cython: cdivision=True
 # cython: initializedcheck=False
 # cython: language_level=3
-# Copyright (C) 2018-present Roberto Prevato
+# Copyright (C) 2018-present Roberto Prevato and Dreaming Electric Sheep contributors
 #
-# This module is part of Dreaming Electric Sheep and is released under
-# the MIT License https://opensource.org/licenses/MIT
+# This module is part of Dreaming Electric Sheep (derived from BlackSheep)
+# and is released under the MIT License https://opensource.org/licenses/MIT
 
 import http
 import re
@@ -323,7 +323,11 @@ cpdef Request instantiate_rsgi_request(object scope, object protocol):
     cdef list headers = extract_rsgi_headers(scope.headers)
     cdef str method = scope.method
     cdef Request request = acquire_request(method, raw_path, raw_query, headers, scope)
-    request.content = RSGIContent(protocol)
+    # Lazy RSGIContent: do not allocate RSGIContent on GET/HEAD/OPTIONS
+    if method != "GET" and method != "HEAD" and method != "OPTIONS":
+        request.content = RSGIContent(protocol)
+    else:
+        request.scope_protocol = protocol
     return request
 
 
@@ -380,6 +384,15 @@ cpdef object send_rsgi_response_sync(Response response, object protocol):
             headers.append(("content-type", ct_str))
 
     if content is not None:
+        file_path = getattr(content, "file_path", None)
+        if file_path is not None and hasattr(protocol, "response_file"):
+            file_range = getattr(content, "file_range", None)
+            if file_range is not None and hasattr(protocol, "response_file_range"):
+                protocol.response_file_range(response.status, headers, file_path, file_range[0], file_range[1])
+                return None
+            protocol.response_file(response.status, headers, file_path)
+            return None
+
         body = content.body
         if body is not None:
             if PyBytes_CheckExact(body):
@@ -389,7 +402,7 @@ cpdef object send_rsgi_response_sync(Response response, object protocol):
                 protocol.response_str(response.status, headers, body)
                 return None
             elif isinstance(body, (memoryview, bytearray)):
-                protocol.response_bytes(response.status, headers, bytes(body))
+                protocol.response_bytes(response.status, headers, body)
                 return None
             else:
                 protocol.response_str(response.status, headers, str(body))
@@ -412,7 +425,7 @@ async def _send_rsgi_stream(Response response, object protocol, list headers, St
             elif PyUnicode_CheckExact(chunk):
                 await trx.send_str(chunk)
             elif isinstance(chunk, (memoryview, bytearray)):
-                await trx.send_bytes(bytes(chunk))
+                await trx.send_bytes(chunk)
             else:
                 await trx.send_str(str(chunk))
 

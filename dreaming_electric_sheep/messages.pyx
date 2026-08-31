@@ -27,6 +27,7 @@ from dreaming_electric_sheep.utils.time import utcnow
 from .contents cimport (
     ASGIContent,
     Content,
+    RSGIContent,
     parse_www_form_urlencoded,
 )
 from .cookies cimport Cookie, parse_cookie, split_value, write_cookie_for_response
@@ -267,6 +268,9 @@ cdef class Message:
     async def read(self):
         if self.content:
             return await self.content.read()
+        if self.scope_protocol is not None:
+            self.content = RSGIContent(self.scope_protocol)
+            return await self.content.read()
         return None
 
     async def read_raw(self):
@@ -276,7 +280,27 @@ cdef class Message:
         """
         if self.content:
             return await self.content.read()
+        if self.scope_protocol is not None:
+            self.content = RSGIContent(self.scope_protocol)
+            return await self.content.read()
         return b''
+
+    async def read_buffer(self):
+        """
+        Reads request body returning a memoryview suitable for zero-copy
+        interoperability with PyTorch tensors (torch.frombuffer), DLPack, and NumPy.
+        """
+        if self.content:
+            if hasattr(self.content, "read_buffer"):
+                return await self.content.read_buffer()
+            raw = await self.content.read()
+            if raw is None:
+                return memoryview(b"")
+            return memoryview(raw) if isinstance(raw, (bytes, bytearray, memoryview)) else memoryview(bytes(raw))
+        if self.scope_protocol is not None:
+            self.content = RSGIContent(self.scope_protocol)
+            return await self.content.read_buffer()
+        return memoryview(b"")
 
     async def read_detached(self):
         """
@@ -313,6 +337,8 @@ cdef class Message:
         return memoryview(b"")
 
     async def stream(self):
+        if self.content is None and self.scope_protocol is not None:
+            self.content = RSGIContent(self.scope_protocol)
         if self.content:
             async for chunk in self.content.stream():
                 yield chunk
@@ -695,6 +721,7 @@ cdef class Request(Message):
         self._raw_query = b""
         self.route_values = None
         self.scope = None
+        self.scope_protocol = None
         self.identity = None
         self._user = None
         self._di_scope = None
@@ -951,6 +978,7 @@ cdef class Response(Message):
         self.status = 200
         self.state = None
         self.context = None
+        self.scope_protocol = None
         self._form_data = None
         self._headers = None
         self._raw_headers = []
@@ -995,6 +1023,7 @@ cpdef Request acquire_request(str method, bytes path, bytes raw_query, list head
         req._raw_query = raw_query
         req._raw_headers = processed_headers
         req.scope = scope
+        req.scope_protocol = None
         req.content = None
         req._url = None
         req.route_values = None

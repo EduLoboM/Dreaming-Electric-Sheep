@@ -74,11 +74,11 @@ All handler, middleware, and route dispatching bypasses Python `*args` tuple and
 
 ### 4. 💎 SIMD Vectorization (AVX2 / SSE4.2 / ARM NEON / SWAR)
 
-Custom C SIMD kernels accelerate:
+Custom C SIMD kernels dynamically dispatch at runtime:
 
 - CRLF and header boundary scanning (`\r\n\r\n`).
 - URL path separator tokenization (`/`).
-- ASCII header validation with fallback SWAR (SIMD Within A Register).
+- ASCII header validation with fallback scalar dispatch.
 
 ### 5. 🔋 In-Memory Request Scratchpad Arenas
 
@@ -86,7 +86,7 @@ Per-request linear arenas (`scratchpad.h`/`.c`) allow $\mathcal{O}(1)$ allocatio
 
 ### 6. 🐍 Zero-Copy ASGI Ingestion
 
-Direct `bytes-like` memoryview and buffer passing from server transport layers (Granian, Uvicorn) directly into `msgspec` decoders without intermediate string copies or heap duplications.
+Direct `memoryview` and buffer passing (`await request.read_buffer()`) from server transport layers into `msgspec` decoders or PyTorch tensors (`torch.frombuffer`) without intermediate string copies or heap duplications.
 
 ### 7. ⭐ Pre-Compiled Type Decoders & Fast DI Bindings
 
@@ -98,11 +98,11 @@ Endpoint payload decoders (`msgspec.json.Decoder(type=...)`) and controller acti
 
 > [!IMPORTANT]
 > **Why CPython exclusively?**
-> Dreaming Electric Sheep purposefully removes PyPy and legacy Python support to target modern CPython C-APIs (3.13, 3.14+). If your workloads utilize:
+> Dreaming Electric Sheep purposefully targets modern CPython C-APIs (3.13, 3.14+). If your workloads utilize:
 >
 > - **C / C++ Native Extensions** (e.g., custom Cython, pybind11, nanobind)
 > - **CUDA / TensorRT / PyTorch / ONNX Runtime** for high-throughput AI/ML serving
-> - **SIMD hardware intrinsics** (AVX2, AVX-512, NEON)
+> - **SIMD hardware intrinsics** (AVX2, SSE2, NEON)
 >
 > CPython provides the tightest possible low-overhead binding without JIT tracing overhead or foreign function interface (FFI) penalties.
 
@@ -261,9 +261,9 @@ class StatusController(Controller):
 
 ## 🛍️ Benchmarks & Performance Comparison
 
-Localhost framework overhead measured against a shared in-memory fixture (not the TechEmpower Framework Benchmarks; no Postgres). Numbers represent the **median of 3 independent runs** (5s duration each, total 15s sampling per route, 50 concurrency keep-alive connections via `oha` on localhost, 1 worker process).
+Localhost framework overhead measured against a shared in-memory fixture (not the TechEmpower Framework Benchmarks; no Postgres). Numbers represent the **median of 5 independent runs** (5s duration each, total 25s sampling per route, 50 concurrency keep-alive connections via `oha` on localhost, 1 worker process).
 
-DES RSGI beats DES ASGI, and beats a raw Granian ASGI script on this box, and stays under raw RSGI.
+DES RSGI beats DES ASGI, stays close to Granian raw ceilings, and provides ultra-low latency across all routes.
 
 ### 🧠 Table A: Ceiling Comparison (Apples-to-Apples msgspec Encoder)
 
@@ -271,11 +271,11 @@ Measures framework tax against raw server ceilings when all targets encode JSON 
 
 | Framework | Plaintext (req/s) | JSON (req/s) | Mem get (req/s) | Mem get ×20 (req/s) | HTML fortunes (req/s) | Mem update ×20 (req/s) | Server / Runtime |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| Granian (Raw RSGI) | 180,418 | 134,066 | 128,959 | 66,668 | 41,258 | 56,284 | Granian (Raw RSGI, 1 worker, msgspec) |
-| Granian (Raw ASGI) | 102,600 | 97,707 | 96,067 | 57,577 | 36,136 | 48,356 | Granian (Raw ASGI, 1 worker, msgspec) |
-| Dreaming Electric Sheep (RSGI) | 110,538 | 103,517 | 99,210 | 52,074 | 34,669 | 43,834 | Granian (RSGI, 1 worker, msgspec) |
-| Dreaming Electric Sheep (ASGI) | 84,070 | 84,287 | 87,052 | 47,839 | 33,576 | 40,628 | Granian (ASGI, 1 worker, msgspec) |
-| Uvicorn (Raw ASGI) | 65,440 | 63,618 | 61,350 | 39,702 | 28,271 | 35,110 | Uvicorn (Raw ASGI, 1 worker, msgspec) |
+| Granian (Raw RSGI) | 183,557 | 144,815 | 146,837 | 74,404 | 43,639 | 60,262 | Granian (Raw RSGI, 1 worker, msgspec) |
+| Granian (Raw ASGI) | 117,158 | 115,134 | 114,108 | 62,342 | 39,031 | 51,393 | Granian (Raw ASGI, 1 worker, msgspec) |
+| Dreaming Electric Sheep (RSGI) | 126,681 | 122,480 | 111,741 | 57,396 | 38,682 | 47,968 | Granian (RSGI, 1 worker, msgspec) |
+| Dreaming Electric Sheep (ASGI) | 102,121 | 100,048 | 95,956 | 50,587 | 35,781 | 42,548 | Granian (ASGI, 1 worker, msgspec) |
+| Uvicorn (Raw ASGI) | 66,784 | 67,646 | 65,406 | 43,118 | 30,661 | 37,882 | Uvicorn (Raw ASGI, 1 worker, msgspec) |
 
 ### 🧶 Table B: Default Stack Comparison (Stock Helpers Out-of-the-Box)
 
@@ -283,15 +283,15 @@ Measures out-of-the-box performance using each framework's stock response/serial
 
 | Framework | Plaintext (req/s) | JSON (req/s) | Mem get (req/s) | Mem get ×20 (req/s) | HTML fortunes (req/s) | Mem update ×20 (req/s) | Server / Runtime |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| Dreaming Electric Sheep (RSGI) | 111,200 | 107,928 | 101,460 | 52,352 | 34,414 | 42,756 | Granian (RSGI, 1 worker, stock helpers) |
-| Dreaming Electric Sheep (ASGI) | 87,704 | 86,172 | 84,000 | 45,786 | 27,443 | 35,651 | Granian (ASGI, 1 worker, stock helpers) |
-| Emmett | 52,958 | 54,042 | 54,335 | 29,730 | 27,101 | 25,937 | Granian (RSGI/ASGI, 1 worker) |
-| Sanic | 49,087 | 44,389 | 42,072 | 24,623 | 21,527 | 22,876 | Sanic (1 worker) |
-| Robyn | 32,747 | 29,125 | 28,147 | 16,169 | 15,839 | 16,111 | Robyn Rust (1 worker process) |
-| Litestar | 26,852 | 33,040 | 31,644 | 20,380 | 17,956 | 19,849 | Granian (ASGI, 1 worker) |
-| FastAPI | 25,289 | 22,176 | 18,999 | 6,180 | 12,872 | 6,977 | Granian (ASGI, 1 worker) |
-| Flask | 25,815 | 22,010 | 20,465 | 7,307 | 14,635 | 7,288 | Granian (WSGI, 1 worker) |
-| Django | 25,774 | 22,160 | 19,655 | 7,380 | 14,582 | 6,576 | Granian (WSGI, 1 worker, stripped middleware) |
+| Dreaming Electric Sheep (RSGI) | 122,827 | 122,801 | 113,812 | 58,352 | 39,371 | 46,949 | Granian (RSGI, 1 worker, stock helpers) |
+| Dreaming Electric Sheep (ASGI) | 101,789 | 100,210 | 96,536 | 51,355 | 36,030 | 44,383 | Granian (ASGI, 1 worker, stock helpers) |
+| Emmett | 73,601 | 67,087 | 64,462 | 34,395 | 31,157 | 30,485 | Granian (RSGI/ASGI, 1 worker) |
+| Sanic | 53,755 | 48,822 | 47,146 | 27,553 | 24,247 | 25,321 | Sanic (1 worker) |
+| Litestar | 41,183 | 39,855 | 37,963 | 25,536 | 20,519 | 23,324 | Granian (ASGI, 1 worker) |
+| Robyn | 37,028 | 34,184 | 32,938 | 22,649 | 20,987 | 21,004 | Robyn Rust (1 worker process) |
+| FastAPI | 30,152 | 25,285 | 23,529 | 8,655 | 16,881 | 8,329 | Granian (ASGI, 1 worker) |
+| Django | 29,684 | 25,131 | 23,141 | 8,513 | 16,544 | 7,992 | Granian (WSGI, 1 worker, stripped middleware) |
+| Flask | 29,484 | 25,239 | 23,431 | 8,623 | 16,748 | 8,311 | Granian (WSGI, 1 worker) |
 
 > **Environment & System Specifications**:
 >

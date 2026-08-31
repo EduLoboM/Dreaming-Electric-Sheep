@@ -915,7 +915,11 @@ class Application(BaseApplication):
         assert scope["type"] == "http"
 
         request = self.instantiate_request(scope, receive)
-        response = await self.handle(request)
+        res = self.handle(request)
+        if not isinstance(res, Response):
+            response = await res
+        else:
+            response = res
         await send_asgi_response(response, send)
 
         request.scope = None  # type: ignore
@@ -944,10 +948,14 @@ class Application(BaseApplication):
         if proto == "http":
             request = instantiate_rsgi_request(scope, protocol)
             try:
-                response = await self.handle(request)
-                res = send_rsgi_response_sync(response, protocol)
-                if res is not None:
-                    await res
+                res = self.handle(request)
+                if not isinstance(res, Response):
+                    response = await res
+                else:
+                    response = res
+                res_sync = send_rsgi_response_sync(response, protocol)
+                if res_sync is not None:
+                    await res_sync
             finally:
                 request.scope = None
                 release_request(request)

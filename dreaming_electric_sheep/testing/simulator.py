@@ -119,7 +119,11 @@ class TestSimulator(AbstractTestSimulator):
 
             request.content = content
 
-        response = await self.app.handle(request)
+        res = self.app.handle(request)
+        if not isinstance(res, Response):
+            response = await res
+        else:
+            response = res
         set_headers_for_response_content(response)
 
         return response

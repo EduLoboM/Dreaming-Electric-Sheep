@@ -4,10 +4,10 @@
 # cython: cdivision=True
 # cython: initializedcheck=False
 # cython: language_level=3
-# Copyright (C) 2018-present Roberto Prevato
+# Copyright (C) 2018-present Roberto Prevato and Dreaming Electric Sheep contributors
 #
-# This module is part of Dreaming Electric Sheep and is released under
-# the MIT License https://opensource.org/licenses/MIT
+# This module is part of Dreaming Electric Sheep (derived from BlackSheep)
+# and is released under the MIT License https://opensource.org/licenses/MIT
 
 import http
 import inspect
@@ -31,6 +31,7 @@ from .utils import get_class_instance_hierarchy
 
 cdef extern from "Python.h":
     object PyObject_Vectorcall(object callable, const PyObject *const *args, size_t nargsf, PyObject *kwnames)
+    bint PyCoro_CheckExact(PyObject *p)
 
 
 cdef inline object vectorcall_1(object callable, object arg0):
@@ -203,21 +204,42 @@ cdef class BaseApplication:
                 str(exc)
             )
 
-    async def handle(self, Request request):
+    cpdef object handle(self, Request request):
+        """
+        Main request handler dispatch. Sync handlers execute directly at C-level
+        without allocating any asyncio Task or coroutine frames. Async handlers
+        delegate to _handle_coro.
+        """
         cdef object route
-        cdef Response response
+        cdef object res
 
         route = self.router.get_match(request)
 
         if not route:
-            # This is intentional. We should not use user-defined not found exception
-            # handlers here because middlewares are not executed. The main router should
-            # always have a fallback route configured.
+            # Main router fallback
             return Response(404)
 
         request.route_values = route.values
         try:
-            response = await vectorcall_1(route.handler, request)
+            res = vectorcall_1(route.handler, request)
+        except Exception as exc:
+            return self.handle_request_handler_exception(request, exc)
+
+        # Fast path: sync handler returned Response directly
+        if isinstance(res, Response):
+            return res
+        elif res is None:
+            return Response(204)
+        elif PyCoro_CheckExact(<PyObject*>res) or inspect.isawaitable(res):
+            # Async path: coroutine handler, delegate to async helper
+            return self._handle_coro(request, res)
+        else:
+            return res
+
+    async def _handle_coro(self, Request request, object coro):
+        cdef Response response
+        try:
+            response = await coro
         except Exception as exc:
             response = await self.handle_request_handler_exception(request, exc)
         return response or Response(204)

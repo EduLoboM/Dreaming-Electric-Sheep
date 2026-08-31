@@ -77,6 +77,7 @@ openid = [
 xml = ["defusedxml>=0.7.1"]
 jinja = ["Jinja2~=3.1.6"]
 websockets = ["websockets~=15.0.1"]
+ml = ["torch"]
 full = [
     "granian>=1.7.0",
     "cryptography>=45.0.2,<47.0.0",

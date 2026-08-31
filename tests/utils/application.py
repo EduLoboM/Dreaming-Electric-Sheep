@@ -22,7 +22,11 @@ class FakeApplication(Application):
         pass
 
     async def handle(self, request):
-        response = await super().handle(request)
+        res = super().handle(request)
+        if not isinstance(res, Response):
+            response = await res
+        else:
+            response = res
         self.request = request
         self.response = response
         return response
