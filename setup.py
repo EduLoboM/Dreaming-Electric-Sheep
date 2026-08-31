@@ -20,10 +20,15 @@ from setuptools.command.build_ext import build_ext as _build_ext
 
 _cflags_env = os.environ.get("CFLAGS", "")
 _is_sanitizer_build = "-fsanitize" in _cflags_env
+ext_suffix = sysconfig.get_config_var("EXT_SUFFIX") or ".so"
 
 if sys.platform == "win32":
     COMPILE_ARGS = ["/O2", "/GL"]
     LINK_ARGS = ["/LTCG"]
+    CYTHON_LINK_ARGS = LINK_ARGS
+elif sys.platform == "darwin":
+    COMPILE_ARGS = ["-O3", "-fPIC", "-fstrict-aliasing", "-flto"]
+    LINK_ARGS = ["-flto"]
     CYTHON_LINK_ARGS = LINK_ARGS
 elif _is_sanitizer_build:
     # LTO (-flto) and -fuse-linker-plugin strip sanitizer instrumentation at
@@ -34,7 +39,6 @@ elif _is_sanitizer_build:
     # aborts on; this is an ISO-blessed pattern and a known false positive.
     COMPILE_ARGS = ["-O1", "-fPIC", "-fno-omit-frame-pointer", "-fno-sanitize=null"]
     LINK_ARGS = []
-    ext_suffix = sysconfig.get_config_var("EXT_SUFFIX") or ".so"
     CYTHON_LINK_ARGS = [
         "-Wl,-rpath,$ORIGIN",
         "-Ldreaming_electric_sheep",
@@ -43,7 +47,6 @@ elif _is_sanitizer_build:
 else:
     COMPILE_ARGS = ["-O3", "-fPIC", "-fstrict-aliasing", "-flto", "-fuse-linker-plugin"]
     LINK_ARGS = ["-flto", "-fuse-linker-plugin"]
-    ext_suffix = sysconfig.get_config_var("EXT_SUFFIX") or ".so"
     CYTHON_LINK_ARGS = LINK_ARGS + [
         "-Wl,-rpath,$ORIGIN",
         "-Ldreaming_electric_sheep",
@@ -80,6 +83,11 @@ class CustomBuildExt(_build_ext):
                     core_lib_name = os.path.splitext(os.path.basename(core_so_path))[0]
                     if core_lib_name not in e.libraries:
                         e.libraries.append(core_lib_name)
+            elif sys.platform == "darwin":
+                # On macOS (Mach-O), Python extension modules are built as MH_BUNDLE with
+                # -undefined dynamic_lookup. They cannot be linked against directly at build time.
+                # Undefined symbols are resolved dynamically at runtime when _des_core is imported.
+                pass
             else:
                 for e in other_exts:
                     for lib_dir in (target_dir, build_target_dir):

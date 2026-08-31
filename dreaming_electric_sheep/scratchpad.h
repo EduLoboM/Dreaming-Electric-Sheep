@@ -18,7 +18,7 @@ extern "C" {
 
 #define DEFAULT_SCRATCHPAD_CAPACITY (64 * 1024) // 64 KB per request arena
 
-typedef struct DES_CACHE_ALIGNED {
+typedef struct {
     char *buffer;
     size_t capacity;
     size_t offset;
