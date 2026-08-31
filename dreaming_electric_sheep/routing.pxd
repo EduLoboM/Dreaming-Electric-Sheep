@@ -6,30 +6,38 @@ cdef class RouteMatch:
 
 
 cdef class RadixNode:
-    cdef public bytes segment
+    cdef public str segment_str
+    cdef public bytes segment_bytes
     cdef public object route
-    cdef public dict children
+    cdef public dict children_str
+    cdef public dict children_bytes
     cdef public RadixNode param_child
     cdef public str param_name
     cdef public list param_names
-    cdef public object param_validator
+    cdef public object param_validator_str
+    cdef public object param_validator_bytes
     cdef public RadixNode wildcard_child
     cdef public str wildcard_name
-    cdef public bytes wildcard_suffix
+    cdef public str wildcard_suffix_str
+    cdef public bytes wildcard_suffix_bytes
     cdef public bint is_leaf
 
 
 cdef class RadixTree:
     cdef public RadixNode root
-    cdef public dict static_routes
-    cpdef void insert(self, bytes pattern, object route, list param_names=*)
-    cdef tuple _parse_param_segment(self, bytes seg)
-    cpdef tuple match(self, bytes path)
-    cdef tuple _match_recursive(self, RadixNode current, list segments, int index, dict params)
+    cdef public dict static_routes_str
+    cdef public dict static_routes_bytes
+    cpdef void insert(self, object pattern, object route, list param_names=*)
+    cdef tuple _parse_param_segment(self, str seg)
+    cpdef tuple match(self, object path)
+    cdef tuple _match_str(self, str path)
+    cdef tuple _match_bytes(self, bytes path)
+    cdef tuple _match_recursive_str(self, RadixNode current, list segments, int index, dict params)
+    cdef tuple _match_recursive_bytes(self, RadixNode current, list segments, int index, dict params)
 
 
 cdef class CythonRadixRouter:
     cdef public dict trees
-    cpdef void add_route(self, bytes method, bytes pattern, object route, list param_names=*)
-    cpdef tuple get_match(self, bytes method, bytes path)
+    cpdef void add_route(self, object method, object pattern, object route, list param_names=*)
+    cpdef tuple get_match(self, object method, object path)
     cpdef void freeze(self)

@@ -2,10 +2,10 @@
 RSGI (Rust Server Gateway Interface) support for Dreaming Electric Sheep.
 Enables direct protocol integration with Granian RSGI interface.
 """
+
 from __future__ import annotations
 
 import logging
-from typing import Any, List, Tuple
 
 from dreaming_electric_sheep.scribe import (
     extract_rsgi_headers,

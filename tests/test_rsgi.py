@@ -1,14 +1,21 @@
 """
 Unit tests for Dreaming Electric Sheep RSGI (Rust Server Gateway Interface) support.
 """
+
 import pytest
-from dreaming_electric_sheep import Application, get, post, json, text, html
+
+from dreaming_electric_sheep import Application, get, html, json, post, text
+from dreaming_electric_sheep.server.rsgi import (
+    instantiate_rsgi_request,
+    send_rsgi_response,
+)
 from dreaming_electric_sheep.structures import Struct
-from dreaming_electric_sheep.server.rsgi import instantiate_rsgi_request, send_rsgi_response
 
 
 class MockRSGIScope:
-    def __init__(self, method="GET", path="/", query_string="", headers=None, proto="http"):
+    def __init__(
+        self, method="GET", path="/", query_string="", headers=None, proto="http"
+    ):
         self.method = method
         self.path = path
         self.query_string = query_string
@@ -100,9 +107,7 @@ async def test_rsgi_post_and_validation():
     # 1. Valid payload
     valid_payload = b'{"id":1,"name":"Laptop","price":999.50}'
     scope = MockRSGIScope(
-        method="POST",
-        path="/items",
-        headers={"content-type": "application/json"}
+        method="POST", path="/items", headers={"content-type": "application/json"}
     )
     proto = MockRSGIProtocol(body_to_read=valid_payload)
     await app.__rsgi__(scope, proto)
@@ -112,9 +117,7 @@ async def test_rsgi_post_and_validation():
     # 2. Invalid payload -> 422 with FastAPI-shaped detail
     invalid_payload = b'{"id":1,"name":"Laptop","price":"invalid"}'
     scope_err = MockRSGIScope(
-        method="POST",
-        path="/items",
-        headers={"content-type": "application/json"}
+        method="POST", path="/items", headers={"content-type": "application/json"}
     )
     proto_err = MockRSGIProtocol(body_to_read=invalid_payload)
     await app.__rsgi__(scope_err, proto_err)
@@ -125,6 +128,7 @@ async def test_rsgi_post_and_validation():
 
 def test_rsgi_lifecycle_init_and_del():
     import asyncio
+
     loop = asyncio.new_event_loop()
     app = Application()
     assert not app.started
@@ -166,7 +170,7 @@ async def test_rsgi_dynamic_path_and_query_string_and_freelist():
             method="GET",
             path=f"/users/{100 + i}",
             query_string=f"token=secret_{i * 7}&extra=1",
-            headers={"Host": "example.com", "Accept": "application/json"}
+            headers={"Host": "example.com", "Accept": "application/json"},
         )
         proto = MockRSGIProtocol()
         await app.__rsgi__(scope, proto)
@@ -178,11 +182,15 @@ async def test_rsgi_dynamic_path_and_query_string_and_freelist():
 @pytest.mark.asyncio
 async def test_rsgi_custom_headers_outbound():
     app = Application()
-    from dreaming_electric_sheep import Response, Content
+    from dreaming_electric_sheep import Content, Response
 
     @get("/custom-headers")
     async def custom_headers():
-        resp = Response(200, [(b"x-custom-key", b"custom-val"), (b"server", b"DES-Test")], Content(b"text/plain", b"custom"))
+        resp = Response(
+            200,
+            [(b"x-custom-key", b"custom-val"), (b"server", b"DES-Test")],
+            Content(b"text/plain", b"custom"),
+        )
         return resp
 
     app.router.add_get("/custom-headers", custom_headers)
@@ -198,3 +206,98 @@ async def test_rsgi_custom_headers_outbound():
     assert headers_dict.get("server") == "DES-Test"
     assert headers_dict.get("content-type") == "text/plain"
 
+
+@pytest.mark.asyncio
+async def test_rsgi_native_str_headers_inbound_and_outbound():
+    app = Application()
+    from dreaming_electric_sheep import Content, Response
+
+    @get("/inspect-headers")
+    async def inspect_headers(request):
+        # Verify str lookups
+        auth_str = request.get_first_header("authorization")
+        # Verify bytes lookups
+        auth_bytes = request.get_first_header(b"authorization")
+        # Verify Headers class methods
+        ua_str = request.headers.get_first("user-agent")
+        ua_bytes = request.headers.get_first(b"user-agent")
+
+        return Response(
+            200,
+            [("x-echo-auth", auth_str), ("x-echo-ua", ua_str)],
+            Content(
+                b"application/json",
+                json(
+                    {"auth_b": auth_bytes.decode(), "ua_b": ua_bytes.decode()}
+                ).content.body,
+            ),
+        )
+
+    app.router.add_get("/inspect-headers", inspect_headers)
+    await app.start()
+
+    # Pass native str headers from Granian
+    scope = MockRSGIScope(
+        method="GET",
+        path="/inspect-headers",
+        headers=[
+            ("authorization", "Bearer token-12345"),
+            ("user-agent", "DES-TestAgent/1.0"),
+            ("x-forwarded-for", "203.0.113.195"),
+        ],
+    )
+    proto = MockRSGIProtocol()
+    await app.__rsgi__(scope, proto)
+
+    assert proto.sent_status == 200
+    headers_dict = dict(proto.sent_headers)
+    assert headers_dict.get("x-echo-auth") == "Bearer token-12345"
+    assert headers_dict.get("x-echo-ua") == "DES-TestAgent/1.0"
+    assert b'"auth_b":"Bearer token-12345"' in proto.sent_body
+    assert b'"ua_b":"DES-TestAgent/1.0"' in proto.sent_body
+
+
+@pytest.mark.asyncio
+async def test_rsgi_str_zero_encode_pipeline():
+    app = Application()
+
+    path_seen = None
+    auth_seen = None
+    is_path_str = False
+    is_auth_str = False
+
+    @get("/native-str/{param}")
+    def handler(request, param: str):
+        nonlocal path_seen, auth_seen, is_path_str, is_auth_str
+        path_seen = request.path
+        is_path_str = isinstance(request.path, str)
+        auth_seen = request.headers.get_first("authorization")
+        is_auth_str = isinstance(auth_seen, str)
+        return text(f"param={param}")
+
+    app.router.add_get("/native-str/{param}", handler)
+    await app.start()
+
+    # Granian passes str method, str path, str headers
+    scope = MockRSGIScope(
+        method="GET",
+        path="/native-str/foobar",
+        query_string="q=1",
+        headers=[("authorization", "Bearer token-abc"), ("host", "localhost")],
+    )
+    proto = MockRSGIProtocol()
+    await app.__rsgi__(scope, proto)
+
+    assert proto.sent_status == 200
+    assert proto.sent_body == b"param=foobar"
+    # Verify request path was native str during handler execution
+    assert is_path_str is True
+    assert path_seen == "/native-str/foobar"
+    # Verify headers were native str during handler execution
+    assert is_auth_str is True
+    assert auth_seen == "Bearer token-abc"
+    # Verify match direct lookup with str
+    match = app.router.get_match_by_method_and_path("GET", "/native-str/foobar")
+    assert match is not None
+    assert match.values == {"param": "foobar"}
+    assert isinstance(match.values["param"], str)

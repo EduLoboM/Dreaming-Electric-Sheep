@@ -25,25 +25,25 @@ cdef class Message:
     cdef public object context
     cdef object __weakref__
 
-    cpdef list get_headers(self, bytes key)
-    cpdef bytes get_first_header(self, bytes key)
-    cpdef bytes get_single_header(self, bytes key)
-    cpdef void remove_header(self, bytes key)
-    cdef bint _has_header(self, bytes key)
-    cpdef bint has_header(self, bytes key)
-    cdef void _add_header(self, bytes key, bytes value)
-    cdef void _add_header_if_missing(self, bytes key, bytes value)
-    cpdef void add_header(self, bytes key, bytes value)
-    cpdef void set_header(self, bytes key, bytes value)
-    cpdef bytes content_type(self)
+    cpdef list get_headers(self, object key)
+    cpdef object get_first_header(self, object key)
+    cpdef object get_single_header(self, object key)
+    cpdef void remove_header(self, object key)
+    cdef bint _has_header(self, object key)
+    cpdef bint has_header(self, object key)
+    cdef void _add_header(self, object key, object value)
+    cdef void _add_header_if_missing(self, object key, object value)
+    cpdef void add_header(self, object key, object value)
+    cpdef void set_header(self, object key, object value)
+    cpdef object content_type(self)
 
     cdef void remove_headers(self, list headers)
-    cdef list get_headers_tuples(self, bytes key)
+    cdef list get_headers_tuples(self, object key)
     cdef void init_prop(self, str name, object value)
 
     cpdef Message with_content(self, Content content)
     cpdef bint has_body(self)
-    cpdef bint declares_content_type(self, bytes type)
+    cpdef bint declares_content_type(self, object type)
     cpdef bint declares_json(self)
     cpdef bint declares_xml(self)
 
@@ -67,8 +67,8 @@ cdef extern from "scratchpad.h":
 cdef class Request(Message):
     cdef public str method
     cdef public URL _url
-    cdef public bytes _path
-    cdef public bytes _raw_query
+    cdef public object _path
+    cdef public object _raw_query
     cdef public object route_values
     cdef public object scope
     cdef public object _user
@@ -99,7 +99,7 @@ cdef class Response(Message):
     cpdef void reset(self)
 
 
-cpdef Request acquire_request(str method, bytes path, bytes raw_query, list headers, object scope)
+cpdef Request acquire_request(str method, object path, object raw_query, list headers, object scope)
 cpdef void release_request(Request request)
 
 cpdef Response acquire_response(int status=*, list headers=*, Content content=*)

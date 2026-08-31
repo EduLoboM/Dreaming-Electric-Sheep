@@ -282,7 +282,7 @@ cpdef list extract_rsgi_headers(object raw_headers):
     cdef object items = getattr(raw_headers, "items", None)
     cdef object iter_source = items() if items is not None else raw_headers
     cdef object pair, name, value
-    cdef bytes name_bytes, value_bytes
+    cdef str name_str, val_str
 
     if iter_source is None:
         return headers
@@ -292,37 +292,29 @@ cpdef list extract_rsgi_headers(object raw_headers):
         value = pair[1]
 
         if PyUnicode_CheckExact(name):
-            name_bytes = _KNOWN_HEADERS.get(name)
-            if name_bytes is None:
-                name_bytes = <bytes>PyUnicode_AsLatin1String(name)
+            name_str = <str>name
         elif PyBytes_CheckExact(name):
-            name_bytes = <bytes>name
+            name_str = (<bytes>name).decode("latin-1")
         else:
-            name_bytes = str(name).encode("latin-1")
+            name_str = str(name)
 
         if PyUnicode_CheckExact(value):
-            value_bytes = _HEADER_VAL_BYTES.get(value)
-            if value_bytes is None:
-                value_bytes = <bytes>PyUnicode_AsLatin1String(value)
+            val_str = <str>value
         elif PyBytes_CheckExact(value):
-            value_bytes = <bytes>value
+            val_str = (<bytes>value).decode("latin-1")
         else:
-            value_bytes = str(value).encode("latin-1")
+            val_str = str(value)
 
-        headers.append((name_bytes, value_bytes))
+        headers.append((name_str, val_str))
     return headers
 
 
 cpdef Request instantiate_rsgi_request(object scope, object protocol):
     cdef str path_str = scope.path
-    cdef bytes raw_path = <bytes>PyUnicode_AsUTF8String(path_str)
-
-    cdef str query_str = scope.query_string
-    cdef bytes raw_query = <bytes>PyUnicode_AsLatin1String(query_str) if query_str else b""
-
+    cdef str query_str = scope.query_string or ""
     cdef list headers = extract_rsgi_headers(scope.headers)
     cdef str method = scope.method
-    cdef Request request = acquire_request(method, raw_path, raw_query, headers, scope)
+    cdef Request request = acquire_request(method, path_str, query_str, headers, scope)
     # Lazy RSGIContent: do not allocate RSGIContent on GET/HEAD/OPTIONS
     if method != "GET" and method != "HEAD" and method != "OPTIONS":
         request.content = RSGIContent(protocol)
@@ -355,25 +347,25 @@ cpdef object send_rsgi_response_sync(Response response, object protocol):
         for h in raw_headers:
             name = h[0]
             val = h[1]
-            if PyBytes_CheckExact(name):
+            if PyUnicode_CheckExact(name):
+                name_str = <str>name
+            elif PyBytes_CheckExact(name):
                 name_str = _KNOWN_OUTBOUND_HEADER_NAME_STR.get(name)
                 if name_str is None:
                     name_str = (<bytes>name).decode("latin-1")
-            elif PyUnicode_CheckExact(name):
-                name_str = <str>name
             else:
                 name_str = str(name)
 
-            if PyBytes_CheckExact(val):
+            if PyUnicode_CheckExact(val):
+                val_str = <str>val
+            elif PyBytes_CheckExact(val):
                 val_str = _KNOWN_OUTBOUND_HEADER_VAL_STR.get(val)
                 if val_str is None:
                     val_str = (<bytes>val).decode("latin-1")
-            elif PyUnicode_CheckExact(val):
-                val_str = <str>val
             else:
                 val_str = str(val)
 
-            if name == b"content-type" or name == "content-type" or name_str == "content-type":
+            if name == "content-type" or name == b"content-type" or name_str == "content-type":
                 has_ct = True
             headers.append((name_str, val_str))
 

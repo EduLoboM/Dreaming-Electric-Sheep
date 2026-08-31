@@ -129,6 +129,7 @@ class RouteNotFound(RouteException):
 try:
     from dreaming_electric_sheep.routing import RouteMatch
 except ImportError:
+
     class RouteMatch:
         __slots__ = ("_values", "pattern", "handler", "route")
 
@@ -1046,14 +1047,14 @@ class Router(RouterBase):
     def get_match_by_method_and_path(
         self, method: AnyStr, path: AnyStr
     ) -> RouteMatch | None:
-        bytes_method = ensure_bytes(method)
-        bytes_value = ensure_bytes(path)
-
         if self._radix_router is not None:
-            radix_res = self._radix_router.get_match(bytes_method, bytes_value)
+            radix_res = self._radix_router.get_match(method, path)
             if radix_res is not None:
                 route, values = radix_res
                 return RouteMatch(route, values)
+
+        bytes_method = ensure_bytes(method)
+        bytes_value = ensure_bytes(path)
 
         for route in self.routes[bytes_method]:
             match = route.match_by_path(bytes_value)
@@ -1066,6 +1067,12 @@ class Router(RouterBase):
 
     @lru_cache(maxsize=1200)
     def get_matching_route(self, method: AnyStr, value: AnyStr) -> Route | None:
+        if self._radix_router is not None:
+            radix_res = self._radix_router.get_match(method, value)
+            if radix_res is not None:
+                route, _ = radix_res
+                return route
+
         for route in self.routes[ensure_bytes(method)]:
             match = route.match_by_path(ensure_bytes(value))
             if match:

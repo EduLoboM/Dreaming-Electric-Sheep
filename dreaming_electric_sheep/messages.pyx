@@ -41,8 +41,8 @@ from .headers cimport Headers
 from .url cimport URL, build_absolute_url
 
 from cpython.object cimport PyObject
-from cpython.bytes cimport PyBytes_AS_STRING, PyBytes_GET_SIZE
-from cpython.unicode cimport PyUnicode_AsUTF8AndSize
+from cpython.bytes cimport PyBytes_AS_STRING, PyBytes_GET_SIZE, PyBytes_CheckExact
+from cpython.unicode cimport PyUnicode_AsUTF8AndSize, PyUnicode_CheckExact
 
 cdef extern from "interning.h":
     PyObject *get_interned_method_str(const char *method_str, size_t len)
@@ -156,6 +156,30 @@ async def _multipart_to_dict_streaming(
     return dict(data)
 
 
+cdef inline bint _msg_header_key_matches(object h_name, bytes low_bkey, str low_skey):
+    if PyBytes_CheckExact(h_name):
+        return (<bytes>h_name).lower() == low_bkey
+    elif PyUnicode_CheckExact(h_name):
+        return (<str>h_name).lower() == low_skey
+    else:
+        return str(h_name).lower() == low_skey
+
+cdef inline object _msg_convert_val(object val, bint is_bytes):
+    if val is None:
+        return None
+    if is_bytes:
+        if PyBytes_CheckExact(val):
+            return val
+        elif PyUnicode_CheckExact(val):
+            return (<str>val).encode("latin-1")
+        return str(val).encode("latin-1")
+    else:
+        if PyUnicode_CheckExact(val):
+            return val
+        elif PyBytes_CheckExact(val):
+            return (<bytes>val).decode("latin-1")
+        return str(val)
+
 cdef class Message:
 
     def __init__(self, list headers):
@@ -172,20 +196,47 @@ cdef class Message:
         self.content = content
         return self
 
-    cpdef bytes get_first_header(self, bytes key):
+    cpdef object get_first_header(self, object key):
         cdef tuple header
-        cdef bytes low_key = intern_header_name_bytes(key.lower())
-        for header in self._raw_headers:
-            if header[0] is low_key or header[0].lower() == low_key:
-                return header[1]
+        cdef bytes low_bkey
+        cdef str low_skey
+        cdef bint is_bytes = PyBytes_CheckExact(key)
 
-    cpdef list get_headers(self, bytes key):
+        if is_bytes:
+            low_bkey = intern_header_name_bytes((<bytes>key).lower())
+            low_skey = low_bkey.decode("latin-1")
+        elif PyUnicode_CheckExact(key):
+            low_skey = (<str>key).lower()
+            low_bkey = low_skey.encode("latin-1")
+        else:
+            low_skey = str(key).lower()
+            low_bkey = low_skey.encode("latin-1")
+
+        for header in self._raw_headers:
+            if _msg_header_key_matches(header[0], low_bkey, low_skey):
+                return _msg_convert_val(header[1], is_bytes)
+        return None
+
+    cpdef list get_headers(self, object key):
         cdef list results = []
         cdef tuple header
-        cdef bytes low_key = intern_header_name_bytes(key.lower())
+        cdef bytes low_bkey
+        cdef str low_skey
+        cdef bint is_bytes = PyBytes_CheckExact(key)
+
+        if is_bytes:
+            low_bkey = intern_header_name_bytes((<bytes>key).lower())
+            low_skey = low_bkey.decode("latin-1")
+        elif PyUnicode_CheckExact(key):
+            low_skey = (<str>key).lower()
+            low_bkey = low_skey.encode("latin-1")
+        else:
+            low_skey = str(key).lower()
+            low_bkey = low_skey.encode("latin-1")
+
         for header in self._raw_headers:
-            if header[0] is low_key or header[0].lower() == low_key:
-                results.append(header[1])
+            if _msg_header_key_matches(header[0], low_bkey, low_skey):
+                results.append(_msg_convert_val(header[1], is_bytes))
         return results
 
     cdef void init_prop(self, str name, object value):
@@ -202,16 +253,28 @@ cdef class Message:
         except AttributeError:
             setattr(self, name, value)
 
-    cdef list get_headers_tuples(self, bytes key):
+    cdef list get_headers_tuples(self, object key):
         cdef list results = []
         cdef tuple header
-        cdef bytes low_key = intern_header_name_bytes(key.lower())
+        cdef bytes low_bkey
+        cdef str low_skey
+
+        if PyBytes_CheckExact(key):
+            low_bkey = intern_header_name_bytes((<bytes>key).lower())
+            low_skey = low_bkey.decode("latin-1")
+        elif PyUnicode_CheckExact(key):
+            low_skey = (<str>key).lower()
+            low_bkey = low_skey.encode("latin-1")
+        else:
+            low_skey = str(key).lower()
+            low_bkey = low_skey.encode("latin-1")
+
         for header in self._raw_headers:
-            if header[0] is low_key or header[0].lower() == low_key:
+            if _msg_header_key_matches(header[0], low_bkey, low_skey):
                 results.append(header)
         return results
 
-    cpdef bytes get_single_header(self, bytes key):
+    cpdef object get_single_header(self, object key):
         cdef list results = self.get_headers(key)
         if len(results) > 1:
             raise ValueError('Headers contains more than one header with the given key')
@@ -219,12 +282,24 @@ cdef class Message:
             raise ValueError('Headers does not contain one header with the given key')
         return results[0]
 
-    cpdef void remove_header(self, bytes key):
+    cpdef void remove_header(self, object key):
         cdef tuple header
         cdef list to_remove = []
-        cdef bytes low_key = intern_header_name_bytes(key.lower())
+        cdef bytes low_bkey
+        cdef str low_skey
+
+        if PyBytes_CheckExact(key):
+            low_bkey = intern_header_name_bytes((<bytes>key).lower())
+            low_skey = low_bkey.decode("latin-1")
+        elif PyUnicode_CheckExact(key):
+            low_skey = (<str>key).lower()
+            low_bkey = low_skey.encode("latin-1")
+        else:
+            low_skey = str(key).lower()
+            low_bkey = low_skey.encode("latin-1")
+
         for header in self._raw_headers:
-            if header[0] is low_key or header[0].lower() == low_key:
+            if _msg_header_key_matches(header[0], low_bkey, low_skey):
                 to_remove.append(header)
 
         for header in to_remove:
@@ -235,32 +310,46 @@ cdef class Message:
         for header in headers:
             self._raw_headers.remove(header)
 
-    cdef bint _has_header(self, bytes key):
-        cdef bytes existing_key, existing_value
-        cdef bytes low_key = intern_header_name_bytes(key.lower())
+    cdef bint _has_header(self, object key):
+        cdef bytes low_bkey
+        cdef str low_skey
+
+        if PyBytes_CheckExact(key):
+            low_bkey = intern_header_name_bytes((<bytes>key).lower())
+            low_skey = low_bkey.decode("latin-1")
+        elif PyUnicode_CheckExact(key):
+            low_skey = (<str>key).lower()
+            low_bkey = low_skey.encode("latin-1")
+        else:
+            low_skey = str(key).lower()
+            low_bkey = low_skey.encode("latin-1")
+
         for existing_key, existing_value in self._raw_headers:
-            if existing_key is low_key or existing_key.lower() == low_key:
+            if _msg_header_key_matches(existing_key, low_bkey, low_skey):
                 return True
         return False
 
-    cpdef bint has_header(self, bytes key):
+    cpdef bint has_header(self, object key):
         return self._has_header(key)
 
-    cdef void _add_header(self, bytes key, bytes value):
-        self._raw_headers.append((intern_header_name_bytes(key), value))
+    cdef void _add_header(self, object key, object value):
+        if PyBytes_CheckExact(key):
+            self._raw_headers.append((intern_header_name_bytes(<bytes>key), value))
+        else:
+            self._raw_headers.append((key, value))
 
-    cdef void _add_header_if_missing(self, bytes key, bytes value):
+    cdef void _add_header_if_missing(self, object key, object value):
         if not self._has_header(key):
-            self._raw_headers.append((intern_header_name_bytes(key), value))
+            self._add_header(key, value)
 
-    cpdef void add_header(self, bytes key, bytes value):
-        self._raw_headers.append((intern_header_name_bytes(key), value))
+    cpdef void add_header(self, object key, object value):
+        self._add_header(key, value)
 
-    cpdef void set_header(self, bytes key, bytes value):
+    cpdef void set_header(self, object key, object value):
         self.remove_header(key)
-        self._raw_headers.append((intern_header_name_bytes(key), value))
+        self._add_header(key, value)
 
-    cpdef bytes content_type(self):
+    cpdef object content_type(self):
         if self.content and self.content.type:
             return self.content.type
         return self.get_first_header(b'content-type')
@@ -486,13 +575,16 @@ cdef class Message:
         async for part in parse_multipart_async(self.stream(), boundary):
             yield part
 
-    cpdef bint declares_content_type(self, bytes type):
-        cdef bytes content_type = self.content_type()
+    cpdef bint declares_content_type(self, object type):
+        cdef object content_type = self.content_type()
         if not content_type:
             return False
 
+        cdef str ct_str = content_type.decode("latin-1") if PyBytes_CheckExact(content_type) else str(content_type)
+        cdef str t_str = type.decode("latin-1") if PyBytes_CheckExact(type) else str(type)
+
         # NB: we look for substring intentionally here
-        if type.lower() in content_type.lower():
+        if t_str.lower() in ct_str.lower():
             return True
         return False
 
@@ -666,10 +758,6 @@ cdef class Request(Message):
         self._host = value
 
     @property
-    def path(self) -> str:
-        return self._path.decode("utf8")
-
-    @property
     def base_path(self) -> str:
         if self._base_path is not None:
             return self._base_path
@@ -688,8 +776,11 @@ cdef class Request(Message):
     def client_ip(self) -> str:
         if self.scope is None:
             return ""
-        client_ip, client_port = self.scope.get("client", ("", 0))
-        return client_ip
+        try:
+            client_ip, client_port = self.scope.get("client", ("", 0))
+            return client_ip
+        except Exception:
+            return ""
 
     @property
     def original_client_ip(self) -> str:
@@ -717,8 +808,8 @@ cdef class Request(Message):
     cpdef void reset(self):
         self.method = ""
         self._url = None
-        self._path = b""
-        self._raw_query = b""
+        self._path = ""
+        self._raw_query = ""
         self.route_values = None
         self.scope = None
         self.scope_protocol = None
@@ -743,17 +834,38 @@ cdef class Request(Message):
         if self._arena_initialized:
             scratchpad_reset(&self._arena)
 
+    @property
+    def path(self) -> str:
+        if isinstance(self._path, str):
+            return self._path
+        elif isinstance(self._path, bytes):
+            return (<bytes>self._path).decode("utf8")
+        return ""
+
+    @property
+    def raw_path(self) -> bytes:
+        if isinstance(self._path, bytes):
+            return <bytes>self._path
+        elif isinstance(self._path, str):
+            return (<str>self._path).encode("utf8")
+        return b""
+
+    @property
+    def raw_query(self):
+        return self._raw_query
+
     @classmethod
-    def incoming(cls, str method, bytes path, bytes query, list headers):
-        request = cls(method, None, headers)
-        request._path = path
-        request._raw_query = query
-        return request
+    def incoming(cls, object method, object path, object query, list headers, object scope=None):
+        cdef str m_str = method if isinstance(method, str) else (<bytes>method).decode("latin-1")
+        return acquire_request(m_str, path, query, headers, scope)
 
     @property
     def query(self):
         if self._raw_query:
-            return parse_qs(self._raw_query.decode("utf8"))
+            if isinstance(self._raw_query, str):
+                return parse_qs(<str>self._raw_query)
+            elif isinstance(self._raw_query, bytes):
+                return parse_qs((<bytes>self._raw_query).decode("latin-1"))
         return {}
 
     @query.setter
@@ -768,10 +880,19 @@ cdef class Request(Message):
         if self._url:
             return self._url
 
-        if self._raw_query:
-            self._url = URL(self._path + b'?' + self._raw_query)
+        cdef bytes b_path = self.raw_path
+        cdef bytes b_query
+        if isinstance(self._raw_query, bytes):
+            b_query = <bytes>self._raw_query
+        elif isinstance(self._raw_query, str):
+            b_query = (<str>self._raw_query).encode("latin-1")
         else:
-            self._url = URL(self._path)
+            b_query = b""
+
+        if b_query:
+            self._url = URL(b_path + b'?' + b_query)
+        else:
+            self._url = URL(b_path)
         return self._url
 
     @url.setter
@@ -1002,7 +1123,7 @@ _TLS = _ThreadLocalFreelist()
 cdef int _MAX_FREELIST_CAPACITY = 512
 
 
-cpdef Request acquire_request(str method, bytes path, bytes raw_query, list headers, object scope):
+cpdef Request acquire_request(str method, object path, object raw_query, list headers, object scope):
     cdef Request req
     cdef str interned_method = intern_method_str(method)
     cdef list processed_headers
@@ -1028,8 +1149,16 @@ cpdef Request acquire_request(str method, bytes path, bytes raw_query, list head
         req._url = None
         req.route_values = None
         return req
-    req = Request.incoming(interned_method, path, raw_query, processed_headers)
+    req = Request.__new__(Request)
+    req.method = interned_method
+    req._path = path
+    req._raw_query = raw_query
+    req._raw_headers = processed_headers
     req.scope = scope
+    req.scope_protocol = None
+    req.content = None
+    req._url = None
+    req.route_values = None
     return req
 
 

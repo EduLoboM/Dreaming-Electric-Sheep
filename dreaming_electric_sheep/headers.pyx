@@ -11,7 +11,8 @@
 
 from collections.abc import Mapping, MutableSequence
 from cpython.object cimport PyObject
-from cpython.bytes cimport PyBytes_AS_STRING, PyBytes_GET_SIZE, PyBytes_FromStringAndSize
+from cpython.bytes cimport PyBytes_AS_STRING, PyBytes_GET_SIZE, PyBytes_FromStringAndSize, PyBytes_CheckExact
+from cpython.unicode cimport PyUnicode_CheckExact
 
 cdef extern from "simd_ops.h":
     void simd_lowercase_ascii(const char *src, char *dst, size_t length)
@@ -52,10 +53,37 @@ cdef inline bytes intern_header_name_bytes(bytes name):
     return name
 
 
+cdef inline bint _header_name_matches(object h_name, bytes low_name_bytes, str low_name_str):
+    if PyBytes_CheckExact(h_name):
+        return (<bytes>h_name).lower() == low_name_bytes
+    elif PyUnicode_CheckExact(h_name):
+        return (<str>h_name).lower() == low_name_str
+    else:
+        return str(h_name).lower() == low_name_str
+
+cdef inline object _convert_header_val_matching_key(object val, bint caller_asked_bytes):
+    if val is None:
+        return None
+    if caller_asked_bytes:
+        if PyBytes_CheckExact(val):
+            return val
+        elif PyUnicode_CheckExact(val):
+            return (<str>val).encode("latin-1")
+        return str(val).encode("latin-1")
+    else:
+        if PyUnicode_CheckExact(val):
+            return val
+        elif PyBytes_CheckExact(val):
+            return (<bytes>val).decode("latin-1")
+        return str(val)
+
 cdef class Header:
 
-    def __init__(self, bytes name, bytes value):
-        self.name = intern_header_name_bytes(name)
+    def __init__(self, object name, object value):
+        if PyBytes_CheckExact(name):
+            self.name = intern_header_name_bytes(<bytes>name)
+        else:
+            self.name = name
         self.value = value
 
     def __repr__(self):
@@ -67,7 +95,7 @@ cdef class Header:
 
     def __eq__(self, other):
         if isinstance(other, Header):
-            return (other.name is self.name or other.name == self.name or other.name.lower() == self.name.lower()) and other.value == self.value
+            return (other.name is self.name or other.name == self.name or str(other.name).lower() == str(self.name).lower()) and other.value == self.value
         return NotImplemented
 
 
@@ -78,32 +106,71 @@ cdef class Headers:
             values = []
         self.values = values
 
-    cpdef tuple get(self, bytes name):
+    cpdef tuple get(self, object name):
         cdef list results = []
         cdef tuple header
-        cdef bytes low_name = intern_header_name_bytes(simd_lower_bytes(name))
+        cdef bytes low_b
+        cdef str low_s
+        cdef bint is_bytes = PyBytes_CheckExact(name)
+
+        if is_bytes:
+            low_b = intern_header_name_bytes(simd_lower_bytes(<bytes>name))
+            low_s = low_b.decode("latin-1")
+        elif PyUnicode_CheckExact(name):
+            low_s = (<str>name).lower()
+            low_b = low_s.encode("latin-1")
+        else:
+            low_s = str(name).lower()
+            low_b = low_s.encode("latin-1")
+
         for header in self.values:
-            if header[0] is low_name or header[0] == low_name or header[0].lower() == low_name:
-                results.append(header[1])
+            if _header_name_matches(header[0], low_b, low_s):
+                results.append(_convert_header_val_matching_key(header[1], is_bytes))
         return tuple(results)
 
-    cpdef list get_tuples(self, bytes name):
+    cpdef list get_tuples(self, object name):
         cdef list results = []
         cdef tuple header
-        cdef bytes low_name = intern_header_name_bytes(simd_lower_bytes(name))
+        cdef bytes low_b
+        cdef str low_s
+
+        if PyBytes_CheckExact(name):
+            low_b = intern_header_name_bytes(simd_lower_bytes(<bytes>name))
+            low_s = low_b.decode("latin-1")
+        elif PyUnicode_CheckExact(name):
+            low_s = (<str>name).lower()
+            low_b = low_s.encode("latin-1")
+        else:
+            low_s = str(name).lower()
+            low_b = low_s.encode("latin-1")
+
         for header in self.values:
-            if header[0] is low_name or header[0] == low_name or header[0].lower() == low_name:
+            if _header_name_matches(header[0], low_b, low_s):
                 results.append(header)
         return results
 
-    cpdef bytes get_first(self, bytes key):
+    cpdef object get_first(self, object key):
         cdef tuple header
-        cdef bytes low_key = intern_header_name_bytes(simd_lower_bytes(key))
-        for header in self.values:
-            if header[0] is low_key or header[0] == low_key or header[0].lower() == low_key:
-                return header[1]
+        cdef bytes low_b
+        cdef str low_s
+        cdef bint is_bytes = PyBytes_CheckExact(key)
 
-    cpdef bytes get_single(self, bytes key):
+        if is_bytes:
+            low_b = intern_header_name_bytes(simd_lower_bytes(<bytes>key))
+            low_s = low_b.decode("latin-1")
+        elif PyUnicode_CheckExact(key):
+            low_s = (<str>key).lower()
+            low_b = low_s.encode("latin-1")
+        else:
+            low_s = str(key).lower()
+            low_b = low_s.encode("latin-1")
+
+        for header in self.values:
+            if _header_name_matches(header[0], low_b, low_s):
+                return _convert_header_val_matching_key(header[1], is_bytes)
+        return None
+
+    cpdef object get_single(self, object key):
         cdef tuple results = self.get(key)
         if len(results) > 1:
             raise ValueError('Headers contains more than one header with the given key')
@@ -184,56 +251,76 @@ cdef class Headers:
     def __iter__(self):
         yield from self.values
 
-    def __setitem__(self, bytes key, bytes value):
-        # Not obvious, but here we make the decision that setter removes existing headers with matching name:
-        # it feels more natural with syntax: headers[b'X-Foo'] = b'Something'
+    def __setitem__(self, object key, object value):
         self.set(key, value)
 
-    def __getitem__(self, bytes item):
+    def __getitem__(self, object item):
         return self.get(item)
 
     cpdef tuple keys(self):
-        cdef bytes name, value
         cdef list results = []
-
-        for name, value in self.values:
-            if name not in results:
-                results.append(name)
+        for pair in self.values:
+            if pair[0] not in results:
+                results.append(pair[0])
         return tuple(results)
 
-    cpdef void add(self, bytes name, bytes value):
-        self.values.append((intern_header_name_bytes(name), value))
+    cpdef void add(self, object name, object value):
+        if PyBytes_CheckExact(name):
+            self.values.append((intern_header_name_bytes(<bytes>name), value))
+        else:
+            self.values.append((name, value))
 
-    cpdef void set(self, bytes name, bytes value):
+    cpdef void set(self, object name, object value):
         if self.contains(name):
             self.remove(name)
         self.add(name, value)
 
-    cpdef void remove(self, bytes key):
+    cpdef void remove(self, object key):
         cdef tuple item
         cdef list to_remove = []
-        cdef bytes low_key = intern_header_name_bytes(simd_lower_bytes(key))
+        cdef bytes low_b
+        cdef str low_s
+
+        if PyBytes_CheckExact(key):
+            low_b = intern_header_name_bytes(simd_lower_bytes(<bytes>key))
+            low_s = low_b.decode("latin-1")
+        elif PyUnicode_CheckExact(key):
+            low_s = (<str>key).lower()
+            low_b = low_s.encode("latin-1")
+        else:
+            low_s = str(key).lower()
+            low_b = low_s.encode("latin-1")
 
         for item in self.values:
-            if item[0] is low_key or item[0] == low_key or item[0].lower() == low_key:
+            if _header_name_matches(item[0], low_b, low_s):
                 to_remove.append(item)
 
         for item in to_remove:
             self.values.remove(item)
 
-    cpdef bint contains(self, bytes key):
-        cdef bytes name, value
-        cdef bytes low_key = intern_header_name_bytes(simd_lower_bytes(key))
+    cpdef bint contains(self, object key):
+        cdef bytes low_b
+        cdef str low_s
 
-        for name, value in self.values:
-            if name is low_key or name == low_key or name.lower() == low_key:
+        if PyBytes_CheckExact(key):
+            low_b = intern_header_name_bytes(simd_lower_bytes(<bytes>key))
+            low_s = low_b.decode("latin-1")
+        elif PyUnicode_CheckExact(key):
+            low_s = (<str>key).lower()
+            low_b = low_s.encode("latin-1")
+        else:
+            low_s = str(key).lower()
+            low_b = low_s.encode("latin-1")
+
+        for item in self.values:
+            if _header_name_matches(item[0], low_b, low_s):
                 return True
         return False
 
-    def __delitem__(self, bytes key):
+    def __delitem__(self, object key):
         self.remove(key)
 
-    def __contains__(self, bytes key):
+    def __contains__(self, object key):
         return self.contains(key)
 
     def __repr__(self):

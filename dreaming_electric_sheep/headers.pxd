@@ -6,8 +6,8 @@
 
 
 cdef class Header:
-    cdef readonly bytes name
-    cdef readonly bytes value
+    cdef readonly object name
+    cdef readonly object value
 
 
 cdef class Headers:
@@ -17,20 +17,20 @@ cdef class Headers:
 
     cpdef Headers clone(self)
 
-    cpdef tuple get(self, bytes name)
+    cpdef tuple get(self, object name)
 
-    cpdef list get_tuples(self, bytes name)
+    cpdef list get_tuples(self, object name)
 
-    cpdef void add(self, bytes name, bytes value)
+    cpdef void add(self, object name, object value)
 
-    cpdef void set(self, bytes name, bytes value)
+    cpdef void set(self, object name, object value)
 
-    cpdef bytes get_single(self, bytes name)
+    cpdef object get_single(self, object name)
 
-    cpdef bytes get_first(self, bytes name)
+    cpdef object get_first(self, object name)
 
-    cpdef void remove(self, bytes key)
+    cpdef void remove(self, object key)
 
     cpdef void merge(self, list values)
 
-    cpdef bint contains(self, bytes key)
+    cpdef bint contains(self, object key)
