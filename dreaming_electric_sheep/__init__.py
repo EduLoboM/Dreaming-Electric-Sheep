@@ -3,23 +3,22 @@ Root module of the framework. This module re-exports the most commonly
 used types to reduce the verbosity of the imports statements.
 """
 
-__author__ = (
-    "Eduardo Lobo <eduardolobomoreira@tuta.io> (Fork author), "
-    "Roberto Prevato <roberto.prevato@gmail.com> (Original BlackSheep author)"
-)
+__author__ = "Eduardo Lobo <eduardolobomoreira@tuta.io>"
 __version__ = "1.1.1"
 
-import os
-import sys
 import ctypes
 import importlib
+import os
+import sys
 from typing import Any
 
 try:
     _pkg_dir = os.path.dirname(__file__)
     _core_path = None
     for _name in os.listdir(_pkg_dir):
-        if _name.startswith("_des_core") and (_name.endswith(".so") or _name.endswith(".pyd")):
+        if _name.startswith("_des_core") and (
+            _name.endswith(".so") or _name.endswith(".pyd")
+        ):
             _core_path = os.path.join(_pkg_dir, _name)
             break
     if _core_path and hasattr(ctypes, "RTLD_GLOBAL"):
@@ -44,15 +43,13 @@ from .cookies import CookieSameSiteMode as CookieSameSiteMode
 from .cookies import datetime_from_cookie_format as datetime_from_cookie_format
 from .cookies import datetime_to_cookie_format as datetime_to_cookie_format
 from .cookies import parse_cookie as parse_cookie
+from .core_errors import DesCoreError as DesCoreError
+from .core_errors import InvalidArgumentError as InvalidArgumentError
+from .core_errors import MemoryExhaustedError as MemoryExhaustedError
+from .core_errors import ParseError as ParseError
+from .core_errors import SimdUnsupportedError as SimdUnsupportedError
 from .exceptions import HTTPException as HTTPException
 from .exceptions import UnprocessableEntity as UnprocessableEntity
-from .core_errors import (
-    DesCoreError as DesCoreError,
-    MemoryExhaustedError as MemoryExhaustedError,
-    ParseError as ParseError,
-    SimdUnsupportedError as SimdUnsupportedError,
-    InvalidArgumentError as InvalidArgumentError,
-)
 from .headers import Header as Header
 from .headers import Headers as Headers
 from .messages import Message as Message

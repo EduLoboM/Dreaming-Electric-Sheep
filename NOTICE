@@ -1,0 +1,6 @@
+Dreaming Electric Sheep (DES)
+Copyright (C) 2026 Eduardo Lobo and contributors
+
+This project is a high-performance CPython 3.13+ serving stack on Granian RSGI.
+Portions of this software are derived from BlackSheep (Copyright (C) 2018-present Roberto Prevato and contributors), licensed under the MIT License.
+See the LICENSE file for the full license text.

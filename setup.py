@@ -98,8 +98,8 @@ class CustomBuildExt(_build_ext):
 
 # Check for environment variable to skip extensions
 skip_ext = (
-    os.environ.get("DREAMING_ELECTRIC_SHEEP_NO_EXTENSIONS", "0") == "1"
-    or os.environ.get("BLACKSHEEP_NO_EXTENSIONS", "0") == "1"
+    os.environ.get("DES_NO_EXTENSIONS", "0") == "1"
+    or os.environ.get("DREAMING_ELECTRIC_SHEEP_NO_EXTENSIONS", "0") == "1"
 )
 
 ext = ".pyx" if USE_CYTHON else ".c"

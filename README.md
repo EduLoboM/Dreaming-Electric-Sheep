@@ -9,212 +9,40 @@
   <img width="75%" src="assets/Electric_Screaming_Don_Quixote.png" alt="Electric Screaming Don Quixote EGO">
 </p>
 
-<h1 align="center">Dreaming Electric Sheep</h1>
+<h1 align="center">Dreaming Electric Sheep (<code>des</code>)</h1>
 
-<p align="center">
-  <i>"The cloud has a head and two pairs of legs. It resembles a sheep."</i>
-</p>
+**Dreaming Electric Sheep (`des`)** is a high-performance CPython 3.13+ serving stack built on Granian RSGI. It is a ~20% tax you pay on raw Granian in exchange for startup-compiled `msgspec` binders, automated OpenAPI documentation, and a CLI that can inspect compiled requests (`des why`, `des doctor`, `des routes`).
 
-**Dreaming Electric Sheep** is an ultra-high-performance, bare-metal asynchronous ASGI web framework for modern **CPython (3.13–3.14+)**. Born as an aggressively optimized evolution of [BlackSheep](https://github.com/Neoteroi/BlackSheep), it discards legacy runtime compromises (such as PyPy compatibility shims) to squeeze maximum throughput, microsecond-level latency, and direct C/C++/CUDA interoperability from standard CPython.
+See the [15-Minute Quickstart Tutorial](docs/tutorial.md) and [Why DES?](docs/why-des.md) for architectural trade-offs and comparisons with raw Granian, Litestar, and FastAPI.
 
 ---
-## 🔮 Installation
+
+## 📦 Installation
 
 ```bash
-pip install dreaming-electric-sheep
+pip install "dreaming-electric-sheep[standard]"
 ```
 
-For maximum throughput and SIMD speed, install with `httptools` and `uvloop`:
+`[standard]` provides the complete runtime: `granian` (RSGI), `typer`, `rich`, `msgspec`, `Jinja2`, and `uvloop` (Unix).
+
+---
+
+## ⚡ The 3-Minute Hook: See the Compiled Request
+
+### 1. Scaffold and Run
 
 ```bash
-pip install dreaming-electric-sheep httptools uvloop uvicorn granian msgspec
+des new demo -t api && cd demo
+des dev
 ```
 
----
-
-## 👾 Quick Start & `msgspec` Integration
-
-Dreaming Electric Sheep provides first-class, zero-overhead support for `msgspec.Struct`, `dataclasses`, and `pydantic` models with startup-cached pre-compiled decoders.
-
-```python
-from dreaming_electric_sheep import Application, get, post
-from msgspec import Struct
-
-# Fast, schema-validated msgspec Struct
-class CreateItemInput(Struct):
-    name: str
-    price: float
-    tags: list[str] = []
-
-app = Application()
-
-@get("/hello")
-async def hello():
-    return {"message": "Do electric sheep dream of high throughput?"}
-
-@post("/api/items")
-async def create_item(data: CreateItemInput):
-    # Bound automatically with zero-copy buffer ingestion
-    return {"status": "created", "item": data}
-```
-
-## ⚓ Key Highlights & Low-Level Architectural Features
-
-### 1. 🌊 PEP 590 Vectorcall Direct C-API Dispatch
-
-All handler, middleware, and route dispatching bypasses Python `*args` tuple and `**kwargs` dict allocations. Handlers are invoked using `PyObject_Vectorcall` passing contiguous pointer arrays directly in CPU registers.
-
-### 2. 🚄 Pure `cdef class` Extension Types (Zero `__dict__` Overhead)
-
-`Request`, `Response`, `RouteMatch`, `Header`, and `Scope` are pure Cython extension classes. All fields reside at fixed C-level struct offsets (`pointer offset`), eliminating dictionary lookups in the hot path.
-
-### 3. 🧊 C-Level Object Freelists & Fast Pools
-
-`Request` and `Response` instances are managed through dedicated C freelists (`acquire_request`, `release_request`, `acquire_response`, `release_response`), recycling objects across HTTP lifecycles and reducing Python heap pressure to near zero.
-
-### 4. 💎 SIMD Vectorization (AVX2 / SSE4.2 / ARM NEON / SWAR)
-
-Custom C SIMD kernels dynamically dispatch at runtime:
-
-- CRLF and header boundary scanning (`\r\n\r\n`).
-- URL path separator tokenization (`/`).
-- ASCII header validation with fallback scalar dispatch.
-
-### 5. 🔋 In-Memory Request Scratchpad Arenas
-
-Per-request linear arenas (`scratchpad.h`/`.c`) allow $\mathcal{O}(1)$ allocation and instant bulk resets without invoking `malloc()` or `free()` during request lifecycle processing.
-
-### 6. 🐍 Zero-Copy ASGI Ingestion
-
-Direct `memoryview` and buffer passing (`await request.read_buffer()`) from server transport layers into `msgspec` decoders or PyTorch tensors (`torch.frombuffer`) without intermediate string copies or heap duplications.
-
-### 7. ⭐ Pre-Compiled Type Decoders & Fast DI Bindings
-
-Endpoint payload decoders (`msgspec.json.Decoder(type=...)`) and controller activation paths are compiled ahead-of-time during application startup, eradicating runtime reflection.
-
----
-
-## ⚡ CPython & C / C++ / CUDA Native Interoperability
-
-> [!IMPORTANT]
-> **Why CPython exclusively?**
-> Dreaming Electric Sheep purposefully targets modern CPython C-APIs (3.13, 3.14+). If your workloads utilize:
->
-> - **C / C++ Native Extensions** (e.g., custom Cython, pybind11, nanobind)
-> - **CUDA / TensorRT / PyTorch / ONNX Runtime** for high-throughput AI/ML serving
-> - **SIMD hardware intrinsics** (AVX2, SSE2, NEON)
->
-> CPython provides the tightest possible low-overhead binding without JIT tracing overhead or foreign function interface (FFI) penalties.
-
----
-
-## 📙 OpenAPI 3.0, Swagger UI, Scalar & ReDoc
-
-Dreaming Electric Sheep automatically generates OpenAPI 3.0 documentation from type annotations (`msgspec.Struct`, `dataclasses`, `Pydantic`, Python typing) and docstrings. It includes built-in support for **Swagger UI**, **Scalar**, and **ReDoc**.
-
-```python
-from dreaming_electric_sheep import Application, get, post
-from dreaming_electric_sheep.server.openapi.v3 import OpenAPIHandler
-from dreaming_electric_sheep.server.openapi.ui import (
-    SwaggerUIProvider,
-    ScalarUIProvider,
-    ReDocUIProvider,
-)
-from openapidocs.v3 import Info
-from msgspec import Struct
-
-app = Application()
-
-# Configure OpenAPI with interactive documentation UIs
-docs = OpenAPIHandler(
-    info=Info(title="Dreaming Electric Sheep API", version="1.0.0"),
-    ui_providers=[
-        SwaggerUIProvider("/docs"),    # Interactive Swagger UI at /docs
-        ScalarUIProvider("/scalar"),   # Modern Scalar UI at /scalar
-        ReDocUIProvider("/redoc"),     # ReDoc at /redoc
-    ],
-)
-docs.bind_app(app)
-
-class Sheep(Struct):
-    id: int
-    name: str
-    voltage: float
-
-@get("/api/sheep/:id")
-async def get_sheep(id: int) -> Sheep:
-    """
-    Retrieve an Electric Sheep by ID.
-    """
-    return Sheep(id=id, name="Cloud Sheep", voltage=220.0)
-```
-
-Now navigate in your browser:
-
-- **Swagger UI:** `http://localhost:8000/docs`
-- **Scalar UI:** `http://localhost:8000/scalar`
-- **ReDoc:** `http://localhost:8000/redoc`
-- **Raw OpenAPI JSON Spec:** `http://localhost:8000/openapi.json`
-
----
-
-## 🔥 High-Speed Serialization: JSON & MessagePack
-
-Take full advantage of pre-compiled type decoders and multiple wire formats:
-
-```python
-from dreaming_electric_sheep import Application, FromJSON, FromMsgPack, FromQuery, post
-from msgspec import Struct
-
-class SensorPayload(Struct):
-    device_id: str
-    readings: list[float]
-
-app = Application()
-
-# JSON payload with precompiled type decoder
-@post("/api/sensors/json")
-async def ingest_json(data: FromJSON[SensorPayload]):
-    return {"received_readings": len(data.value.readings)}
-
-# Binary MessagePack payload (ultra-fast binary format)
-@post("/api/sensors/msgpack")
-async def ingest_msgpack(data: FromMsgPack[SensorPayload]):
-    return {"received_readings": len(data.value.readings)}
-```
-
----
-
-## 🛠️ Developer CLI (`des`)
-
-The `des` CLI is the default, first-class interface for development, inspection, and operations.
-
-### Quick Cheat Sheet
+### 2. Structured 422 Validation Errors (FastAPI-Compatible)
 
 ```bash
-des new demo -t api          # Scaffold REST API project (Scalar UI default)
-cd demo && des dev           # Start development server with auto-reload (http://127.0.0.1:8000)
-des run app:app --workers 4  # Start production server (Granian first, Uvicorn fallback)
-des check                    # Validate routes, compiled binders, and configuration
-des routes                   # Inspect compiled radix routing table
-des why GET /items/1         # Explain route match, parameters, binders, and pipeline
-des doctor                   # Inspect C-core, SIMD ISA, and runtime environment health
+curl -X POST http://127.0.0.1:8000/api/items \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Widget", "price": "invalid"}'
 ```
-
-### OpenAPI Documentation Model
-
-There is **one** OpenAPI 3.0 specification served at `/openapi.json`. Scalar, Swagger UI, and ReDoc are renderers reading that same spec:
-
-```bash
-# Scaffold with your preferred UI renderer
-des new demo -t api --docs scalar   # Scalar (default) -> http://127.0.0.1:8000/docs
-des new demo -t api --docs swagger  # Swagger UI      -> http://127.0.0.1:8000/docs
-des new demo -t api --docs redoc    # ReDoc           -> http://127.0.0.1:8000/docs
-```
-
-### Validation Errors (FastAPI-Compatible HTTP 422)
-
-Request validation produces standard, structured JSON errors with explicit field locations:
 
 ```json
 {
@@ -228,21 +56,135 @@ Request validation produces standard, structured JSON errors with explicit field
 }
 ```
 
-### Server Support & Migration
+### 3. Inspect the Compiled Request Pipeline (`des why`)
 
-- **Granian (Default)**: Runs via high-performance **RSGI** protocol by default (`des run` / `des dev`), eliminating ASGI ceremony, with `--interface asgi` supported.
-- **Uvicorn**: Supported portable ASGI fallback (`uvicorn app:app --reload`).
-- **Docs & Migration**: See [FastAPI to DES Cheat Sheet](docs/fastapi-to-des.md) and [15-Minute Quickstart Tutorial](docs/tutorial.md).
+```bash
+des why POST /api/items
+```
+
+Inspect route matching, parameter binders, and handler dispatch directly:
+
+```text
+Route:      POST /api/items
+Handler:    demo.app:create_item
+Binders:
+  • data: FromJSON[CreateItemInput] (pre-compiled msgspec decoder)
+OpenAPI:    Documented in /openapi.json (schema: CreateItemInput)
+```
+
+### 4. Interactive OpenAPI 3.0 Documentation
+
+Scalar UI is served automatically at `http://127.0.0.1:8000/docs` reading `/openapi.json`.
 
 ---
 
-## 🎯 Controllers & Dependency Injection
+## 👾 Quick Start
+
+```python
+from des import Application, get, post
+from msgspec import Struct
+
+# Fast schema-validated msgspec Struct
+class CreateItemInput(Struct):
+    name: str
+    price: float
+    tags: list[str] = []
+
+app = Application()
+
+@get("/hello")
+def hello():
+    return {"message": "Do electric sheep dream of high throughput?"}
+
+@post("/api/items")
+def create_item(data: CreateItemInput):
+    # Ingested and validated via pre-compiled msgspec decoder
+    return {"status": "created", "item": data}
+```
+
+Start the application:
+
+```bash
+des dev
+```
+
+---
+
+## ⚓ Core Architecture & Serving Model
+
+Dreaming Electric Sheep focuses on stripping overhead between the Rust transport layer and Python application code:
+
+1. **Granian RSGI Transport**: Direct `__rsgi__` entrypoint with native request/response passing, bypassing ASGI message loop overhead.
+2. **`cdef` Extension Types**: `Request`, `Response`, `Header`, and `RouteMatch` are pure Cython classes with fixed C struct offsets (zero `__dict__` overhead).
+3. **C Object Freelists**: `acquire_request` and `release_request` recycle request and response objects across HTTP lifecycles to minimize heap allocations.
+4. **Pre-Compiled Type Decoders**: `msgspec` decoders are compiled at startup during route registration, eliminating dynamic reflection in the request path.
+5. **Direct Inspection CLI**: `des why`, `des routes`, and `des check` give full visibility into the compiled routing table and parameter binders.
+
+---
+
+## 📙 OpenAPI 3.0 & Interactive UIs
+
+Dreaming Electric Sheep automatically generates OpenAPI 3.0 documentation from type annotations (`msgspec.Struct`, `dataclasses`, `Pydantic`, Python typing) and docstrings.
+
+```python
+from des import Application, get
+from dreaming_electric_sheep.server.openapi.v3 import OpenAPIHandler
+from dreaming_electric_sheep.server.openapi.ui import (
+    ScalarUIProvider,
+    SwaggerUIProvider,
+    ReDocUIProvider,
+)
+from openapidocs.v3 import Info
+from msgspec import Struct
+
+app = Application()
+
+docs = OpenAPIHandler(
+    info=Info(title="Dreaming Electric Sheep API", version="1.0.0"),
+    ui_providers=[
+        ScalarUIProvider("/docs"),      # Scalar UI (default) at /docs
+        SwaggerUIProvider("/swagger"),  # Swagger UI at /swagger
+        ReDocUIProvider("/redoc"),      # ReDoc at /redoc
+    ],
+)
+docs.bind_app(app)
+
+class Sheep(Struct):
+    id: int
+    name: str
+    voltage: float
+
+@get("/api/sheep/:id")
+def get_sheep(id: int) -> Sheep:
+    """Retrieve an Electric Sheep by ID."""
+    return Sheep(id=id, name="Cloud Sheep", voltage=220.0)
+```
+
+---
+
+## 🛠️ Developer CLI (`des`)
+
+The `des` CLI is the first-class toolchain for development, inspection, and operations:
+
+```bash
+des new demo -t api          # Scaffold REST API project (Scalar UI default)
+cd demo && des dev           # Start development server with auto-reload (Granian RSGI)
+des run app:app --workers 4  # Start production server (Granian RSGI)
+des check                    # Validate routes, compiled binders, and configuration
+des routes                   # Inspect compiled radix routing table
+des why POST /api/items      # Explain route match, binders, and pipeline
+des doctor                   # Inspect C-core, intern tables, and runtime environment
+```
+
+---
+
+## 🎯 Dependency Injection & Controllers
 
 Dreaming Electric Sheep includes built-in dependency injection with pre-bound fast dispatching:
 
 ```python
-from dreaming_electric_sheep import Application
-from dreaming_electric_sheep.server.controllers import Controller, get, post
+from des import Application
+from dreaming_electric_sheep.server.controllers import Controller, get
 
 class DatabaseService:
     def get_stats(self) -> dict:
@@ -259,55 +201,43 @@ class StatusController(Controller):
 
 ---
 
-## 🛍️ Benchmarks & Performance Comparison
+## 🛍️ Benchmarks & Framework Tax
 
-Localhost framework overhead measured against a shared in-memory fixture (not the TechEmpower Framework Benchmarks; no Postgres). Numbers represent the **median of 5 independent runs** (5s duration each, total 25s sampling per route, 50 concurrency keep-alive connections via `oha` on localhost, 1 worker process).
+Overhead measured against a shared in-memory fixture on localhost (median of 5 independent runs, 5s duration each, 50 concurrent keep-alive connections via `oha`, 1 worker process on CPython 3.14 / Linux x86_64).
 
-DES RSGI beats DES ASGI, stays close to Granian raw ceilings, and provides ultra-low latency across all routes.
+### Table A: Framework Tax vs. Raw Server Ceilings (msgspec Encoder)
 
-### 🧠 Table A: Ceiling Comparison (Apples-to-Apples msgspec Encoder)
+Measures framework tax against raw server ceilings when all targets encode JSON per request using `msgspec.json.encode` and run with `optimize_gc=False`. The ~20% gap represents the necessary cost of route matching, request abstraction, and parameter binding over raw protocol sockets.
 
-Measures framework tax against raw server ceilings when all targets encode JSON per request using `msgspec.json.encode` and run with `optimize_gc=False`.
+| Framework / Layer | Plaintext (req/s) | JSON (req/s) | Mem get (req/s) | Mem get ×20 (req/s) | HTML fortunes (req/s) | Mem update ×20 (req/s) | Server / Runtime |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| Granian (Raw RSGI) | 101,573 | 96,725 | 97,370 | 51,698 | 25,862 | 36,321 | Raw Granian RSGI (ceiling) |
+| Granian (Raw ASGI) | 70,343 | 72,069 | 66,652 | 40,249 | 22,480 | 32,425 | Raw Granian ASGI (ceiling) |
+| **Dreaming Electric Sheep (RSGI)** | **77,479** | **71,686** | **69,456** | **37,368** | **26,411** | **33,479** | **Granian (RSGI, 1 worker)** |
+| Dreaming Electric Sheep (ASGI) | 73,348 | 66,781 | 64,345 | 28,635 | 20,869 | 25,841 | Granian (ASGI, 1 worker) |
+| Uvicorn (Raw ASGI) | 45,141 | 44,846 | 39,480 | 27,776 | 18,014 | 23,548 | Uvicorn (Raw ASGI, 1 worker) |
+
+### Table B: Default Stack Comparison (Stock Helpers Out-of-the-Box)
+
+Measures out-of-the-box performance using each framework's stock response and serialization helpers:
 
 | Framework | Plaintext (req/s) | JSON (req/s) | Mem get (req/s) | Mem get ×20 (req/s) | HTML fortunes (req/s) | Mem update ×20 (req/s) | Server / Runtime |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| Granian (Raw RSGI) | 183,557 | 144,815 | 146,837 | 74,404 | 43,639 | 60,262 | Granian (Raw RSGI, 1 worker, msgspec) |
-| Granian (Raw ASGI) | 117,158 | 115,134 | 114,108 | 62,342 | 39,031 | 51,393 | Granian (Raw ASGI, 1 worker, msgspec) |
-| Dreaming Electric Sheep (RSGI) | 126,681 | 122,480 | 111,741 | 57,396 | 38,682 | 47,968 | Granian (RSGI, 1 worker, msgspec) |
-| Dreaming Electric Sheep (ASGI) | 102,121 | 100,048 | 95,956 | 50,587 | 35,781 | 42,548 | Granian (ASGI, 1 worker, msgspec) |
-| Uvicorn (Raw ASGI) | 66,784 | 67,646 | 65,406 | 43,118 | 30,661 | 37,882 | Uvicorn (Raw ASGI, 1 worker, msgspec) |
+| **Dreaming Electric Sheep (RSGI)** | **54,610** | **58,618** | **62,643** | **33,969** | **26,208** | **27,064** | **Granian (RSGI, 1 worker)** |
+| Dreaming Electric Sheep (ASGI) | 53,654 | 56,337 | 56,363 | 31,566 | 23,949 | 28,435 | Granian (ASGI, 1 worker) |
+| Emmett | 47,619 | 36,772 | 41,197 | 23,386 | 20,620 | 19,203 | Granian (RSGI/ASGI, 1 worker) |
+| Sanic | 37,437 | 34,246 | 31,727 | 19,446 | 16,008 | 16,405 | Sanic (1 worker) |
+| Litestar | 28,096 | 23,169 | 26,140 | 14,544 | 14,457 | 14,312 | Granian (ASGI, 1 worker) |
+| Robyn | 22,839 | 23,090 | 21,441 | 9,783 | 11,640 | 13,420 | Robyn Rust (1 worker process) |
+| Flask | 19,936 | 17,730 | 16,301 | 5,395 | 9,891 | 4,969 | Granian (WSGI, 1 worker) |
+| Django | 16,498 | 11,314 | 12,482 | 5,690 | 10,493 | 5,407 | Granian (WSGI, 1 worker) |
+| FastAPI | 15,421 | 16,053 | 13,353 | 5,719 | 10,739 | 5,746 | Granian (ASGI, 1 worker) |
 
-### 🧶 Table B: Default Stack Comparison (Stock Helpers Out-of-the-Box)
-
-Measures out-of-the-box performance using each framework's stock response/serialization helpers (e.g. DES `json()`/`html()`/`text()`, Emmett `json.dumps`, Sanic `json()`, Robyn `jsonify`, Litestar msgspec default, FastAPI `JSONResponse`, Flask `jsonify`/`Response`, Django `JsonResponse`/`HttpResponse`).
-
-| Framework | Plaintext (req/s) | JSON (req/s) | Mem get (req/s) | Mem get ×20 (req/s) | HTML fortunes (req/s) | Mem update ×20 (req/s) | Server / Runtime |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| Dreaming Electric Sheep (RSGI) | 122,827 | 122,801 | 113,812 | 58,352 | 39,371 | 46,949 | Granian (RSGI, 1 worker, stock helpers) |
-| Dreaming Electric Sheep (ASGI) | 101,789 | 100,210 | 96,536 | 51,355 | 36,030 | 44,383 | Granian (ASGI, 1 worker, stock helpers) |
-| Emmett | 73,601 | 67,087 | 64,462 | 34,395 | 31,157 | 30,485 | Granian (RSGI/ASGI, 1 worker) |
-| Sanic | 53,755 | 48,822 | 47,146 | 27,553 | 24,247 | 25,321 | Sanic (1 worker) |
-| Litestar | 41,183 | 39,855 | 37,963 | 25,536 | 20,519 | 23,324 | Granian (ASGI, 1 worker) |
-| Robyn | 37,028 | 34,184 | 32,938 | 22,649 | 20,987 | 21,004 | Robyn Rust (1 worker process) |
-| FastAPI | 30,152 | 25,285 | 23,529 | 8,655 | 16,881 | 8,329 | Granian (ASGI, 1 worker) |
-| Django | 29,684 | 25,131 | 23,141 | 8,513 | 16,544 | 7,992 | Granian (WSGI, 1 worker, stripped middleware) |
-| Flask | 29,484 | 25,239 | 23,431 | 8,623 | 16,748 | 8,311 | Granian (WSGI, 1 worker) |
-
-> **Environment & System Specifications**:
->
-> - **CPU / OS**: x86_64 Linux (CachyOS Kernel 7.2), SIMD ISA: AVX2
-> - **Runtimes**: CPython 3.14.7 | Granian 2.8.2 | Uvicorn 0.34.2 | Emmett 2.8.1 | Sanic 25.12.1 | Robyn 0.88.0 | Litestar 2.24.0 | FastAPI 0.141.1 | Flask 3.1.1 | Django 6.1
-> - **Load Tester**: `oha 1.16.0` (Rust)
->
-> To reproduce on your machine:
->
-> ```bash
-> pip install -r perf/requirements-bench.txt
-> ./perf/compare/run.sh
-> ```
+> **Environment**: x86_64 Linux, CPython 3.14 | Granian 2.8.2 | Uvicorn 0.34.2 | `oha 1.16.0`. See [perf/compare/](perf/compare/) for harness scripts.
 
 ---
 
-<p align="center">
-  made with <img src="assets/love.png" width="25" alt="love.png" style="vertical-align: middle;"> by <b>EduLoboM</b>
-</p>
+## 📜 License & Credits
+
+Dreaming Electric Sheep is released under the [MIT License](LICENSE).
+Derived from [BlackSheep](https://github.com/Neoteroi/BlackSheep) (Copyright (C) Roberto Prevato and contributors). See [NOTICE](NOTICE) for attribution.

@@ -7,14 +7,13 @@ name = "dreaming-electric-sheep"
 dynamic = ["version"]
 authors = [
     { name = "Eduardo Lobo", email = "eduardolobomoreira@tuta.io" },
-    { name = "Roberto Prevato", email = "roberto.prevato@gmail.com" },
 ]
 maintainers = [
     { name = "Eduardo Lobo", email = "eduardolobomoreira@tuta.io" },
 ]
-description = "Fast web framework for Python asyncio"
+description = "High-performance CPython 3.13+ serving stack on Granian RSGI"
 license = "MIT"
-license-files = ["LICENSE"]
+license-files = ["LICENSE", "NOTICE"]
 readme = "README.md"
 requires-python = ">=3.13"
 classifiers = [
@@ -29,7 +28,7 @@ classifiers = [
     "Topic :: Internet :: WWW/HTTP :: HTTP Servers",
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
-keywords = ["dreaming-electric-sheep", "dreaming electric sheep", "web framework", "asyncio"]
+keywords = ["dreaming-electric-sheep", "des", "web-framework", "rsgi", "granian", "cpython", "asyncio"]
 dependencies = [
     "certifi>=2025.4.26",
     "guardpost>=1.0.4",
@@ -45,7 +44,7 @@ dependencies = [
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["dreaming_electric_sheep*"]
+include = ["dreaming_electric_sheep*", "des*"]
 
 [tool.setuptools.dynamic]
 version = { attr = "dreaming_electric_sheep.__version__" }
