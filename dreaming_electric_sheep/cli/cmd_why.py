@@ -1,10 +1,12 @@
 """
 `des why` signature command implementation.
 """
+
 from __future__ import annotations
 
 import sys
 from typing import Any, Optional
+
 import typer
 
 from dreaming_electric_sheep.cli.loader import (
@@ -23,7 +25,11 @@ def _format_binder_list(binders: Any) -> list[str]:
         b_cls = b.__class__.__name__
         param_name = getattr(b, "param_name", None) or getattr(b, "name", None)
         expected_type = getattr(b, "expected_type", None)
-        type_name = getattr(expected_type, "__name__", str(expected_type)) if expected_type else ""
+        type_name = (
+            getattr(expected_type, "__name__", str(expected_type))
+            if expected_type
+            else ""
+        )
         if param_name and type_name:
             res.append(f"{b_cls}[{type_name}]({param_name})")
         elif param_name:
@@ -37,7 +43,9 @@ def _format_binder_list(binders: Any) -> list[str]:
 
 def why_command(
     method: str = typer.Argument(..., help="HTTP method (e.g. GET, POST)"),
-    path: str = typer.Argument(..., help="Request URL path to resolve (e.g. /items/12, /docs)"),
+    path: str = typer.Argument(
+        ..., help="Request URL path to resolve (e.g. /items/12, /docs)"
+    ),
     app: Optional[str] = typer.Argument(
         None,
         help="Application target (e.g. 'app:app'). Defaults to DES_APP or pyproject.toml [tool.des]",
@@ -73,7 +81,9 @@ def why_command(
     # Check if match is fallback or no match
     is_fallback = False
     if match is not None:
-        if getattr(match, "route", None) is getattr(loaded_app.router, "fallback", None):
+        if getattr(match, "route", None) is getattr(
+            loaded_app.router, "fallback", None
+        ):
             is_fallback = True
         elif getattr(getattr(match, "route", None), "pattern", None) in (b"*", "*"):
             is_fallback = True
@@ -83,17 +93,21 @@ def why_command(
         candidates = []
         for m, route in loaded_app.router.iter_with_methods():
             p = getattr(route, "pattern", b"")
-            p_str = p.decode("utf8", errors="replace") if isinstance(p, bytes) else str(p)
+            p_str = (
+                p.decode("utf8", errors="replace") if isinstance(p, bytes) else str(p)
+            )
             if p_str != "*" and (norm_path.startswith(p_str[:4]) or m == method_upper):
                 candidates.append(f"{m} {p_str}")
 
         if json_output:
-            output_json({
-                "status": "NO_MATCH",
-                "method": method_upper,
-                "path": norm_path,
-                "nearest_routes": candidates[:5],
-            })
+            output_json(
+                {
+                    "status": "NO_MATCH",
+                    "method": method_upper,
+                    "path": norm_path,
+                    "nearest_routes": candidates[:5],
+                }
+            )
         else:
             print(f"No match for {method_upper} {norm_path}", file=sys.stderr)
             if candidates:
@@ -105,7 +119,11 @@ def why_command(
     # Extract match details
     route = match.route
     pattern = getattr(route, "pattern", b"")
-    pattern_str = pattern.decode("utf8", errors="replace") if isinstance(pattern, bytes) else str(pattern)
+    pattern_str = (
+        pattern.decode("utf8", errors="replace")
+        if isinstance(pattern, bytes)
+        else str(pattern)
+    )
     values = match.values or {}
 
     handler = route.handler
@@ -117,6 +135,7 @@ def why_command(
     is_interned = False
     try:
         from dreaming_electric_sheep.messages import Request
+
         req_probe = Request(method_upper, b"/")
         is_interned = req_probe.method is method_upper
     except Exception:
@@ -130,11 +149,16 @@ def why_command(
 
     # JSON encoder
     encoder = "default"
-    if getattr(route, "enc_hook", None) is not None or getattr(loaded_app, "enc_hook", None) is not None:
+    if (
+        getattr(route, "enc_hook", None) is not None
+        or getattr(loaded_app, "enc_hook", None) is not None
+    ):
         encoder = "enc_hook"
     elif hasattr(root_fn, "return_type"):
         rt = getattr(root_fn, "return_type")
-        if getattr(rt, "__module__", "").startswith("msgspec") or getattr(getattr(rt, "__class__", None), "__module__", "").startswith("msgspec"):
+        if getattr(rt, "__module__", "").startswith("msgspec") or getattr(
+            getattr(rt, "__class__", None), "__module__", ""
+        ).startswith("msgspec"):
             encoder = "msgspec"
 
     result = {
@@ -170,17 +194,25 @@ def why_command(
         table.add_row("Binders", ", ".join(binder_list) if binder_list else "(none)")
         table.add_row("Interned Method", "Yes (singleton)" if is_interned else "No")
         table.add_row("JSON Encoder", encoder)
-        table.add_row("Middlewares", " -> ".join(middlewares) if middlewares else "(none)")
+        table.add_row(
+            "Middlewares", " -> ".join(middlewares) if middlewares else "(none)"
+        )
 
-        console.print(Panel(table, title=f"Route Match: {method_upper} {norm_path}", expand=False))
+        console.print(
+            Panel(table, title=f"Route Match: {method_upper} {norm_path}", expand=False)
+        )
     else:
         print(f"Request:          {method_upper} {norm_path}")
         print(f"Matched Pattern:  {pattern_str}")
         print(f"Path Params:      {values if values else '(none)'}")
         print(f"Handler:          {result['handler']}")
-        print(f"Binders:          {', '.join(binder_list) if binder_list else '(none)'}")
+        print(
+            f"Binders:          {', '.join(binder_list) if binder_list else '(none)'}"
+        )
         print(f"Interned Method:  {'Yes (singleton)' if is_interned else 'No'}")
         print(f"JSON Encoder:     {encoder}")
-        print(f"Middlewares:      {' -> '.join(middlewares) if middlewares else '(none)'}")
+        print(
+            f"Middlewares:      {' -> '.join(middlewares) if middlewares else '(none)'}"
+        )
 
     sys.exit(0)

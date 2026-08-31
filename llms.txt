@@ -1,0 +1,44 @@
+# Dreaming Electric Sheep (DES)
+
+> High-performance CPython 3.13+ serving stack built on Granian RSGI.
+
+## Summary
+Dreaming Electric Sheep (`des`) is a web framework for CPython >= 3.13 that runs on Granian RSGI by default. It provides startup-compiled `msgspec.Struct` parameter binders, automated OpenAPI 3.0 documentation (Scalar / Swagger / ReDoc), and a developer CLI (`des why`, `des routes`, `des doctor`) to inspect the compiled request pipeline.
+
+## Installation
+```bash
+pip install "dreaming-electric-sheep[standard]"
+```
+
+## Quick Start
+```python
+from des import Application, get, post
+from msgspec import Struct
+
+class Item(Struct):
+    name: str
+    price: float
+
+app = Application()
+
+@get("/hello")
+def hello():
+    return {"message": "Hello from DES!"}
+
+@post("/items")
+def create_item(item: Item):
+    return {"status": "created", "item": item}
+```
+
+## CLI
+- `des new <name> -t api`: Scaffold REST API with Scalar docs and Struct validation.
+- `des dev`: Start Granian RSGI development server with reload.
+- `des run app:app --workers 4`: Start Granian RSGI production server.
+- `des why POST /items`: Inspect compiled route match and binders.
+- `des check`: Validate routes and configuration.
+- `des routes`: Print compiled radix routing table.
+- `des doctor`: Inspect C-core acceleration and runtime health.
+
+## Documentation
+- [Quickstart Tutorial](docs/tutorial.md)
+- [Why DES?](docs/why-des.md)

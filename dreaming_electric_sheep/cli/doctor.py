@@ -1,12 +1,14 @@
 """
 System diagnostics and C-core health verification (`des doctor`).
 """
+
 from __future__ import annotations
 
 import importlib.util
 import platform
 import sys
 from typing import Any
+
 import typer
 
 from dreaming_electric_sheep.cli.loader import get_console, output_json
@@ -42,6 +44,7 @@ def run_doctor() -> dict[str, Any]:
     intern_addr = "N/A"
     try:
         from dreaming_electric_sheep import _des_core as core
+
         if core is not None:
             c_core_loaded = True
             simd_isa = str(core.get_simd_isa_info())
@@ -70,11 +73,14 @@ def run_doctor() -> dict[str, Any]:
     intern_singleton_ok = False
     try:
         from dreaming_electric_sheep.messages import Request
+
         req1 = Request("GET", b"/", [(b"content-type", b"application/json")])
         req2 = Request("GET", b"/items", [(b"content-type", b"text/plain")])
         k1 = req1.headers.values[0][0]
         k2 = req2.headers.values[0][0]
-        intern_singleton_ok = (req1.method is req2.method) and (k1 is k2) and (intern_addr != "N/A")
+        intern_singleton_ok = (
+            (req1.method is req2.method) and (k1 is k2) and (intern_addr != "N/A")
+        )
     except Exception:
         intern_singleton_ok = False
     report["intern_singleton_shared"] = intern_singleton_ok
@@ -147,19 +153,40 @@ def doctor_command(
         t_runtime = Table(show_header=False, box=None)
         t_runtime.add_column("Property", style="bold cyan", width=26)
         t_runtime.add_column("Value")
-        t_runtime.add_row("Python Version", f"{data['python_version']} ({data['python_implementation']})")
-        t_runtime.add_row("Platform / OS", f"{data['platform']} ({data['architecture']})")
-        t_runtime.add_row("Free-Threaded (NoGIL)", "Active" if data["gil_disabled"] else "Standard GIL")
+        t_runtime.add_row(
+            "Python Version",
+            f"{data['python_version']} ({data['python_implementation']})",
+        )
+        t_runtime.add_row(
+            "Platform / OS", f"{data['platform']} ({data['architecture']})"
+        )
+        t_runtime.add_row(
+            "Free-Threaded (NoGIL)",
+            "Active" if data["gil_disabled"] else "Standard GIL",
+        )
 
         # C Core Table
         t_core = Table(show_header=False, box=None)
         t_core.add_column("Property", style="bold cyan", width=26)
         t_core.add_column("Value")
-        t_core.add_row("Shared libdes_core", "LOADED" if data["c_core_loaded"] else "NOT LOADED (FAIL)")
+        t_core.add_row(
+            "Shared libdes_core",
+            "LOADED" if data["c_core_loaded"] else "NOT LOADED (FAIL)",
+        )
         t_core.add_row("Active SIMD ISA", data["simd_isa"])
         t_core.add_row("Static Intern Table", data["intern_table_addr"])
-        t_core.add_row("Intern Singleton Shared", "Shared across modules" if data["intern_singleton_shared"] else "NOT SHARED (FAIL)")
-        t_core.add_row("Cython Extensions", f"{sum(data['cython_extensions'].values())}/{len(CYTHON_EXTENSIONS)} loaded")
+        t_core.add_row(
+            "Intern Singleton Shared",
+            (
+                "Shared across modules"
+                if data["intern_singleton_shared"]
+                else "NOT SHARED (FAIL)"
+            ),
+        )
+        t_core.add_row(
+            "Cython Extensions",
+            f"{sum(data['cython_extensions'].values())}/{len(CYTHON_EXTENSIONS)} loaded",
+        )
         t_core.add_row("Router Freeze", f"WARN: {data['freeze_status']}")
         t_core.add_row("Scratchpad Arena", "Compiled (unused on hot path)")
 
@@ -172,20 +199,32 @@ def doctor_command(
 
         console.print(Panel(t_runtime, title="Runtime & Platform", expand=False))
         console.print(Panel(t_core, title="C Core & Acceleration", expand=False))
-        console.print(Panel(t_pkg, title="Server Runtimes & Dependencies", expand=False))
+        console.print(
+            Panel(t_pkg, title="Server Runtimes & Dependencies", expand=False)
+        )
     else:
         print("RUNTIME & PLATFORM:")
-        print(f"  Python Version:          {data['python_version']} ({data['python_implementation']})")
+        print(
+            f"  Python Version:          {data['python_version']} ({data['python_implementation']})"
+        )
         print(f"  Platform / OS:           {data['platform']} ({data['architecture']})")
-        print(f"  Free-Threaded (NoGIL):   {'Active' if data['gil_disabled'] else 'Standard GIL'}")
+        print(
+            f"  Free-Threaded (NoGIL):   {'Active' if data['gil_disabled'] else 'Standard GIL'}"
+        )
         print("\nC CORE & ACCELERATION:")
-        print(f"  Shared libdes_core:      {'LOADED' if data['c_core_loaded'] else 'NOT LOADED'}")
+        print(
+            f"  Shared libdes_core:      {'LOADED' if data['c_core_loaded'] else 'NOT LOADED'}"
+        )
         print(f"  Active SIMD ISA:         {data['simd_isa']}")
         print(f"  Static Intern Table:     {data['intern_table_addr']}")
-        print(f"  Intern Singleton Shared: {'Shared' if data['intern_singleton_shared'] else 'NOT SHARED'}")
-        print(f"  Cython Extensions:       {sum(data['cython_extensions'].values())}/{len(CYTHON_EXTENSIONS)} loaded")
+        print(
+            f"  Intern Singleton Shared: {'Shared' if data['intern_singleton_shared'] else 'NOT SHARED'}"
+        )
+        print(
+            f"  Cython Extensions:       {sum(data['cython_extensions'].values())}/{len(CYTHON_EXTENSIONS)} loaded"
+        )
         print(f"  Router Freeze:           WARN: {data['freeze_status']}")
-        print(f"  Scratchpad Arena:        Compiled (unused on hot path)")
+        print("  Scratchpad Arena:        Compiled (unused on hot path)")
         print("\nSERVER RUNTIMES & PACKAGES:")
         for pkg, installed in data["packages"].items():
             print(f"  {pkg:25}: {'Installed' if installed else 'Not installed'}")
@@ -200,7 +239,10 @@ def doctor_command(
             print("  pip install -e . --no-build-isolation")
 
     if data["status"] == "FAIL":
-        print("\nFAIL: Broken install detected. Run suggested commands above.", file=sys.stderr)
+        print(
+            "\nFAIL: Broken install detected. Run suggested commands above.",
+            file=sys.stderr,
+        )
         sys.exit(2)
     elif data["status"] == "WARN":
         sys.exit(0)

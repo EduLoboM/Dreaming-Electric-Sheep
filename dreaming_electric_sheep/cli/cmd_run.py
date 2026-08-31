@@ -1,12 +1,14 @@
 """
 `des run` command implementation.
 """
+
 from __future__ import annotations
 
 import importlib.util
 import subprocess
 import sys
 from typing import Optional
+
 import typer
 
 from dreaming_electric_sheep.cli.loader import (
@@ -85,8 +87,14 @@ def run_command(
         elif has_uvicorn:
             server_choice = "uvicorn"
         else:
-            print("Error: No ASGI/RSGI server found (neither granian nor uvicorn is installed).", file=sys.stderr)
-            print("Next step: pip install 'dreaming-electric-sheep[standard]' or des doctor", file=sys.stderr)
+            print(
+                "Error: No ASGI/RSGI server found (neither granian nor uvicorn is installed).",
+                file=sys.stderr,
+            )
+            print(
+                "Next step: pip install 'dreaming-electric-sheep[standard]' or des doctor",
+                file=sys.stderr,
+            )
             sys.exit(3)
     elif server_choice == "granian" and not has_granian:
         print("Error: Granian is not installed.", file=sys.stderr)
@@ -102,8 +110,12 @@ def run_command(
     if reuseport:
         print("Note: SO_REUSEPORT socket option passed where supported.")
 
-    selected_interface = (interface or ("rsgi" if server_choice == "granian" else "asgi")).lower()
-    print(f"Starting {server_choice} ({selected_interface.upper()}) server on http://{bind_host}:{bind_port} ({workers} worker{'s' if workers > 1 else ''})")
+    selected_interface = (
+        interface or ("rsgi" if server_choice == "granian" else "asgi")
+    ).lower()
+    print(
+        f"Starting {server_choice} ({selected_interface.upper()}) server on http://{bind_host}:{bind_port} ({workers} worker{'s' if workers > 1 else ''})"
+    )
 
     if server_choice == "granian":
         cmd = [

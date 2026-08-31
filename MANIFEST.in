@@ -1,11 +1,13 @@
 include LICENSE
+include NOTICE
 include README.md
 include CHANGELOG.md
 include dreaming_electric_sheep/server/res/*.html
 include dreaming_electric_sheep/server/res/*.css
 include build_info.txt
 recursive-include dreaming_electric_sheep *.pyx *.pxd *.pxi *.pyi *.py *.c *.h
+recursive-include des *.py
 
 # Stubs
 include dreaming_electric_sheep/py.typed
-
+include des/py.typed

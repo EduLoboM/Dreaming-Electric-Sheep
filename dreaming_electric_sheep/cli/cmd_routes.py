@@ -1,10 +1,12 @@
 """
 `des routes` command implementation.
 """
+
 from __future__ import annotations
 
 import sys
 from typing import Any, Optional
+
 import typer
 
 from dreaming_electric_sheep.cli.loader import (
@@ -23,7 +25,11 @@ def _format_binders(binders: Any) -> str:
         b_cls = b.__class__.__name__
         param_name = getattr(b, "param_name", None) or getattr(b, "name", None)
         expected_type = getattr(b, "expected_type", None)
-        type_name = getattr(expected_type, "__name__", str(expected_type)) if expected_type else ""
+        type_name = (
+            getattr(expected_type, "__name__", str(expected_type))
+            if expected_type
+            else ""
+        )
 
         if param_name and type_name:
             formatted.append(f"{b_cls}[{type_name}]({param_name})")
@@ -105,13 +111,15 @@ def routes_command(
         response_str = _format_response(handler)
         handler_name = f"{root_fn.__module__}:{root_fn.__qualname__}"
 
-        rows.append({
-            "method": method,
-            "path": path_str,
-            "handler": handler_name,
-            "binders": binders_str,
-            "response": response_str,
-        })
+        rows.append(
+            {
+                "method": method,
+                "path": path_str,
+                "handler": handler_name,
+                "binders": binders_str,
+                "response": response_str,
+            }
+        )
 
     if json_output:
         output_json(rows)
@@ -120,7 +128,10 @@ def routes_command(
     console = get_console()
     if console and sys.stdout.isatty():
         from rich.table import Table
-        table = Table(title="Compiled Routing Table", show_header=True, header_style="bold cyan")
+
+        table = Table(
+            title="Compiled Routing Table", show_header=True, header_style="bold cyan"
+        )
         table.add_column("Method", style="bold green", width=8)
         table.add_column("Path", style="bold", min_width=20)
         table.add_column("Handler", style="dim")
@@ -142,12 +153,14 @@ def routes_command(
         print(fmt.format("METHOD", "PATH", "HANDLER", "BINDERS", "RESPONSE"))
         print("-" * 120)
         for row in rows:
-            print(fmt.format(
-                row["method"],
-                row["path"],
-                row["handler"],
-                row["binders"],
-                row["response"],
-            ))
+            print(
+                fmt.format(
+                    row["method"],
+                    row["path"],
+                    row["handler"],
+                    row["binders"],
+                    row["response"],
+                )
+            )
 
     sys.exit(0)

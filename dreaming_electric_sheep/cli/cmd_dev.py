@@ -1,12 +1,14 @@
 """
 `des dev` command implementation.
 """
+
 from __future__ import annotations
 
 import importlib.util
 import subprocess
 import sys
 from typing import Optional
+
 import typer
 
 from dreaming_electric_sheep.cli.loader import (
@@ -77,8 +79,14 @@ def dev_command(
         elif has_uvicorn:
             server_choice = "uvicorn"
         else:
-            print("Error: No ASGI/RSGI server found (neither granian nor uvicorn is installed).", file=sys.stderr)
-            print("Next step: pip install 'dreaming-electric-sheep[standard]' or des doctor", file=sys.stderr)
+            print(
+                "Error: No ASGI/RSGI server found (neither granian nor uvicorn is installed).",
+                file=sys.stderr,
+            )
+            print(
+                "Next step: pip install 'dreaming-electric-sheep[standard]' or des doctor",
+                file=sys.stderr,
+            )
             sys.exit(3)
     elif server_choice == "granian" and not has_granian:
         print("Error: Granian is not installed.", file=sys.stderr)
@@ -92,10 +100,14 @@ def dev_command(
     if debug:
         try:
             import debugpy
+
             debugpy.listen(("0.0.0.0", 5678))
             print("debugpy listening on 0.0.0.0:5678 (ready for debugger attach)")
         except ImportError:
-            print("Warning: debugpy is not installed. Run: pip install debugpy", file=sys.stderr)
+            print(
+                "Warning: debugpy is not installed. Run: pip install debugpy",
+                file=sys.stderr,
+            )
         except Exception as e:
             print(f"Warning: could not start debugpy: {e}", file=sys.stderr)
 
@@ -111,8 +123,12 @@ def dev_command(
     except Exception:
         pass
 
-    selected_interface = (interface or ("rsgi" if server_choice == "granian" else "asgi")).lower()
-    print(f"dev http://{bind_host}:{bind_port} ({server_choice} {selected_interface.upper()}, reload){docs_msg}")
+    selected_interface = (
+        interface or ("rsgi" if server_choice == "granian" else "asgi")
+    ).lower()
+    print(
+        f"dev http://{bind_host}:{bind_port} ({server_choice} {selected_interface.upper()}, reload){docs_msg}"
+    )
 
     if server_choice == "granian":
         cmd = [
@@ -142,4 +158,3 @@ def dev_command(
         sys.exit(proc.returncode)
     except KeyboardInterrupt:
         sys.exit(0)
-

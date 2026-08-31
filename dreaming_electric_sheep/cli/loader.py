@@ -1,6 +1,7 @@
 """
 Target application resolution, configuration loading, and output formatting.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -9,7 +10,7 @@ import json
 import os
 import sys
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 # Standard library TOML parser
 if sys.version_info >= (3, 11):
@@ -22,6 +23,7 @@ else:
 
 try:
     from rich.console import Console
+
     _has_rich = True
 except ImportError:
     _has_rich = False
@@ -135,7 +137,9 @@ def load_application(app_target: str | None = None):
         mod = sys.modules[module_name]
         mod_file = getattr(mod, "__file__", None)
         try:
-            if mod_file is None or not Path(mod_file).resolve().is_relative_to(project_dir):
+            if mod_file is None or not Path(mod_file).resolve().is_relative_to(
+                project_dir
+            ):
                 del sys.modules[module_name]
         except Exception:
             del sys.modules[module_name]

@@ -1,6 +1,7 @@
 """
 Project scaffolding templates for `des new`.
 """
+
 from __future__ import annotations
 
 import sys
@@ -22,7 +23,12 @@ dependencies = [
 app = "app:app"
 host = "127.0.0.1"
 port = 8000
-server = "auto"
+server = "granian"
+interface = "rsgi"
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+asyncio_mode = "auto"
 """
 
 ENV_EXAMPLE = """DES_APP=app:app
@@ -33,13 +39,13 @@ PORT=8000
 MINIMAL_APP_PY = '''"""
 Minimal Dreaming Electric Sheep application.
 """
-from dreaming_electric_sheep import Application, get, json
+from des import Application, get, json
 
 app = Application()
 
 
 @get("/")
-async def home():
+def home():
     return json({"message": "Hello from Dreaming Electric Sheep!"})
 '''
 
@@ -75,7 +81,7 @@ des dev
 - `des routes` - List compiled routing table
 - `des why GET /` - Explain route matching and handler pipeline
 - `des doctor` - System and C-core health
-- `des run` - Start production server
+- `des run` - Start production server (Granian RSGI)
 """
 
 API_APP_PY_TEMPLATE = '''"""
@@ -83,14 +89,14 @@ REST API application with msgspec validation and OpenAPI documentation.
 """
 from typing import List, Optional
 from openapidocs.v3 import Info
-from dreaming_electric_sheep import Application, get, post, json, not_found, ok
+from des import Application, get, post, json, not_found, ok
 from dreaming_electric_sheep.server.openapi.v3 import OpenAPIHandler
 from dreaming_electric_sheep.server.openapi.ui import (
     ScalarUIProvider,
     SwaggerUIProvider,
     ReDocUIProvider,
 )
-from dreaming_electric_sheep.structures import Struct
+from msgspec import Struct
 
 app = Application(show_error_details=True)
 
@@ -117,17 +123,17 @@ _DB: dict[int, Item] = {
 
 
 @get("/")
-async def root():
+def root():
     return json({"status": "healthy", "service": "{name}"})
 
 
 @get("/items")
-async def list_items() -> List[Item]:
+def list_items() -> List[Item]:
     return list(_DB.values())
 
 
 @get("/items/{item_id}")
-async def get_item(item_id: int) -> Item:
+def get_item(item_id: int) -> Item:
     item = _DB.get(item_id)
     if item is None:
         return not_found(f"Item with id {item_id} not found")
@@ -135,7 +141,7 @@ async def get_item(item_id: int) -> Item:
 
 
 @post("/items")
-async def create_item(data: Item) -> Item:
+def create_item(data: Item) -> Item:
     _DB[data.id] = data
     return data
 '''
@@ -185,6 +191,20 @@ async def test_create_item():
     assert res.status == 200
     data = await res.json()
     assert data["name"] == "Neural Link"
+
+
+@pytest.mark.asyncio
+async def test_validation_error_422():
+    await app.start()
+    client = TestClient(app)
+    res = await client.post(
+        "/items",
+        content=JSONContent({"id": 4, "name": "Invalid Sheep", "price": "not_a_float"}),
+    )
+    assert res.status == 422
+    data = await res.json()
+    assert "detail" in data
+    assert data["detail"][0]["loc"] == ["body", "price"]
 """
 
 API_README_TEMPLATE = """# {name}
@@ -213,7 +233,7 @@ des dev
 - `des routes` - List compiled routing table
 - `des why GET /items/1` - Explain route matching and handler pipeline
 - `des doctor` - System and C-core health
-- `des run` - Start production server
+- `des run` - Start production server (Granian RSGI)
 """
 
 FULL_APP_PY = '''"""
@@ -222,7 +242,7 @@ Full-featured MVC application with DI (rodi), Jinja2 rendering, and service laye
 from pathlib import Path
 from dataclasses import dataclass
 from jinja2 import FileSystemLoader
-from dreaming_electric_sheep import Application, get, json
+from des import Application, get, json
 from dreaming_electric_sheep.server.responses import view
 from dreaming_electric_sheep.settings.html import html_settings
 from dreaming_electric_sheep.server.rendering.jinja2 import JinjaRenderer
@@ -259,13 +279,13 @@ html_settings.use(
 
 
 @get("/")
-async def index(data_svc: DataService):
+def index(data_svc: DataService):
     stats = data_svc.get_stats()
     return view("index", {"title": f"Welcome to {stats['app']}", "engine": stats["engine"]})
 
 
 @get("/api/stats")
-async def api_stats(data_svc: DataService):
+def api_stats(data_svc: DataService):
     return json(data_svc.get_stats())
 '''
 
@@ -324,7 +344,7 @@ des dev
 - `des routes` - List compiled routing table
 - `des why GET /` - Explain route matching and handler pipeline
 - `des doctor` - System and C-core health
-- `des run` - Start production server
+- `des run` - Start production server (Granian RSGI)
 """
 
 
@@ -344,13 +364,16 @@ def create_project(
     target_dir = Path(target_dir).resolve()
 
     if target_dir.exists() and any(target_dir.iterdir()) and not force:
-        print(f"Error: Directory '{target_dir}' is not empty. Use --force to overwrite.", file=sys.stderr)
+        print(
+            f"Error: Directory '{target_dir}' is not empty. Use --force to overwrite.",
+            file=sys.stderr,
+        )
         sys.exit(1)
 
     template = template.lower()
 
     if docs is not None and template != "api":
-        print(f"Error: --docs is only valid with -t api template.", file=sys.stderr)
+        print("Error: --docs is only valid with -t api template.", file=sys.stderr)
         sys.exit(1)
 
     target_dir.mkdir(parents=True, exist_ok=True)
@@ -358,12 +381,18 @@ def create_project(
     tests_dir.mkdir(exist_ok=True)
 
     # Common files
-    (target_dir / "pyproject.toml").write_text(GENERIC_PYPROJECT.replace("{name}", project_name), encoding="utf8")
+    (target_dir / "pyproject.toml").write_text(
+        GENERIC_PYPROJECT.replace("{name}", project_name), encoding="utf8"
+    )
     (target_dir / ".env.example").write_text(ENV_EXAMPLE, encoding="utf8")
 
     if template == "minimal":
-        (target_dir / "app.py").write_text(MINIMAL_APP_PY.replace("{name}", project_name), encoding="utf8")
-        (target_dir / "README.md").write_text(MINIMAL_README.replace("{name}", project_name), encoding="utf8")
+        (target_dir / "app.py").write_text(
+            MINIMAL_APP_PY.replace("{name}", project_name), encoding="utf8"
+        )
+        (target_dir / "README.md").write_text(
+            MINIMAL_README.replace("{name}", project_name), encoding="utf8"
+        )
         (tests_dir / "test_app.py").write_text(MINIMAL_TEST_PY, encoding="utf8")
 
     elif template == "api":
@@ -378,13 +407,20 @@ def create_project(
             provider_code = 'ReDocUIProvider("/docs")'
             doc_name = "ReDoc"
         else:
-            print(f"Error: Invalid --docs option '{docs_choice}'. Choose from: scalar, swagger, redoc.", file=sys.stderr)
+            print(
+                f"Error: Invalid --docs option '{docs_choice}'. Choose from: scalar, swagger, redoc.",
+                file=sys.stderr,
+            )
             sys.exit(1)
 
-        app_content = API_APP_PY_TEMPLATE.replace("{name}", project_name).replace("{provider_code}", provider_code)
+        app_content = API_APP_PY_TEMPLATE.replace("{name}", project_name).replace(
+            "{provider_code}", provider_code
+        )
         (target_dir / "app.py").write_text(app_content, encoding="utf8")
         (target_dir / "README.md").write_text(
-            API_README_TEMPLATE.replace("{name}", project_name).replace("{doc_name}", doc_name),
+            API_README_TEMPLATE.replace("{name}", project_name).replace(
+                "{doc_name}", doc_name
+            ),
             encoding="utf8",
         )
         (tests_dir / "test_app.py").write_text(API_TEST_PY, encoding="utf8")
@@ -392,16 +428,29 @@ def create_project(
     elif template == "full":
         templates_dir = target_dir / "templates"
         templates_dir.mkdir(exist_ok=True)
-        (templates_dir / "index.jinja").write_text(FULL_INDEX_HTML_JINJA, encoding="utf8")
-        (templates_dir / "index.html.jinja").write_text(FULL_INDEX_HTML_JINJA, encoding="utf8")
-        (templates_dir / "index.html").write_text(FULL_INDEX_HTML_JINJA, encoding="utf8")
+        (templates_dir / "index.jinja").write_text(
+            FULL_INDEX_HTML_JINJA, encoding="utf8"
+        )
+        (templates_dir / "index.html.jinja").write_text(
+            FULL_INDEX_HTML_JINJA, encoding="utf8"
+        )
+        (templates_dir / "index.html").write_text(
+            FULL_INDEX_HTML_JINJA, encoding="utf8"
+        )
 
-        (target_dir / "app.py").write_text(FULL_APP_PY.replace("{name}", project_name), encoding="utf8")
-        (target_dir / "README.md").write_text(FULL_README.replace("{name}", project_name), encoding="utf8")
+        (target_dir / "app.py").write_text(
+            FULL_APP_PY.replace("{name}", project_name), encoding="utf8"
+        )
+        (target_dir / "README.md").write_text(
+            FULL_README.replace("{name}", project_name), encoding="utf8"
+        )
         (tests_dir / "test_app.py").write_text(FULL_TEST_PY, encoding="utf8")
 
     else:
-        print(f"Error: Unknown template '{template}'. Choose from: minimal, api, full.", file=sys.stderr)
+        print(
+            f"Error: Unknown template '{template}'. Choose from: minimal, api, full.",
+            file=sys.stderr,
+        )
         sys.exit(1)
 
     return target_dir

@@ -1,11 +1,12 @@
 """
 `des new` command implementation.
 """
+
 from __future__ import annotations
 
-import sys
 from pathlib import Path
 from typing import Optional
+
 import typer
 
 from dreaming_electric_sheep.cli.templates import create_project
@@ -48,4 +49,6 @@ def new_command(
         force=force,
     )
     print(f"Created {project_name}")
-    print(f"\nNext steps:\n  cd {project_name}\n  pip install -e \".[standard]\"\n  des dev\n")
+    print(
+        f'\nNext steps:\n  cd {project_name}\n  pip install -e ".[standard]"\n  des dev\n'
+    )
