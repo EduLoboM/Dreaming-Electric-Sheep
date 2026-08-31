@@ -14,6 +14,8 @@ cdef class Content:
 
 cdef class StreamedContent(Content):
     cdef readonly object generator
+    cdef public str file_path
+    cdef public tuple file_range
 
 
 cdef class ASGIContent(Content):

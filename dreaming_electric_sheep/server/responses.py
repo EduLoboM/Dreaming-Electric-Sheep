@@ -265,6 +265,7 @@ def _file(
     if isinstance(value, str):
         # value is treated as a path
         content = StreamedContent(content_type_value, _get_file_provider(value))
+        setattr(content, "file_path", value)
     elif isinstance(value, BytesIO):
 
         async def data_provider():
@@ -327,6 +328,18 @@ def file(
     return _file(value, content_type, content_disposition, file_name)
 
 
+def ndjson(
+    data_provider: Callable[[], AsyncIterable[Any]], status: int = 200
+) -> Response:
+    """
+    Returns a streaming Response for newline-delimited JSON (NDJSON / JSONL) with
+    application/x-ndjson content-type.
+    """
+    from dreaming_electric_sheep.server.sse import NDJSONResponse
+
+    return NDJSONResponse(data_provider, status=status)
+
+
 def _create_html_response(html: str, status: int = 200):
     """Creates a Response to serve dynamic HTML. Caching is disabled."""
     return Response(status, [(b"Cache-Control", b"no-cache")]).with_content(
@@ -372,3 +385,4 @@ async def view_async(
     return _create_html_response(
         await renderer.render_async(name, None, **kwargs), status
     )
+
