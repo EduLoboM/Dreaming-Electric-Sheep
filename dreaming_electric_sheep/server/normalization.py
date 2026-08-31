@@ -41,9 +41,9 @@ from .bindings import (
     QueryBinder,
     RouteBinder,
     ServiceBinder,
+    SyncBinder,
     empty,
     get_binder_by_type,
-    get_precompiled_decoder,
     get_precompiled_encoder,
 )
 
@@ -440,7 +440,9 @@ def _get_parameter_binder(
         else:
             dec_hook = getattr(route, "dec_hook", None) if route else None
             if issubclass(binder_type, JSONBinder):
-                binder = binder_type(expected_type, parameter_name, False, dec_hook=dec_hook)
+                binder = binder_type(
+                    expected_type, parameter_name, False, dec_hook=dec_hook
+                )
             else:
                 binder = binder_type(expected_type, parameter_name, False)
         binder.required = not is_optional
@@ -480,7 +482,9 @@ def _get_parameter_binder(
 
     # 6. from json body (last default)
     dec_hook = getattr(route, "dec_hook", None) if route else None
-    return JSONBinder(annotation, name, True, required=not is_root_optional, dec_hook=dec_hook)
+    return JSONBinder(
+        annotation, name, True, required=not is_root_optional, dec_hook=dec_hook
+    )
 
 
 def get_parameter_binder(
@@ -550,6 +554,7 @@ def _get_sync_wrapper_for_controller(
     n_binders = len(binders)
 
     if n_binders == 1:
+
         @wraps(method)
         async def handler_0(request):
             controller = await c_binder.get_value(request)
@@ -611,6 +616,7 @@ def _get_async_wrapper_for_controller(
     n_binders = len(binders)
 
     if n_binders == 1:
+
         @wraps(method)
         async def handler_0(request):
             controller = await c_binder.get_value(request)
@@ -686,57 +692,103 @@ def _get_async_wrapper_for_controller_asyncgen(
     return handler
 
 
+def is_sync_binder(binder: Binder) -> bool:
+    if isinstance(binder, SyncBinder):
+        return True
+    if hasattr(binder, "get_value_sync"):
+        try:
+            return type(binder).get_value_sync is not Binder.get_value_sync
+        except Exception:
+            return False
+    return False
+
+
 def get_sync_wrapper(
     services: ContainerProtocol,
     route: Route,
     method: Callable[..., Any],
     params: Mapping[str, ParamInfo],
     params_len: int,
-) -> Callable[[Request], Awaitable[Response]]:
+) -> Callable[[Request], Any]:
     if params_len == 0:
         # the user defined a synchronous request handler with no input
-        async def handler(_):
+        @wraps(method)
+        def sync_handler_0(_):
             return method()
 
-        return handler
+        return sync_handler_0
 
     if params_len == 1 and "request" in params:
 
-        async def handler(request):
+        @wraps(method)
+        def sync_handler_req(request):
             return method(request)
 
-        return handler
+        return sync_handler_req
 
     binders = get_binders(route, services)
 
     if isinstance(binders[0], ControllerBinder):
         return _get_sync_wrapper_for_controller(binders, method)
 
+    all_sync = all(is_sync_binder(b) for b in binders)
+
+    if all_sync:
+        if len(binders) == 1:
+            b0 = binders[0]
+
+            @wraps(method)
+            def sync_handler_1(request):
+                return method(b0.get_parameter_sync(request))
+
+            return sync_handler_1
+
+        if len(binders) == 2:
+            b0 = binders[0]
+            b1 = binders[1]
+
+            @wraps(method)
+            def sync_handler_2(request):
+                return method(
+                    b0.get_parameter_sync(request), b1.get_parameter_sync(request)
+                )
+
+            return sync_handler_2
+
+        @wraps(method)
+        def sync_handler_n(request):
+            values = [b.get_parameter_sync(request) for b in binders]
+            return method(*values)
+
+        return sync_handler_n
+
     if len(binders) == 1:
         b0 = binders[0]
 
         @wraps(method)
-        async def sync_handler_1(request):
+        async def async_fallback_1(request):
             return method(await b0.get_parameter(request))
 
-        return sync_handler_1
+        return async_fallback_1
 
     if len(binders) == 2:
         b0 = binders[0]
         b1 = binders[1]
 
         @wraps(method)
-        async def sync_handler_2(request):
-            return method(await b0.get_parameter(request), await b1.get_parameter(request))
+        async def async_fallback_2(request):
+            return method(
+                await b0.get_parameter(request), await b1.get_parameter(request)
+            )
 
-        return sync_handler_2
+        return async_fallback_2
 
     @wraps(method)
-    async def handler(request):
+    async def async_fallback_n(request):
         values = [await binder.get_parameter(request) for binder in binders]
         return method(*values)
 
-    return handler
+    return async_fallback_n
 
 
 def get_async_wrapper(
@@ -788,7 +840,9 @@ def get_async_wrapper(
 
         @wraps(method)
         async def async_handler_2(request):
-            return await method(await b0.get_parameter(request), await b1.get_parameter(request))
+            return await method(
+                await b0.get_parameter(request), await b1.get_parameter(request)
+            )
 
         return async_handler_2
 
@@ -849,12 +903,58 @@ def get_async_wrapper_for_asyncgen(
     return handler
 
 
+def _get_sync_wrapper_for_output(
+    method: Callable[[Request], Any],
+    return_type: Any = _empty,
+    enc_hook: Callable[[Any], Any] | None = None,
+) -> Callable[[Request], Response]:
+    if return_type is str:
+
+        @wraps(method)
+        def text_output_handler(request: Request) -> Response:
+            res = method(request)
+            if res is None:
+                return Response(204)
+            if isinstance(res, Response):
+                return res
+            return responses.text(res)
+
+        return text_output_handler
+
+    if return_type not in (_empty, None, Response):
+        encoder = get_precompiled_encoder(enc_hook)
+
+        @wraps(method)
+        def typed_output_handler(request: Request) -> Response:
+            res = method(request)
+            if res is None:
+                return Response(204)
+            if isinstance(res, Response):
+                return res
+            if json_settings.has_custom_dumps:
+                return responses.json(res)
+            try:
+                raw = encoder.encode(res)
+                return Response(200, None, Content(b"application/json", raw))
+            except Exception:
+                return responses.json(res)
+
+        return typed_output_handler
+
+    @wraps(method)
+    def handler(request: Request) -> Response:
+        return ensure_response(method(request))
+
+    return handler
+
+
 def _get_async_wrapper_for_output(
     method: Callable[[Request], Any],
     return_type: Any = _empty,
     enc_hook: Callable[[Any], Any] | None = None,
 ) -> Callable[[Request], Awaitable[Response]]:
     if return_type is str:
+
         @wraps(method)
         async def text_output_handler(request: Request) -> Response:
             res = await method(request)
@@ -980,10 +1080,12 @@ def normalize_handler(
             # this scenario enables a more accurate automatic generation of
             # OpenAPI Documentation, for responses
             setattr(route.handler, "return_type", return_type)
-        normalized = _get_async_wrapper_for_output(normalized, return_type, enc_hook)
-
-    if _is_wrapped_function(normalized):
-        normalized = _get_async_wrapper_for_output(normalized, return_type, enc_hook)
+        if inspect.iscoroutinefunction(normalized):
+            normalized = _get_async_wrapper_for_output(
+                normalized, return_type, enc_hook
+            )
+        else:
+            normalized = _get_sync_wrapper_for_output(normalized, return_type, enc_hook)
 
     if normalized is not method:
         setattr(normalized, "root_fn", method)

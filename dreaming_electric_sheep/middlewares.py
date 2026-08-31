@@ -3,7 +3,9 @@ This module contains high-level middlewares functions that can be used both by c
 and server code.
 """
 
+import inspect
 from enum import Enum
+from functools import wraps
 from typing import Awaitable, Callable, Iterable, overload
 
 from dreaming_electric_sheep.messages import Response
@@ -19,6 +21,16 @@ def middleware_partial(handler, next_handler):
 
 def get_middlewares_chain(middlewares, handler):
     fn = handler
+    if not inspect.iscoroutinefunction(fn):
+        sync_fn = fn
+
+        @wraps(sync_fn)
+        async def async_handler_adapter(request):
+            return sync_fn(request)
+
+        copy_special_attributes(sync_fn, async_handler_adapter)
+        fn = async_handler_adapter
+
     for middleware in reversed(middlewares):
         if not middleware:
             continue

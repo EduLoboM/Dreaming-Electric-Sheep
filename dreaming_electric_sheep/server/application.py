@@ -1,5 +1,6 @@
 import asyncio
 import gc
+import inspect
 import logging
 from contextlib import asynccontextmanager
 from functools import wraps
@@ -34,7 +35,6 @@ from dreaming_electric_sheep.middlewares import (
 from dreaming_electric_sheep.scribe import (
     instantiate_rsgi_request,
     send_asgi_response,
-    send_rsgi_response,
     send_rsgi_response_sync,
 )
 from dreaming_electric_sheep.server.asgi import get_request_url_from_scope
@@ -51,18 +51,36 @@ from dreaming_electric_sheep.server.authorization import (
     handle_unauthorized,
 )
 from dreaming_electric_sheep.server.controllers import ControllersManager
-from dreaming_electric_sheep.server.cors import CORSPolicy, CORSStrategy, get_cors_middleware
+from dreaming_electric_sheep.server.cors import (
+    CORSPolicy,
+    CORSStrategy,
+    get_cors_middleware,
+)
 from dreaming_electric_sheep.server.env import EnvironmentSettings
 from dreaming_electric_sheep.server.errors import ServerErrorDetailsHandler
 from dreaming_electric_sheep.server.files import DefaultFileOptions
-from dreaming_electric_sheep.server.files.dynamic import ResponseCallback, serve_files_dynamic
-from dreaming_electric_sheep.server.normalization import normalize_handler, normalize_middleware
+from dreaming_electric_sheep.server.files.dynamic import (
+    ResponseCallback,
+    serve_files_dynamic,
+)
+from dreaming_electric_sheep.server.normalization import (
+    normalize_handler,
+    normalize_middleware,
+)
 from dreaming_electric_sheep.server.process import use_shutdown_handler
 from dreaming_electric_sheep.server.remotes.scheme import configure_scheme_middleware
 from dreaming_electric_sheep.server.responses import _ensure_bytes
-from dreaming_electric_sheep.server.routing import MountRegistry, RouteMethod, Router, RoutesRegistry
+from dreaming_electric_sheep.server.routing import (
+    MountRegistry,
+    RouteMethod,
+    Router,
+    RoutesRegistry,
+)
 from dreaming_electric_sheep.server.routing import router as default_router
-from dreaming_electric_sheep.server.routing import validate_default_router, validate_router
+from dreaming_electric_sheep.server.routing import (
+    validate_default_router,
+    validate_router,
+)
 from dreaming_electric_sheep.server.websocket import WebSocket, format_reason
 from dreaming_electric_sheep.sessions import SessionMiddleware, SessionSerializer
 from dreaming_electric_sheep.sessions.abc import SessionStore
@@ -736,7 +754,13 @@ class Application(BaseApplication):
             )
 
             async def fallback_handler(app, request, exc) -> Response:
-                return await fallback.handler(request)  # type: ignore
+                try:
+                    res = fallback.handler(request)
+                except TypeError:
+                    res = fallback.handler()
+                if inspect.isawaitable(res):
+                    return await res
+                return res
 
             self.exceptions_handlers[NotFound] = fallback_handler  # type: ignore
 
@@ -970,7 +994,6 @@ class Application(BaseApplication):
     def __rsgi_del__(self, loop):
         if self.started:
             loop.run_until_complete(self.stop())
-
 
 
 class PathPrefixMixin:

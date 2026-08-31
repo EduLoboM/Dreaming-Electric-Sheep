@@ -306,15 +306,22 @@ cdef class BaseApplication:
 
     async def _apply_exception_handler(self, Request request, Exception exc, object exception_handler):
         try:
-            return await vectorcall_3(exception_handler, self, request, exc)
+            res = vectorcall_3(exception_handler, self, request, exc)
+            if inspect.isawaitable(res):
+                return await res
+            return res
         except Exception as server_ex:
             # If the exception happens in the user-defined exception handler,
             # we need to fallback to the default handlers.
-            self.logger.error("Unhandled exception in exception_handler: %s", exception_handler.__name__)
+            self.logger.error(
+                "Unhandled exception in exception_handler: %s",
+                getattr(exception_handler, "__name__", "anonymous"),
+                exc_info=True,
+            )
             if self.show_error_details:
                 return self.server_error_details_handler.produce_response(request, exc)
 
-            return await handle_internal_server_error(self, request, server_ex)
+            return await self.handle_internal_server_error(request, server_ex)
 
     async def handle_http_exception(self, Request request, HTTPException http_exception):
         exception_handler = self.get_http_exception_handler(http_exception)

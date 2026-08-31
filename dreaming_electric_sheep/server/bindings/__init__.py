@@ -10,7 +10,6 @@ See:
 
 from abc import abstractmethod
 from collections.abc import Iterable as IterableAbc
-from dataclasses import is_dataclass
 from functools import partial
 from typing import (
     Any,
@@ -23,7 +22,6 @@ from typing import (
     Type,
     TypeVar,
 )
-
 from uuid import UUID
 
 import msgspec
@@ -43,7 +41,10 @@ from dreaming_electric_sheep.exceptions import (
     UnsupportedMediaType,
 )
 from dreaming_electric_sheep.messages import Request
-from dreaming_electric_sheep.server.bindings.converters import class_converters, converters
+from dreaming_electric_sheep.server.bindings.converters import (
+    class_converters,
+    converters,
+)
 from dreaming_electric_sheep.server.routing import Router, URLResolver
 from dreaming_electric_sheep.server.websocket import WebSocket
 from dreaming_electric_sheep.settings.json import json_settings
@@ -354,6 +355,39 @@ class Binder(metaclass=BinderMeta):  # type: ignore
         except (IndexError, AttributeError):
             return str
         return item_type
+
+    def get_parameter_sync(self, request: Request) -> Any:
+        """
+        Synchronously gets a parameter to be passed to a request handler.
+        """
+        try:
+            value = self.get_value_sync(request)
+        except UnicodeDecodeError as decode_error:
+            raise BadRequest(
+                f"Unicode decode error. "
+                f"Cannot decode the request content using: {decode_error.encoding}. "
+                "Ensure the request content is encoded using the encoding declared in "
+                "the Content-Type request header."
+            )
+        except ValueError as value_error:
+            raise BadRequest("Invalid parameter.") from value_error
+
+        if value is None and self.default is not empty:
+            return self.default
+
+        if self.implicit:
+            return value
+
+        if self.root_required is False and value is None:
+            return None
+
+        return self.handle(value)
+
+    def get_value_sync(self, request: Request) -> Any:
+        """Synchronously gets a value from the given request object."""
+        raise NotImplementedError(
+            "This binder does not support synchronous evaluation."
+        )
 
     async def get_parameter(self, request: Request) -> Any:
         """
@@ -686,7 +720,10 @@ class JSONBinder(BodyBinder):
         self.default = default
         self.dec_hook = dec_hook
         self.decoder = self._build_decoder(
-            expected_type, dec_hook, converter is not None and converter != self.get_default_binder_for_body(expected_type)
+            expected_type,
+            dec_hook,
+            converter is not None
+            and converter != self.get_default_binder_for_body(expected_type),
         )
 
     @property
@@ -697,8 +734,13 @@ class JSONBinder(BodyBinder):
     def converter(self, value):
         self._converter = value
         if hasattr(self, "expected_type"):
-            has_custom = value is not None and value != self.get_default_binder_for_body(self.expected_type)
-            self.decoder = self._build_decoder(self.expected_type, getattr(self, "dec_hook", None), has_custom)
+            has_custom = (
+                value is not None
+                and value != self.get_default_binder_for_body(self.expected_type)
+            )
+            self.decoder = self._build_decoder(
+                self.expected_type, getattr(self, "dec_hook", None), has_custom
+            )
 
     def _build_decoder(
         self,
@@ -749,7 +791,11 @@ class JSONBinder(BodyBinder):
                 try:
                     text = raw_data.decode(charset)
                     data = json_settings.loads(text)
-                    if self.converter and self.converter != self.get_default_binder_for_body(self.expected_type):
+                    if (
+                        self.converter
+                        and self.converter
+                        != self.get_default_binder_for_body(self.expected_type)
+                    ):
                         return self.parse_value(data)
                     return data
                 except (ValueError, TypeError) as err:
@@ -757,11 +803,17 @@ class JSONBinder(BodyBinder):
 
             try:
                 data = self.decoder.decode(raw_data)
-                if self.converter and self.converter != self.get_default_binder_for_body(self.expected_type):
+                if (
+                    self.converter
+                    and self.converter
+                    != self.get_default_binder_for_body(self.expected_type)
+                ):
                     return self.parse_value(data)
                 return data
             except UnicodeDecodeError as decode_error:
-                charset_name = (request.charset or decode_error.encoding or "utf-8").lower()
+                charset_name = (
+                    request.charset or decode_error.encoding or "utf-8"
+                ).lower()
                 raise BadRequest(
                     f"Unicode decode error. Cannot decode the request content using: {charset_name}. "
                     "Ensure the request content is encoded using the encoding declared in the Content-Type request header."
@@ -778,7 +830,10 @@ class JSONBinder(BodyBinder):
                 if tp not in (None, empty):
                     try:
                         raw_obj = msgspec.json.decode(raw_data)
-                        if self.converter and self.converter != self.get_default_binder_for_body(tp):
+                        if (
+                            self.converter
+                            and self.converter != self.get_default_binder_for_body(tp)
+                        ):
                             return self.parse_value(raw_obj)
                         conv = get_default_class_converter(tp)
                         val = conv(raw_obj)
@@ -1110,7 +1165,7 @@ class SyncBinder(Binder):
     def _empty_iterable(self, value):
         return value in self._empty_iterables
 
-    async def get_value(self, request: Request) -> Any | None:
+    def get_value_sync(self, request: Request) -> Any | None:
         raw_value = self.get_raw_value(request)
         try:
             value = self.converter(raw_value)
@@ -1131,6 +1186,9 @@ class SyncBinder(Binder):
 
         return value
 
+    async def get_value(self, request: Request) -> Any | None:
+        return self.get_value_sync(request)
+
 
 class HeaderBinder(SyncBinder):
     handle = FromHeader
@@ -1140,9 +1198,12 @@ class HeaderBinder(SyncBinder):
         return "header"
 
     def get_raw_value(self, request: Request) -> Sequence[str]:
+        headers = request.get_headers(self.parameter_name.encode())
+        if not headers:
+            headers = request.get_headers(self.parameter_name)
         return [
-            header.decode("utf8")
-            for header in request.get_headers(self.parameter_name.encode())
+            h.decode("utf8") if isinstance(h, (bytes, bytearray)) else str(h)
+            for h in headers
         ]
 
 
@@ -1218,7 +1279,7 @@ class ServiceBinder(Binder):
             ):
                 self._prebound_factory = tp
 
-    async def get_value(self, request: Request) -> Any:
+    def get_value_sync(self, request: Request) -> Any:
         try:
             scope = request._di_scope  # type: ignore
         except AttributeError:
@@ -1234,6 +1295,9 @@ class ServiceBinder(Binder):
             return self._prebound_factory()
 
         return None
+
+    async def get_value(self, request: Request) -> Any:
+        return self.get_value_sync(request)
 
 
 class ControllerParameter(BoundValue[T]):
@@ -1286,6 +1350,9 @@ class RequestBinder(Binder):
 
     def __init__(self, implicit: bool = True):
         super().__init__(Request, implicit=implicit)
+
+    def get_value_sync(self, request: Request) -> Any:
+        return request
 
     async def get_value(self, request: Request) -> Any:
         return request
