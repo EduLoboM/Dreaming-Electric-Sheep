@@ -1,16 +1,17 @@
 import pytest
+
+from dreaming_electric_sheep import Application
+from dreaming_electric_sheep.contents import Content, TextContent
 from dreaming_electric_sheep.messages import (
     Request,
     Response,
     acquire_request,
-    release_request,
     acquire_response,
+    release_request,
     release_response,
 )
-from dreaming_electric_sheep.contents import Content, TextContent
-from dreaming_electric_sheep import Application
-from dreaming_electric_sheep.testing import TestClient
 from dreaming_electric_sheep.routing import CythonRadixRouter, RouteMatch
+from dreaming_electric_sheep.testing import TestClient
 
 
 def test_request_response_no_dict_overhead():
@@ -20,9 +21,13 @@ def test_request_response_no_dict_overhead():
 
     # Pure cdef classes should not have __dict__
     if hasattr(req, "__dict__"):
-        pytest.skip("Pure python fallback mode in use (compiled cdef extensions not loaded)")
+        pytest.skip(
+            "Pure python fallback mode in use (compiled cdef extensions not loaded)"
+        )
     assert not hasattr(req, "__dict__"), "Request must not instantiate dynamic __dict__"
-    assert not hasattr(resp, "__dict__"), "Response must not instantiate dynamic __dict__"
+    assert not hasattr(
+        resp, "__dict__"
+    ), "Response must not instantiate dynamic __dict__"
 
 
 def test_request_attributes_cdef_offsets():
@@ -39,7 +44,9 @@ def test_request_attributes_cdef_offsets():
 
 def test_request_response_freelists():
     """Verify C-level freelists for Request and Response reuse."""
-    req1 = acquire_request("GET", b"/api/v1", b"a=1", [(b"user-agent", b"pytest")], {"type": "http"})
+    req1 = acquire_request(
+        "GET", b"/api/v1", b"a=1", [(b"user-agent", b"pytest")], {"type": "http"}
+    )
     assert isinstance(req1, Request)
     assert req1.method == "GET"
     assert req1._path == b"/api/v1"
@@ -57,7 +64,9 @@ def test_request_response_freelists():
     assert req2.user.is_authenticated() is False
 
     # Response freelist
-    resp1 = acquire_response(201, [(b"content-type", b"text/plain")], TextContent("Created"))
+    resp1 = acquire_response(
+        201, [(b"content-type", b"text/plain")], TextContent("Created")
+    )
     assert resp1.status == 201
     resp1.state = "meta"
     release_response(resp1)
@@ -70,6 +79,7 @@ def test_request_response_freelists():
 
 def test_pure_routematch_cdef():
     """Verify that RouteMatch is a pure extension class."""
+
     class DummyRoute:
         def __init__(self):
             self.handler = lambda r: Response(200)
@@ -104,7 +114,10 @@ async def test_vectorcall_dispatch_application():
     data1 = await res1.json()
     assert data1 == {"received_id": 999, "mode": "vectorcall"}
 
-    res2 = await client.post("/vectorcall/echo", content=Content(b"application/json", b'{"msg":"hello vectorcall"}'))
+    res2 = await client.post(
+        "/vectorcall/echo",
+        content=Content(b"application/json", b'{"msg":"hello vectorcall"}'),
+    )
     assert res2.status == 200
     data2 = await res2.json()
     assert data2 == {"echo": {"msg": "hello vectorcall"}}

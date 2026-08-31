@@ -1,18 +1,20 @@
 import ctypes
 import os
+
 import pytest
+
+import dreaming_electric_sheep.url as url_mod
+from dreaming_electric_sheep.contents import Content, TextContent
+from dreaming_electric_sheep.headers import Header, Headers
 from dreaming_electric_sheep.messages import (
     Request,
     Response,
     acquire_request,
-    release_request,
     acquire_response,
+    release_request,
     release_response,
 )
-from dreaming_electric_sheep.contents import Content, TextContent
-from dreaming_electric_sheep.headers import Header, Headers
 from dreaming_electric_sheep.url import URL
-import dreaming_electric_sheep.url as url_mod
 
 
 def test_request_response_freelist_uninitialized_bypass():
@@ -20,7 +22,9 @@ def test_request_response_freelist_uninitialized_bypass():
     Test that acquire_request and acquire_response work efficiently with freelists
     without expensive zero-initialization or leaks.
     """
-    req1 = acquire_request("GET", b"/optimized/api", b"q=1", [(b"host", b"localhost")], {})
+    req1 = acquire_request(
+        "GET", b"/optimized/api", b"q=1", [(b"host", b"localhost")], {}
+    )
     assert req1.method == "GET"
     assert req1._path == b"/optimized/api"
     assert req1.host == "localhost"
@@ -28,7 +32,9 @@ def test_request_response_freelist_uninitialized_bypass():
     release_request(req1)
 
     # Next acquire reuses instance cleanly
-    req2 = acquire_request("POST", b"/optimized/submit", b"", [(b"content-type", b"application/json")], {})
+    req2 = acquire_request(
+        "POST", b"/optimized/submit", b"", [(b"content-type", b"application/json")], {}
+    )
     assert req2.method == "POST"
     assert req2._path == b"/optimized/submit"
     assert req2.content is None
@@ -73,6 +79,7 @@ def test_simd_c_intrinsics_direct():
     Test SIMD C library functions directly via ctypes on _des_core.
     """
     import dreaming_electric_sheep._des_core as core
+
     lib_path = core.__file__
     dll = ctypes.CDLL(lib_path)
 
@@ -84,7 +91,7 @@ def test_simd_c_intrinsics_direct():
     buf1 = b"GET / HTTP/1.1\r\nHost: localhost\r\n\r\n"
     pos = simd_find_crlf(buf1, len(buf1))
     assert pos == 14
-    assert buf1[pos:pos+2] == b"\r\n"
+    assert buf1[pos : pos + 2] == b"\r\n"
 
     # 2. simd_find_crlf_crlf
     simd_find_crlf_crlf = dll.simd_find_crlf_crlf
@@ -93,7 +100,7 @@ def test_simd_c_intrinsics_direct():
 
     pos_end = simd_find_crlf_crlf(buf1, len(buf1))
     assert pos_end == 31
-    assert buf1[pos_end:pos_end+4] == b"\r\n\r\n"
+    assert buf1[pos_end : pos_end + 4] == b"\r\n\r\n"
 
     # 3. simd_validate_url_ascii
     simd_validate_url_ascii = dll.simd_validate_url_ascii
@@ -125,13 +132,16 @@ def test_c_interning_symbols_loaded():
     """
     import dreaming_electric_sheep._des_core as core
     import dreaming_electric_sheep.messages as m
+
     assert hasattr(m, "acquire_request")
     assert hasattr(m, "acquire_response")
 
     import dreaming_electric_sheep.url as u
+
     assert hasattr(u, "URL")
 
     import dreaming_electric_sheep.headers as hd
+
     assert hasattr(hd, "Headers")
     assert hasattr(hd, "Header")
 
@@ -189,7 +199,9 @@ def test_c_interning_symbols_loaded():
     ct_json1 = ctypes.cast(ct_json1_ptr, ctypes.py_object).value
     ct_json2 = ctypes.cast(ct_json2_ptr, ctypes.py_object).value
     assert ct_json1 == b"application/json"
-    assert ct_json1 is ct_json2, "Interned content type bytes must share identical PyObject pointer"
+    assert (
+        ct_json1 is ct_json2
+    ), "Interned content type bytes must share identical PyObject pointer"
 
 
 def test_scratchpad_cache_alignment():
@@ -197,6 +209,7 @@ def test_scratchpad_cache_alignment():
     Verify 64-byte cache line alignment of ScratchpadArena structure.
     """
     import dreaming_electric_sheep._des_core as core
+
     dll = ctypes.CDLL(core.__file__)
 
     # ScratchpadArena fields: buffer(ptr), capacity(size_t), offset(size_t), is_dynamic(int)
@@ -238,7 +251,9 @@ def test_scratchpad_cache_alignment():
     err = scratchpad_alloc(ctypes.byref(arena), 128, 64, ctypes.byref(ptr1))
     assert err == 0
     assert ptr1.value is not None
-    assert ptr1.value % 64 == 0, "Allocated arena address must respect 64-byte alignment"
+    assert (
+        ptr1.value % 64 == 0
+    ), "Allocated arena address must respect 64-byte alignment"
 
     # Reset offset
     arena.offset = 0
@@ -249,5 +264,3 @@ def test_scratchpad_cache_alignment():
 
     scratchpad_destroy(ctypes.byref(arena))
     assert arena.capacity == 0
-
-

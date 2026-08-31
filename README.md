@@ -205,7 +205,7 @@ class StatusController(Controller):
 
 Overhead measured against a shared in-memory fixture on localhost (median of 5 independent runs, 5s duration each, 50 concurrent keep-alive connections via `oha`, 1 worker process on CPython 3.14 / Linux x86_64).
 
-### Table A: Framework Tax vs. Raw Server Ceilings (msgspec Encoder)
+### 🧠 Table A: Framework Tax vs. Raw Server Ceilings (msgspec Encoder)
 
 Measures framework tax against raw server ceilings when all targets encode JSON per request using `msgspec.json.encode` and run with `optimize_gc=False`. The ~20% gap represents the necessary cost of route matching, request abstraction, and parameter binding over raw protocol sockets.
 
@@ -217,7 +217,7 @@ Measures framework tax against raw server ceilings when all targets encode JSON 
 | Dreaming Electric Sheep (ASGI) | 73,348 | 66,781 | 64,345 | 28,635 | 20,869 | 25,841 | Granian (ASGI, 1 worker) |
 | Uvicorn (Raw ASGI) | 45,141 | 44,846 | 39,480 | 27,776 | 18,014 | 23,548 | Uvicorn (Raw ASGI, 1 worker) |
 
-### Table B: Default Stack Comparison (Stock Helpers Out-of-the-Box)
+### 🧶 Table B: Default Stack Comparison (Stock Helpers Out-of-the-Box)
 
 Measures out-of-the-box performance using each framework's stock response and serialization helpers:
 

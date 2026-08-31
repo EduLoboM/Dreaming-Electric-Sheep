@@ -167,7 +167,6 @@ jobs:
           pytest itests -v --tb=long
 
       - name: Run linters
-        continue-on-error: true
         run: |
           echo "Running linters - if build fails here, please be patient! Feel free to ask for assistance."
 

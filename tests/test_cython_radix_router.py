@@ -1,6 +1,7 @@
 import pytest
+
 from dreaming_electric_sheep.routing import CythonRadixRouter, RadixTree
-from dreaming_electric_sheep.server.routing import Route, Router, RouteMethod
+from dreaming_electric_sheep.server.routing import Route, RouteMethod, Router
 
 
 def test_radix_tree_static_routes():

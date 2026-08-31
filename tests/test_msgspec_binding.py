@@ -92,7 +92,7 @@ async def test_msgspec_binding_dataclass():
     # 4. Malformed JSON syntax -> HTTP 400
     response = await client.post(
         "/items",
-        content=Content(b"application/json", b"{\"name\": broken json"),
+        content=Content(b"application/json", b'{"name": broken json'),
     )
     assert response.status == 400
 
@@ -215,10 +215,12 @@ async def test_msgspec_binding_list_of_models():
 
     response = await client.post(
         "/items-bulk",
-        content=JSONContent([
-            {"name": "item1", "price": 10.0},
-            {"name": "item2", "price": 20.0},
-        ]),
+        content=JSONContent(
+            [
+                {"name": "item1", "price": 10.0},
+                {"name": "item2", "price": 20.0},
+            ]
+        ),
     )
     assert response.status == 200
     res = await response.json()
@@ -227,10 +229,12 @@ async def test_msgspec_binding_list_of_models():
     # Validation error in one list item -> HTTP 422
     response = await client.post(
         "/items-bulk",
-        content=JSONContent([
-            {"name": "item1", "price": 10.0},
-            {"name": "item2", "price": "invalid"},
-        ]),
+        content=JSONContent(
+            [
+                {"name": "item1", "price": 10.0},
+                {"name": "item2", "price": "invalid"},
+            ]
+        ),
     )
     assert response.status == 422
 
@@ -273,7 +277,9 @@ async def test_msgspec_nested_models():
 
     response = await client.post(
         "/account",
-        content=JSONContent({"name": "bob", "profile": {"bio": "developer", "age": 30}}),
+        content=JSONContent(
+            {"name": "bob", "profile": {"bio": "developer", "age": 30}}
+        ),
     )
     assert response.status == 200
     res = await response.json()
@@ -282,14 +288,18 @@ async def test_msgspec_nested_models():
     # Nested type validation error -> HTTP 422
     response = await client.post(
         "/account",
-        content=JSONContent({"name": "bob", "profile": {"bio": "developer", "age": "not_an_int"}}),
+        content=JSONContent(
+            {"name": "bob", "profile": {"bio": "developer", "age": "not_an_int"}}
+        ),
     )
     assert response.status == 422
 
 
 @pytest.mark.asyncio
 async def test_read_raw_buffer_protocol():
-    req = Request.incoming("POST", b"/test", b"", [(b"content-type", b"application/json")])
+    req = Request.incoming(
+        "POST", b"/test", b"", [(b"content-type", b"application/json")]
+    )
     req.content = Content(b"application/json", b'{"key": "value"}')
 
     raw = await req.read_raw()
@@ -331,7 +341,9 @@ async def test_frozen_struct_base_class():
     await app.start()
     client = TestClient(app)
 
-    res = await client.post("/product", content=JSONContent({"sku": "XYZ-999", "qty": 5}))
+    res = await client.post(
+        "/product", content=JSONContent({"sku": "XYZ-999", "qty": 5})
+    )
     assert res.status == 200
     assert (await res.json()) == {"sku": "XYZ-999", "qty": 5}
 
@@ -347,7 +359,9 @@ def test_gc_tuning_configuration():
 
 @pytest.mark.asyncio
 async def test_read_detached_and_detach_raw():
-    req = Request.incoming("POST", b"/test", b"", [(b"content-type", b"application/json")])
+    req = Request.incoming(
+        "POST", b"/test", b"", [(b"content-type", b"application/json")]
+    )
     req.content = Content(b"application/json", b'{"detached": true}')
 
     detached = await req.read_detached()
@@ -357,4 +371,3 @@ async def test_read_detached_and_detach_raw():
     sync_detached = req.detach_raw()
     assert isinstance(sync_detached, bytes)
     assert sync_detached == b'{"detached": true}'
-

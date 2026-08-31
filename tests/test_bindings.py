@@ -1260,7 +1260,9 @@ async def test_from_body_json_binding_empty_dict(expected_type):
 
 # region MultiFormatBodyBinder tests
 
-from dreaming_electric_sheep.exceptions import UnsupportedMediaType as UnsupportedMediaTypeExc
+from dreaming_electric_sheep.exceptions import (
+    UnsupportedMediaType as UnsupportedMediaTypeExc,
+)
 from dreaming_electric_sheep.server.bindings import FormBinder, MultiFormatBodyBinder
 
 

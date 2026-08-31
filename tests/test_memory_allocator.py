@@ -1,15 +1,17 @@
 import os
+
 import pytest
+
 from dreaming_electric_sheep.server.memory import (
-    get_memory_allocator_info,
-    get_current_allocator,
-    is_jemalloc_available,
-    is_mimalloc_available,
-    configure_allocator,
-    get_allocator_env_for_process,
-    get_process_memory_usage,
     RECOMMENDED_JEMALLOC_CONF,
     RECOMMENDED_MIMALLOC_OPTS,
+    configure_allocator,
+    get_allocator_env_for_process,
+    get_current_allocator,
+    get_memory_allocator_info,
+    get_process_memory_usage,
+    is_jemalloc_available,
+    is_mimalloc_available,
 )
 
 
@@ -49,5 +51,8 @@ def test_configure_mimalloc_env():
     if is_mimalloc_available():
         assert "LD_PRELOAD" in env
         assert "mimalloc" in env["LD_PRELOAD"]
-        assert env.get("MIMALLOC_PAGE_RESET") == RECOMMENDED_MIMALLOC_OPTS["MIMALLOC_PAGE_RESET"]
+        assert (
+            env.get("MIMALLOC_PAGE_RESET")
+            == RECOMMENDED_MIMALLOC_OPTS["MIMALLOC_PAGE_RESET"]
+        )
         assert env.get("DREAMING_ELECTRIC_SHEEP_ALLOCATOR") == "mimalloc"

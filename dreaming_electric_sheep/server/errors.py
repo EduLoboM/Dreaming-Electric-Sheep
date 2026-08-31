@@ -1,10 +1,7 @@
 from __future__ import annotations
 
 import html
-import inspect
 import linecache
-import os
-import sys
 import traceback
 from typing import Any
 
@@ -14,8 +11,18 @@ from dreaming_electric_sheep.server.asgi import get_request_url
 from dreaming_electric_sheep.server.resources import get_resource_file_content
 
 _SENSITIVE_KEYS = {
-    "password", "secret", "token", "api_key", "apikey", "authorization",
-    "auth", "key", "access_token", "private_key", "certificate", "cert",
+    "password",
+    "secret",
+    "token",
+    "api_key",
+    "apikey",
+    "authorization",
+    "auth",
+    "key",
+    "access_token",
+    "private_key",
+    "certificate",
+    "cert",
 }
 
 
@@ -54,16 +61,16 @@ class ServerErrorDetailsHandler:
     def produce_response(self, request: Request, exc: Exception) -> Response:
         frames_html = []
         tb = exc.__traceback__
-        
+
         while tb is not None:
             frame = tb.tb_frame
             lineno = tb.tb_lineno
             code = frame.f_code
             filename = code.co_filename
             func_name = code.co_name
-            
+
             line = linecache.getline(filename, lineno).strip()
-            
+
             # Extract and sanitize frame locals
             locals_list = []
             for k, v in frame.f_locals.items():
@@ -71,22 +78,26 @@ class ServerErrorDetailsHandler:
                     continue
                 safe_val = _sanitize_repr(k, v)
                 locals_list.append(
-                    f"<div class=\"local-var\"><span class=\"var-name\">{html.escape(k)}</span> = "
-                    f"<span class=\"var-val\">{html.escape(safe_val)}</span></div>"
+                    f'<div class="local-var"><span class="var-name">{html.escape(k)}</span> = '
+                    f'<span class="var-val">{html.escape(safe_val)}</span></div>'
                 )
-            
-            locals_html = "".join(locals_list) if locals_list else "<div class=\"local-var none\">(no local variables)</div>"
-            
+
+            locals_html = (
+                "".join(locals_list)
+                if locals_list
+                else '<div class="local-var none">(no local variables)</div>'
+            )
+
             frames_html.append(
-                f"<li class=\"frame-item\">"
-                f"<div class=\"frame-header\">"
-                f"<span class=\"frame-file\">{html.escape(filename)}</span> : "
-                f"<span class=\"frame-line\">line {lineno}</span> in "
-                f"<span class=\"frame-func\">{html.escape(func_name)}</span>"
+                f'<li class="frame-item">'
+                f'<div class="frame-header">'
+                f'<span class="frame-file">{html.escape(filename)}</span> : '
+                f'<span class="frame-line">line {lineno}</span> in '
+                f'<span class="frame-func">{html.escape(func_name)}</span>'
                 f"</div>"
                 f"<pre class=\"frame-code\"><code>{html.escape(line) if line else '(no source available)'}</code></pre>"
-                f"<details class=\"frame-locals\"><summary>Local variables ({len(locals_list)})</summary>"
-                f"<div class=\"locals-body\">{locals_html}</div>"
+                f'<details class="frame-locals"><summary>Local variables ({len(locals_list)})</summary>'
+                f'<div class="locals-body">{locals_html}</div>'
                 f"</details>"
                 f"</li>"
             )
@@ -123,4 +134,3 @@ class ServerErrorDetailsHandler:
         )
 
         return Response(500, content=content)
-

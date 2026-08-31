@@ -1,23 +1,25 @@
 import os
 import socket
 import sys
+
 import pytest
+
+from dreaming_electric_sheep.server.affinity import (
+    auto_pin_workers,
+    get_available_cpu_count,
+    get_cpu_affinity,
+    is_affinity_supported,
+    pin_current_thread_to_cpu,
+    pin_worker_to_cpu,
+)
 from dreaming_electric_sheep.server.sockets import (
-    tune_accepted_socket,
-    tune_server_socket,
     create_server_socket,
     get_socket_options,
-    is_tcp_quickack_supported,
-    is_tcp_defer_accept_supported,
     is_so_reuseport_supported,
-)
-from dreaming_electric_sheep.server.affinity import (
-    pin_worker_to_cpu,
-    pin_current_thread_to_cpu,
-    auto_pin_workers,
-    get_cpu_affinity,
-    get_available_cpu_count,
-    is_affinity_supported,
+    is_tcp_defer_accept_supported,
+    is_tcp_quickack_supported,
+    tune_accepted_socket,
+    tune_server_socket,
 )
 
 

@@ -1,13 +1,16 @@
 """
 This module offers built-in functions for Server Sent Events (SSE) and Newline-Delimited JSON (NDJSON) streaming.
 """
-from __future__ import annotations
 
-import asyncio
 from typing import Any, AsyncIterable, Callable
 
 import msgspec.json
-from dreaming_electric_sheep.contents import ServerSentEvent, StreamedContent, TextServerSentEvent
+
+from dreaming_electric_sheep.contents import (
+    ServerSentEvent,
+    StreamedContent,
+    TextServerSentEvent,
+)
 from dreaming_electric_sheep.messages import Response
 from dreaming_electric_sheep.scribe import write_sse
 
@@ -104,7 +107,11 @@ class JSONLinesContent(StreamedContent):
                     if isinstance(item, bytes):
                         line = item if item.endswith(b"\n") else item + b"\n"
                     elif isinstance(item, str):
-                        line = item.encode("utf8") if item.endswith("\n") else (item + "\n").encode("utf8")
+                        line = (
+                            item.encode("utf8")
+                            if item.endswith("\n")
+                            else (item + "\n").encode("utf8")
+                        )
                     else:
                         line = msgspec.json.encode(item) + b"\n"
                     yield line

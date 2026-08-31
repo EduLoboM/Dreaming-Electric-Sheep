@@ -1,11 +1,14 @@
 """
 Tests for Phase C: SIMD lowercasing, integer parsing, and Request scratchpad arena.
 """
-import pytest
+
 import ctypes
+
+import pytest
+
+import dreaming_electric_sheep._des_core as core
 from dreaming_electric_sheep import Header, Headers, Request, Response
 from dreaming_electric_sheep.messages import acquire_request, release_request
-import dreaming_electric_sheep._des_core as core
 
 
 def test_simd_lowercase_ascii_direct():
@@ -55,7 +58,9 @@ def test_headers_simd_lowercasing_integration():
 def test_request_scratchpad_arena_lifecycle():
     """Verify Request scratchpad arena stats and O(1) reset on release."""
     scope = {"type": "http", "method": "GET", "path": "/"}
-    req = acquire_request("GET", b"/api/v1/resource", b"", [(b"Host", b"localhost")], scope)
+    req = acquire_request(
+        "GET", b"/api/v1/resource", b"", [(b"Host", b"localhost")], scope
+    )
 
     # Initial stats
     cap, offset, is_init = req.scratchpad_arena_stats()

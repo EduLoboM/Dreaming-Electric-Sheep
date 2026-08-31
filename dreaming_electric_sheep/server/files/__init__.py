@@ -7,7 +7,11 @@ from dreaming_electric_sheep import Request, Response, StreamedContent
 from dreaming_electric_sheep.common.files.asyncfs import FilesHandler
 from dreaming_electric_sheep.common.files.info import FileInfo
 from dreaming_electric_sheep.common.files.pathsutils import get_mime_type_from_name
-from dreaming_electric_sheep.exceptions import BadRequest, InvalidArgument, RangeNotSatisfiable
+from dreaming_electric_sheep.exceptions import (
+    BadRequest,
+    InvalidArgument,
+    RangeNotSatisfiable,
+)
 from dreaming_electric_sheep.ranges import InvalidRangeValue, Range, RangePart
 from dreaming_electric_sheep.server.headers.cache import CacheControlHeaderValue
 

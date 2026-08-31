@@ -8,10 +8,9 @@ Configures low-latency, high-throughput socket options:
 - SO_REUSEPORT (enables kernel-level load balancing across multiple worker processes)
 """
 
-import os
 import socket
 import sys
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, Union
 
 # Constant fallbacks if not present in standard library socket module
 TCP_NODELAY = getattr(socket, "TCP_NODELAY", 1)
@@ -35,7 +34,11 @@ def is_tcp_defer_accept_supported() -> bool:
 
 def is_so_reuseport_supported() -> bool:
     """Checks if SO_REUSEPORT is supported on the current platform."""
-    return hasattr(socket, "SO_REUSEPORT") or sys.platform.startswith("linux") or sys.platform == "darwin"
+    return (
+        hasattr(socket, "SO_REUSEPORT")
+        or sys.platform.startswith("linux")
+        or sys.platform == "darwin"
+    )
 
 
 def tune_accepted_socket(

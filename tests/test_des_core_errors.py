@@ -1,17 +1,20 @@
 """
 Tests for Phase B: C des_err result codes, out-pointers, and typed Python exceptions.
 """
-import pytest
+
 import ctypes
+
+import pytest
+
+import dreaming_electric_sheep._des_core as core
 from dreaming_electric_sheep import (
     DesCoreError,
+    InvalidArgumentError,
     MemoryExhaustedError,
     ParseError,
     SimdUnsupportedError,
-    InvalidArgumentError,
 )
 from dreaming_electric_sheep.core_errors import check_des_err
-import dreaming_electric_sheep._des_core as core
 
 
 def test_exception_hierarchy():

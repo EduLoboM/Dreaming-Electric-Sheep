@@ -8,7 +8,7 @@ and sched_setaffinity, preventing kernel thread migration and maximizing L1/L2 c
 import ctypes
 import os
 import sys
-from typing import List, Optional, Set
+from typing import List, Optional
 
 
 def is_affinity_supported() -> bool:
@@ -65,7 +65,9 @@ def pin_current_thread_to_cpu(cpu_id: int) -> bool:
         try:
             # Try pthread via libc
             libc = ctypes.CDLL(None)
-            if hasattr(libc, "pthread_setaffinity_np") and hasattr(libc, "pthread_self"):
+            if hasattr(libc, "pthread_setaffinity_np") and hasattr(
+                libc, "pthread_self"
+            ):
                 # Configure ctypes signatures for 64-bit pthread_t
                 libc.pthread_self.restype = ctypes.c_ulong
                 libc.pthread_self.argtypes = []
@@ -80,7 +82,6 @@ def pin_current_thread_to_cpu(cpu_id: int) -> bool:
                 cpu_set_size = 128
                 num_ulongs = cpu_set_size // ctypes.sizeof(ctypes.c_ulong)
                 mask = (ctypes.c_ulong * num_ulongs)()
-                
                 # Set bit for cpu_id
                 ulong_bits = ctypes.sizeof(ctypes.c_ulong) * 8
                 idx = cpu_id // ulong_bits
@@ -89,7 +90,9 @@ def pin_current_thread_to_cpu(cpu_id: int) -> bool:
                     mask[idx] = 1 << bit
 
                 thread_id = libc.pthread_self()
-                ret = libc.pthread_setaffinity_np(thread_id, ctypes.sizeof(mask), ctypes.byref(mask))
+                ret = libc.pthread_setaffinity_np(
+                    thread_id, ctypes.sizeof(mask), ctypes.byref(mask)
+                )
                 if ret == 0:
                     return True
         except Exception:

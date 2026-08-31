@@ -9,7 +9,11 @@ from itsdangerous import (
 
 from dreaming_electric_sheep.cookies import Cookie
 from dreaming_electric_sheep.messages import Request, Response
-from dreaming_electric_sheep.sessions.abc import Session, SessionSerializer, SessionStore
+from dreaming_electric_sheep.sessions.abc import (
+    Session,
+    SessionSerializer,
+    SessionStore,
+)
 from dreaming_electric_sheep.sessions.json import JSONSerializer
 from dreaming_electric_sheep.sessions.logs import get_logger
 from dreaming_electric_sheep.utils import ensure_str

@@ -980,12 +980,10 @@ class HTTP11Connection(HTTPConnection):
 
         # Get body and handle headers
         body: bytes | None = None
-        use_chunked = False
         if request.content:
             # Check if we should use chunked encoding (unknown length)
             if request.content.length < 0:
                 # Streaming content with unknown length - use chunked encoding
-                use_chunked = True
                 # Add transfer-encoding header if not present
                 has_transfer_encoding = any(
                     h[0].lower() == b"transfer-encoding" for h in headers

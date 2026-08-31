@@ -1,7 +1,9 @@
 import pytest
 
 from dreaming_electric_sheep.exceptions import BadRequest
-from dreaming_electric_sheep.server.application import ApplicationAlreadyStartedCORSError
+from dreaming_electric_sheep.server.application import (
+    ApplicationAlreadyStartedCORSError,
+)
 from dreaming_electric_sheep.server.cors import (
     CORSConfigurationError,
     CORSPolicy,

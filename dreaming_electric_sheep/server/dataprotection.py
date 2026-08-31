@@ -54,7 +54,9 @@ def get_keys() -> list[str]:
     # APP_SECRET_2="***"
     # APP_SECRET_3="***"
     app_secrets = []
-    env_var_key_prefix = os.environ.get("DREAMING_ELECTRIC_SHEEP_SECRET_PREFIX", "APP_SECRET")
+    env_var_key_prefix = os.environ.get(
+        "DREAMING_ELECTRIC_SHEEP_SECRET_PREFIX", "APP_SECRET"
+    )
 
     for key, value in os.environ.items():
         if key.startswith(env_var_key_prefix) or key.startswith(

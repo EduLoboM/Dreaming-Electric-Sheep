@@ -7,7 +7,6 @@ consumption for lean infrastructure / VPS environments.
 """
 
 import os
-import shutil
 import sys
 from typing import Any, Dict, Optional
 
@@ -17,9 +16,7 @@ except ImportError:
     resource = None  # type: ignore
 
 
-RECOMMENDED_JEMALLOC_CONF = (
-    "background_thread:true,metadata_thp:auto,dirty_decay_ms:1000,muzzy_decay_ms:1000,abort_conf:false"
-)
+RECOMMENDED_JEMALLOC_CONF = "background_thread:true,metadata_thp:auto,dirty_decay_ms:1000,muzzy_decay_ms:1000,abort_conf:false"
 
 RECOMMENDED_MIMALLOC_OPTS = {
     "MIMALLOC_PAGE_RESET": "1",
@@ -187,7 +184,13 @@ def get_process_memory_usage() -> Dict[str, float]:
                     vms_mb = (int(parts[0]) * page_size_kb) / 1024.0
                     rss_mb = (int(parts[1]) * page_size_kb) / 1024.0
                     return {"rss_mb": round(rss_mb, 2), "vms_mb": round(vms_mb, 2)}
-        except (FileNotFoundError, PermissionError, OSError, ValueError, AttributeError):
+        except (
+            FileNotFoundError,
+            PermissionError,
+            OSError,
+            ValueError,
+            AttributeError,
+        ):
             pass
 
         try:

@@ -1,5 +1,6 @@
 import pytest
 from rodi import Container
+
 from dreaming_electric_sheep.messages import Request, Response
 from dreaming_electric_sheep.server.application import Application
 from dreaming_electric_sheep.server.controllers import Controller

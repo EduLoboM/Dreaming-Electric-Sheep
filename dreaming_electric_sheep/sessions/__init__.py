@@ -1,7 +1,11 @@
 from typing import Awaitable, Callable
 
 from dreaming_electric_sheep.messages import Request, Response
-from dreaming_electric_sheep.sessions.abc import Session, SessionSerializer, SessionStore
+from dreaming_electric_sheep.sessions.abc import (
+    Session,
+    SessionSerializer,
+    SessionStore,
+)
 
 __all__ = [
     "Session",

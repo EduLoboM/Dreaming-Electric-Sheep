@@ -42,7 +42,9 @@ from dreaming_electric_sheep.server.routing import (
     RouteFilter,
     Router,
 )
-from dreaming_electric_sheep.server.routing import RoutesRegistry as RoutesRegistry  # noqa
+from dreaming_electric_sheep.server.routing import (  # noqa
+    RoutesRegistry as RoutesRegistry,
+)
 from dreaming_electric_sheep.server.routing import (
     controllers_routes,
     normalize_filters,

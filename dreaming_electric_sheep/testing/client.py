@@ -3,7 +3,10 @@ import asyncio
 from dreaming_electric_sheep.contents import Content
 from dreaming_electric_sheep.server.application import Application
 from dreaming_electric_sheep.server.responses import Response
-from dreaming_electric_sheep.testing.simulator import AbstractTestSimulator, TestSimulator
+from dreaming_electric_sheep.testing.simulator import (
+    AbstractTestSimulator,
+    TestSimulator,
+)
 from dreaming_electric_sheep.testing.websocket import TestWebSocket
 
 from .helpers import CookiesType, HeadersType, QueryType

@@ -1,10 +1,25 @@
 """
 Tests for Phase A: Unified C core, singleton intern table, and cross-extension pointer identity.
 """
+
 import pytest
-from dreaming_electric_sheep import Header, Headers, Request, Response, JSONContent, TextContent, HTMLContent
-from dreaming_electric_sheep.messages import acquire_request, release_request, acquire_response, release_response
+
 import dreaming_electric_sheep._des_core as core
+from dreaming_electric_sheep import (
+    Header,
+    Headers,
+    HTMLContent,
+    JSONContent,
+    Request,
+    Response,
+    TextContent,
+)
+from dreaming_electric_sheep.messages import (
+    acquire_request,
+    acquire_response,
+    release_request,
+    release_response,
+)
 
 
 def test_cross_extension_interned_method_identity():
@@ -78,12 +93,20 @@ def test_intern_table_leak_freedom_loop():
     """Verify 10,000 acquires and releases do not leak memory or corrupt refcounts."""
     scope = {"type": "http", "method": "GET", "path": "/"}
     for _ in range(10000):
-        req = acquire_request("GET", b"/", b"", [(b"content-type", b"application/json"), (b"host", b"localhost")], scope)
+        req = acquire_request(
+            "GET",
+            b"/",
+            b"",
+            [(b"content-type", b"application/json"), (b"host", b"localhost")],
+            scope,
+        )
         assert req.method is "GET"
         assert req.get_first_header(b"content-type") == b"application/json"
         release_request(req)
 
-        resp = acquire_response(200, [(b"content-type", b"application/json")], JSONContent({"status": "ok"}))
+        resp = acquire_response(
+            200, [(b"content-type", b"application/json")], JSONContent({"status": "ok"})
+        )
         assert resp.status == 200
         assert resp.get_first_header(b"content-type") == b"application/json"
         release_response(resp)

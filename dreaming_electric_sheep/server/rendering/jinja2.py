@@ -13,7 +13,10 @@ from jinja2.ext import Extension
 from jinja2.utils import pass_context
 
 from dreaming_electric_sheep.messages import Request
-from dreaming_electric_sheep.server.csrf import AntiForgeryHandler, MissingRequestContextError
+from dreaming_electric_sheep.server.csrf import (
+    AntiForgeryHandler,
+    MissingRequestContextError,
+)
 from dreaming_electric_sheep.utils import truthy
 
 from .abc import Renderer

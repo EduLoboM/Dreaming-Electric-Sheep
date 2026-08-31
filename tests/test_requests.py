@@ -3,7 +3,10 @@ import pytest
 from dreaming_electric_sheep import Content, Request
 from dreaming_electric_sheep.contents import FormPart, MultiPartFormData
 from dreaming_electric_sheep.exceptions import BadRequestFormat
-from dreaming_electric_sheep.messages import get_absolute_url_to_path, get_request_absolute_url
+from dreaming_electric_sheep.messages import (
+    get_absolute_url_to_path,
+    get_request_absolute_url,
+)
 from dreaming_electric_sheep.server.asgi import (
     get_request_url,
     get_request_url_from_scope,

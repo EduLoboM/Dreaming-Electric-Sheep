@@ -3,6 +3,7 @@ Verification test suite for all benchmark targets and in-memory routes.
 Validates that Dreaming Electric Sheep (default & ceiling), Granian Raw, Uvicorn Raw,
 Emmett, Sanic, FastAPI, Litestar, and Robyn all correctly implement the endpoints.
 """
+
 from __future__ import annotations
 
 import json
@@ -14,6 +15,7 @@ import sys
 import time
 import urllib.request
 from pathlib import Path
+
 import pytest
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -69,9 +71,12 @@ TARGETS = [
             "-m",
             "sanic",
             "perf.compare.sanic_app:app",
-            "-H", "127.0.0.1",
-            "-p", "{port}",
-            "-w", "1",
+            "-H",
+            "127.0.0.1",
+            "-p",
+            "{port}",
+            "-w",
+            "1",
             "--no-access-logs",
             "--no-motd",
         ],
@@ -95,10 +100,14 @@ TARGETS = [
         "command": [
             sys.executable,
             str(REPO_ROOT / "perf" / "compare" / "robyn_app.py"),
-            "--port", "{port}",
-            "--processes", "1",
-            "--workers", "1",
-            "--log-level", "WARN",
+            "--port",
+            "{port}",
+            "--processes",
+            "1",
+            "--workers",
+            "1",
+            "--log-level",
+            "WARN",
             "--disable-openapi",
         ],
         "requires": ["robyn"],
@@ -165,46 +174,65 @@ def test_benchmark_app_routes(target, unused_tcp_port):
     if t_type == "granian":
         cmd = [
             granian_bin,
-            "--interface", "asgi",
-            "--host", host,
-            "--port", str(port),
-            "--workers", "1",
+            "--interface",
+            "asgi",
+            "--host",
+            host,
+            "--port",
+            str(port),
+            "--workers",
+            "1",
             target["module"],
         ]
     elif t_type == "granian_rsgi":
         cmd = [
             granian_bin,
-            "--interface", "rsgi",
-            "--host", host,
-            "--port", str(port),
-            "--workers", "1",
+            "--interface",
+            "rsgi",
+            "--host",
+            host,
+            "--port",
+            str(port),
+            "--workers",
+            "1",
             target["module"],
         ]
     elif t_type == "granian_wsgi":
         cmd = [
             granian_bin,
-            "--interface", "wsgi",
-            "--host", host,
-            "--port", str(port),
-            "--workers", "1",
+            "--interface",
+            "wsgi",
+            "--host",
+            host,
+            "--port",
+            str(port),
+            "--workers",
+            "1",
             target["module"],
         ]
     elif t_type == "uvicorn":
         cmd = [
             uvicorn_bin,
             target["module"],
-            "--host", host,
-            "--port", str(port),
-            "--workers", "1",
+            "--host",
+            host,
+            "--port",
+            str(port),
+            "--workers",
+            "1",
             "--no-access-log",
         ]
     elif t_type in ("sanic", "standalone"):
         cmd = [arg.format(port=port) for arg in target["command"]]
 
-    proc = subprocess.Popen(cmd, env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    proc = subprocess.Popen(
+        cmd, env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+    )
     try:
         base_url = f"http://{host}:{port}"
-        assert wait_for_server(f"{base_url}/plaintext", timeout=12.0), f"{target['name']} failed to start"
+        assert wait_for_server(
+            f"{base_url}/plaintext", timeout=12.0
+        ), f"{target['name']} failed to start"
 
         # 1. Plaintext
         with urllib.request.urlopen(f"{base_url}/plaintext") as resp:

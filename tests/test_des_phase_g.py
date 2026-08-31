@@ -1,24 +1,27 @@
 """
 Tests for Phase G: Free-threaded / NoGIL safe freelists, Router.freeze(), and typed diagnostic error codes.
 """
-import pytest
+
 import threading
 from concurrent.futures import ThreadPoolExecutor
+
+import pytest
+
 from dreaming_electric_sheep import (
+    DesCoreError,
+    InvalidArgumentError,
+    MemoryExhaustedError,
+    ParseError,
     Request,
     Response,
     Router,
-    DesCoreError,
-    MemoryExhaustedError,
-    ParseError,
     SimdUnsupportedError,
-    InvalidArgumentError,
 )
 from dreaming_electric_sheep.core_errors import HeaderError
 from dreaming_electric_sheep.messages import (
     acquire_request,
-    release_request,
     acquire_response,
+    release_request,
     release_response,
 )
 
@@ -80,13 +83,17 @@ def test_free_threaded_freelist_concurrent_stress():
             errors.append(e)
 
     num_threads = 8
-    threads = [threading.Thread(target=worker_thread, args=(i,)) for i in range(num_threads)]
+    threads = [
+        threading.Thread(target=worker_thread, args=(i,)) for i in range(num_threads)
+    ]
     for t in threads:
         t.start()
     for t in threads:
         t.join()
 
-    assert len(errors) == 0, f"Thread-local freelist encountered errors under concurrent load: {errors}"
+    assert (
+        len(errors) == 0
+    ), f"Thread-local freelist encountered errors under concurrent load: {errors}"
 
 
 def test_router_freeze():

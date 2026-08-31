@@ -309,7 +309,9 @@ async def test_static_files_support_authentication_by_route(app):
 
     assert app.response.status == 200
     content = await app.response.text()
-    assert content == """<!DOCTYPE html>
+    assert (
+        content
+        == """<!DOCTYPE html>
 <html>
   <head>
     <title>Example.</title>
@@ -322,6 +324,7 @@ async def test_static_files_support_authentication_by_route(app):
   </body>
 </html>
 """
+    )
 
 
 async def test_authorization_supports_allow_anonymous(app):
@@ -1031,7 +1034,9 @@ async def test_jwt_openid_tokens_handler_authenticate_returns_identity(
     Verifies that JWTOpenIDTokensHandler.authenticate returns the identity from the
     inner auth_handler instead of discarding it (regression test for issue #673).
     """
-    from dreaming_electric_sheep.server.authentication.oidc import JWTOpenIDTokensHandler
+    from dreaming_electric_sheep.server.authentication.oidc import (
+        JWTOpenIDTokensHandler,
+    )
 
     jwt_auth = JWTBearerAuthentication(
         valid_audiences=["test-audience"],

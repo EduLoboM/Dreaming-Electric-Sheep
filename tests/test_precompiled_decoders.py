@@ -1,8 +1,10 @@
 from dataclasses import dataclass
 from typing import List
 from uuid import UUID, uuid4
+
 import msgspec
 import pytest
+
 from dreaming_electric_sheep.contents import Content
 from dreaming_electric_sheep.messages import Request, Response
 from dreaming_electric_sheep.server.application import Application
@@ -50,9 +52,9 @@ def test_get_precompiled_encoder_caching():
 async def test_json_binder_precompiled_decoding():
     binder = JSONBinder(UserStruct)
     payload = b'{"id": 123, "name": "Alice", "is_admin": true}'
-    request = Request("POST", b"/users", [(b"content-type", b"application/json")]).with_content(
-        Content(b"application/json", payload)
-    )
+    request = Request(
+        "POST", b"/users", [(b"content-type", b"application/json")]
+    ).with_content(Content(b"application/json", payload))
 
     user = await binder.get_value(request)
     assert isinstance(user, UserStruct)
@@ -65,9 +67,9 @@ async def test_json_binder_precompiled_decoding():
 async def test_json_binder_dataclass_and_uuid_decoding():
     uid = uuid4()
     binder = JSONBinder(UUID)
-    request = Request("POST", b"/uuid", [(b"content-type", b"application/json")]).with_content(
-        Content(b"application/json", f'"{str(uid)}"'.encode("utf8"))
-    )
+    request = Request(
+        "POST", b"/uuid", [(b"content-type", b"application/json")]
+    ).with_content(Content(b"application/json", f'"{str(uid)}"'.encode("utf8")))
 
     result_uuid = await binder.get_value(request)
     assert result_uuid == uid

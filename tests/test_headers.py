@@ -244,4 +244,3 @@ def test_headers_update():
     assert headers.get_single(b"A") == b"1"
     assert headers.get_single(b"B") == b"updated"
     assert headers.get_single(b"C") == b"3"
-

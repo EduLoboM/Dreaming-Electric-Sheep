@@ -1,22 +1,27 @@
 import asyncio
 import inspect
-import pytest
+
 import msgspec
+import pytest
+from openapidocs.v3 import Info
+
 from dreaming_electric_sheep import Application, Content, Request, Response, json, text
 from dreaming_electric_sheep.contents import ASGIContent, RSGIContent, StreamedContent
-from dreaming_electric_sheep.server.sse import (
-    ServerSentEventsResponse,
-    TextServerSentEvent,
-    JSONLinesResponse,
-    NDJSONResponse,
+from dreaming_electric_sheep.server.errors import ServerErrorDetailsHandler
+from dreaming_electric_sheep.server.openapi.v3 import (
+    MsgspecStructTypeHandler,
+    OpenAPIHandler,
 )
 from dreaming_electric_sheep.server.responses import ndjson
-from dreaming_electric_sheep.server.errors import ServerErrorDetailsHandler
-from dreaming_electric_sheep.server.openapi.v3 import OpenAPIHandler, MsgspecStructTypeHandler
-from openapidocs.v3 import Info
-from tests.utils.application import FakeApplication
+from dreaming_electric_sheep.server.sse import (
+    JSONLinesResponse,
+    NDJSONResponse,
+    ServerSentEventsResponse,
+    TextServerSentEvent,
+)
 from dreaming_electric_sheep.testing.messages import MockReceive, MockSend
 from tests.test_rsgi import MockRSGIProtocol
+from tests.utils.application import FakeApplication
 
 
 class ItemStruct(msgspec.Struct):
@@ -55,7 +60,6 @@ async def test_sync_first_handler_dispatch():
     assert res_resolved.content.body == b"async hello"
 
 
-
 @pytest.mark.asyncio
 async def test_request_read_buffer_with_bytes_content():
     req = Request("POST", b"/data", [(b"content-type", b"application/octet-stream")])
@@ -91,7 +95,11 @@ async def test_asgi_content_read_buffer():
         nonlocal received
         if not received:
             received = True
-            return {"type": "http.request", "body": b"ASGI Stream Data", "more_body": False}
+            return {
+                "type": "http.request",
+                "body": b"ASGI Stream Data",
+                "more_body": False,
+            }
         return {"type": "http.disconnect"}
 
     asgi_content = ASGIContent(mock_receive)
@@ -160,7 +168,7 @@ def test_msgspec_struct_openapi_schema_generation():
 def test_server_error_details_sanitizes_locals():
     handler = ServerErrorDetailsHandler()
     req = Request("GET", b"/failing-route", [])
-    
+
     secret_token = "SUPER_SECRET_TOKEN_12345"
     normal_var = "visible_debug_value"
 
@@ -171,7 +179,7 @@ def test_server_error_details_sanitizes_locals():
 
     assert res.status == 500
     html_text = res.content.body.decode("utf8")
-    
+
     # Verify CLI diagnostic callout is present
     assert "des why GET /failing-route" in html_text
     # Verify sensitive tokens are redacted

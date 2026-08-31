@@ -15,7 +15,6 @@ from typing import _GenericAlias, get_type_hints
 from uuid import UUID
 
 import msgspec
-
 from guardpost import AuthenticationHandler
 from guardpost.common import AuthenticatedRequirement
 from openapidocs.common import Format, Serializer
@@ -48,7 +47,10 @@ from openapidocs.v3 import (
 )
 
 from dreaming_electric_sheep.contents import FileBuffer
-from dreaming_electric_sheep.server.authentication.apikey import APIKeyAuthentication, APIKeyLocation
+from dreaming_electric_sheep.server.authentication.apikey import (
+    APIKeyAuthentication,
+    APIKeyLocation,
+)
 from dreaming_electric_sheep.server.authentication.basic import BasicAuthentication
 from dreaming_electric_sheep.server.bindings import (
     Binder,
@@ -64,7 +66,9 @@ from dreaming_electric_sheep.server.openapi.docstrings import (
     DocstringInfo,
     get_handler_docstring_info,
 )
-from dreaming_electric_sheep.server.openapi.exceptions import DuplicatedContentTypeDocsException
+from dreaming_electric_sheep.server.openapi.exceptions import (
+    DuplicatedContentTypeDocsException,
+)
 from dreaming_electric_sheep.server.routing import Router
 
 from ..application import Application
@@ -85,7 +89,9 @@ from .common import (
 
 try:
     # JWT dependencies are optional (cryptography, PyJWT)
-    from dreaming_electric_sheep.server.authentication.jwt import JWTBearerAuthentication
+    from dreaming_electric_sheep.server.authentication.jwt import (
+        JWTBearerAuthentication,
+    )
 except ImportError:  # pragma: no cover
 
     class JWTBearerAuthentication:
@@ -318,7 +324,9 @@ class MsgspecStructTypeHandler(ObjectTypeHandler):
 
     def handles_type(self, object_type) -> bool:
         try:
-            return inspect.isclass(object_type) and issubclass(object_type, msgspec.Struct)
+            return inspect.isclass(object_type) and issubclass(
+                object_type, msgspec.Struct
+            )
         except TypeError:
             return False
 
@@ -328,8 +336,7 @@ class MsgspecStructTypeHandler(ObjectTypeHandler):
     def get_type_fields(self, object_type, register_type) -> list[FieldInfo]:
         try:
             return [
-                FieldInfo(f.name, f.type)
-                for f in msgspec.structs.fields(object_type)
+                FieldInfo(f.name, f.type) for f in msgspec.structs.fields(object_type)
             ]
         except Exception:
             return []

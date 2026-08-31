@@ -37,7 +37,14 @@ from dreaming_electric_sheep.server.dataprotection import (
     issue_deprecation_warning_for_secret_str,
 )
 from dreaming_electric_sheep.server.headers.cache import cache_control
-from dreaming_electric_sheep.server.responses import accepted, bad_request, html, json, ok, redirect
+from dreaming_electric_sheep.server.responses import (
+    accepted,
+    bad_request,
+    html,
+    json,
+    ok,
+    redirect,
+)
 from dreaming_electric_sheep.utils import ensure_str
 from dreaming_electric_sheep.utils.aio import FailedRequestError, HTTPHandler
 

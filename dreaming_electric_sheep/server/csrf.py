@@ -11,7 +11,10 @@ from dreaming_electric_sheep.exceptions import Unauthorized
 from dreaming_electric_sheep.messages import Request, Response
 from dreaming_electric_sheep.middlewares import MiddlewareCategory
 from dreaming_electric_sheep.server.application import Application
-from dreaming_electric_sheep.server.dataprotection import generate_secret, get_serializer
+from dreaming_electric_sheep.server.dataprotection import (
+    generate_secret,
+    get_serializer,
+)
 from dreaming_electric_sheep.server.security import SecurityPolicyHandler
 from dreaming_electric_sheep.settings.html import html_settings
 

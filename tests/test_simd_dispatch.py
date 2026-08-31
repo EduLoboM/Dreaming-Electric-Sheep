@@ -1,13 +1,16 @@
 """
 Tests for Runtime SIMD CPUID dispatch and C core acceleration kernels.
 """
-import sys
+
 import platform
+import sys
+
 import pytest
+
 from dreaming_electric_sheep import _des_core
+from dreaming_electric_sheep.cli.doctor import run_doctor
 from dreaming_electric_sheep.headers import Header, Headers
 from dreaming_electric_sheep.messages import Request, Response
-from dreaming_electric_sheep.cli.doctor import run_doctor
 
 
 def test_simd_isa_runtime_dispatch_token():
@@ -18,7 +21,10 @@ def test_simd_isa_runtime_dispatch_token():
     arch = platform.machine().lower()
     # MSVC does not support __builtin_cpu_supports; SCALAR is expected on Windows.
     if arch in {"x86_64", "amd64"} and sys.platform != "win32":
-        assert isa in {"AVX2", "SSE2"}, f"Expected AVX2 or SSE2 on x86_64 Linux, got: {isa}"
+        assert isa in {
+            "AVX2",
+            "SSE2",
+        }, f"Expected AVX2 or SSE2 on x86_64 Linux, got: {isa}"
 
 
 def test_simd_doctor_diagnostics_report():
@@ -45,16 +51,20 @@ def test_simd_header_lowercasing_correctness():
     for raw in test_cases:
         h = Header(raw, b"value")
         expected_lower = raw.lower()
-        assert h.name == expected_lower, f"Failed lowercasing for {raw!r}: expected {expected_lower!r}, got {h.name!r}"
+        assert (
+            h.name == expected_lower
+        ), f"Failed lowercasing for {raw!r}: expected {expected_lower!r}, got {h.name!r}"
 
 
 def test_simd_headers_lookup_and_interning():
     """Verify Headers.get, contains, and remove operate transparently through SIMD dispatch."""
-    headers = Headers([
-        (b"Content-Type", b"application/json"),
-        (b"X-REQUEST-ID", b"12345"),
-        (b"X-VERY-LONG-HEADER-NAME-TESTING-VECTORIZED-LOOKUP", b"test-val"),
-    ])
+    headers = Headers(
+        [
+            (b"Content-Type", b"application/json"),
+            (b"X-REQUEST-ID", b"12345"),
+            (b"X-VERY-LONG-HEADER-NAME-TESTING-VECTORIZED-LOOKUP", b"test-val"),
+        ]
+    )
 
     assert headers.get(b"content-type") == (b"application/json",)
     assert headers.get_first(b"CONTENT-TYPE") == b"application/json"
@@ -73,7 +83,9 @@ def test_simd_routing_and_url_path_matching():
 
     router = CythonRadixRouter()
     mock_route = object()
-    router.add_route(b"GET", b"/api/v1/users/{user_id}/profile/settings", mock_route, ["user_id"])
+    router.add_route(
+        b"GET", b"/api/v1/users/{user_id}/profile/settings", mock_route, ["user_id"]
+    )
 
     match = router.get_match(b"GET", b"/api/v1/users/42/profile/settings")
     assert match is not None
@@ -88,4 +100,6 @@ def test_cross_module_intern_table_identity():
 
     req_header_name = req.headers.values[0][0]
     assert h.name == req_header_name
-    assert h.name is req_header_name, "Header name bytes should be identical interned PyObject pointers across modules"
+    assert (
+        h.name is req_header_name
+    ), "Header name bytes should be identical interned PyObject pointers across modules"

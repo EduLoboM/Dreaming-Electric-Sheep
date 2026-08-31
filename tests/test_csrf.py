@@ -6,7 +6,10 @@ from dreaming_electric_sheep.contents import write_www_form_urlencoded
 from dreaming_electric_sheep.messages import Response
 from dreaming_electric_sheep.server.controllers import Controller
 from dreaming_electric_sheep.server.csrf import ignore_anti_forgery, use_anti_forgery
-from dreaming_electric_sheep.server.rendering.jinja2 import AntiForgeryBaseExtension, JinjaRenderer
+from dreaming_electric_sheep.server.rendering.jinja2 import (
+    AntiForgeryBaseExtension,
+    JinjaRenderer,
+)
 from dreaming_electric_sheep.server.responses import no_content, view, view_async
 from dreaming_electric_sheep.server.routing import RoutesRegistry
 from dreaming_electric_sheep.settings.html import html_settings

@@ -1,9 +1,11 @@
 import asyncio
-import pytest
+
 import msgspec
+import pytest
+
 from dreaming_electric_sheep.contents import ASGIContent, Content
-from dreaming_electric_sheep.messages import Request
 from dreaming_electric_sheep.exceptions import MessageAborted
+from dreaming_electric_sheep.messages import Request
 
 
 class ExampleStruct(msgspec.Struct):

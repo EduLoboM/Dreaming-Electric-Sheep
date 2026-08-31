@@ -28,7 +28,6 @@ class Content:
 
     @property
     def body_buffer(self) -> memoryview: ...
-
     def dispose(self) -> None: ...
 
 class StreamedContent(Content):
@@ -156,8 +155,7 @@ class ASGIContent(Content):
         """
         ...
 
-    async def read_buffer(self) -> memoryview:
-        ...
+    async def read_buffer(self) -> memoryview: ...
 
 class RSGIContent(Content):
     """
@@ -171,11 +169,8 @@ class RSGIContent(Content):
         self.protocol = protocol
 
     def dispose(self) -> None: ...
-
     def stream(self) -> AsyncIterable[bytes]: ...
-
     async def read(self) -> bytes: ...
-
     async def read_buffer(self) -> memoryview: ...
 
 class TextContent(Content):

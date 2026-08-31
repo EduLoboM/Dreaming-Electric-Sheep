@@ -1,6 +1,7 @@
 """
 Comprehensive tests for Dreaming Electric Sheep CLI (`des`).
 """
+
 from __future__ import annotations
 
 import json
@@ -9,6 +10,7 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
+
 import pytest
 
 from dreaming_electric_sheep.cli.doctor import run_doctor
@@ -21,7 +23,12 @@ def _get_isolated_env(extra_path: Path | str | None = None) -> dict[str, str]:
     env = os.environ.copy()
     # Clean out parent test runner env variables (conftest.py sets APP_DEFAULT_ROUTER=0, PYTEST_*, etc.)
     for k in list(env.keys()):
-        if k.startswith("PYTEST_") or k.startswith("COV_") or k.startswith("COVERAGE_") or k.startswith("APP_"):
+        if (
+            k.startswith("PYTEST_")
+            or k.startswith("COV_")
+            or k.startswith("COVERAGE_")
+            or k.startswith("APP_")
+        ):
             del env[k]
     paths = []
     if extra_path is not None:
@@ -31,7 +38,9 @@ def _get_isolated_env(extra_path: Path | str | None = None) -> dict[str, str]:
     return env
 
 
-def run_des_cmd(args: list[str], cwd: Path | str | None = None) -> subprocess.CompletedProcess[str]:
+def run_des_cmd(
+    args: list[str], cwd: Path | str | None = None
+) -> subprocess.CompletedProcess[str]:
     """Runs `des` CLI via subprocess for complete process isolation."""
     cmd = [sys.executable, "-m", "dreaming_electric_sheep.cli.main"] + args
     extra = cwd
@@ -107,7 +116,9 @@ def test_cli_templates_minimal():
 def test_cli_templates_api_docs_scalar():
     with tempfile.TemporaryDirectory() as tmpdir:
         target = Path(tmpdir) / "test_api_scalar"
-        create_project("test_api_scalar", template="api", docs="scalar", target_dir=target)
+        create_project(
+            "test_api_scalar", template="api", docs="scalar", target_dir=target
+        )
         app_code = (target / "app.py").read_text()
         assert 'ScalarUIProvider("/docs")' in app_code
         assert 'docs.ui_providers = [ScalarUIProvider("/docs")]' in app_code
@@ -147,7 +158,9 @@ def test_cli_templates_docs_invalid_on_minimal():
     with tempfile.TemporaryDirectory() as tmpdir:
         target = Path(tmpdir) / "test_invalid"
         with pytest.raises(SystemExit) as exc:
-            create_project("test_invalid", template="minimal", docs="swagger", target_dir=target)
+            create_project(
+                "test_invalid", template="minimal", docs="swagger", target_dir=target
+            )
         assert exc.value.code == 1
 
 
@@ -170,7 +183,9 @@ def test_cli_templates_full():
 def test_cli_doctor():
     report = run_doctor()
     assert report["c_core_loaded"] is True
-    assert any(isa in report["simd_isa"].upper() for isa in ["AVX", "SSE", "SCALAR", "NEON"])
+    assert any(
+        isa in report["simd_isa"].upper() for isa in ["AVX", "SSE", "SCALAR", "NEON"]
+    )
     assert report["intern_table_addr"].startswith("0x")
     assert report["intern_singleton_shared"] is True
     assert report["cython_extensions_all_loaded"] is True
@@ -210,7 +225,9 @@ def test_cli_check_routes_why_e2e():
         assert "/items/{item_id}" in paths
 
         # des why matching
-        res_why_match = run_des_cmd(["-C", str(api_dir), "why", "GET", "/items/1", "--json"])
+        res_why_match = run_des_cmd(
+            ["-C", str(api_dir), "why", "GET", "/items/1", "--json"]
+        )
         assert res_why_match.returncode == 0, res_why_match.stderr
         why_data = json.loads(res_why_match.stdout)
         assert why_data["status"] == "MATCH"
@@ -219,14 +236,18 @@ def test_cli_check_routes_why_e2e():
         assert why_data["handler"] == "app:get_item"
 
         # des why docs matching
-        res_why_docs = run_des_cmd(["-C", str(api_dir), "why", "GET", "/docs", "--json"])
+        res_why_docs = run_des_cmd(
+            ["-C", str(api_dir), "why", "GET", "/docs", "--json"]
+        )
         assert res_why_docs.returncode == 0, res_why_docs.stderr
         why_docs_data = json.loads(res_why_docs.stdout)
         assert why_docs_data["status"] == "MATCH"
         assert why_docs_data["matched_pattern"] == "/docs"
 
         # des why non-matching -> exit 1
-        res_why_nomatch = run_des_cmd(["-C", str(api_dir), "why", "GET", "/nonexistent_url", "--json"])
+        res_why_nomatch = run_des_cmd(
+            ["-C", str(api_dir), "why", "GET", "/nonexistent_url", "--json"]
+        )
         assert res_why_nomatch.returncode == 1
         nomatch_data = json.loads(res_why_nomatch.stdout)
         assert nomatch_data["status"] == "NO_MATCH"

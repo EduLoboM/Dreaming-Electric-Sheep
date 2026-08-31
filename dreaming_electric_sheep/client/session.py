@@ -4,8 +4,20 @@ from asyncio import TimeoutError
 from typing import Any, AnyStr, Callable, Type, cast
 from urllib.parse import quote, urlencode
 
-from dreaming_electric_sheep import URL, Content, InvalidURL, Request, Response, __version__
-from dreaming_electric_sheep.common.types import HeadersType, ParamsType, URLType, normalize_headers
+from dreaming_electric_sheep import (
+    URL,
+    Content,
+    InvalidURL,
+    Request,
+    Response,
+    __version__,
+)
+from dreaming_electric_sheep.common.types import (
+    HeadersType,
+    ParamsType,
+    URLType,
+    normalize_headers,
+)
 from dreaming_electric_sheep.middlewares import MiddlewareList, get_middlewares_chain
 
 from .connection import ConnectionClosedError

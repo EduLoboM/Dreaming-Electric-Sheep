@@ -6,7 +6,13 @@ from typing import Any, AnyStr, AsyncIterable, Callable
 
 import msgspec.json
 
-from dreaming_electric_sheep import Content, JSONContent, Response, StreamedContent, TextContent
+from dreaming_electric_sheep import (
+    Content,
+    JSONContent,
+    Response,
+    StreamedContent,
+    TextContent,
+)
 from dreaming_electric_sheep.common.files.asyncfs import FilesHandler
 from dreaming_electric_sheep.settings.html import html_settings
 from dreaming_electric_sheep.settings.json import json_settings
@@ -385,4 +391,3 @@ async def view_async(
     return _create_html_response(
         await renderer.render_async(name, None, **kwargs), status
     )
-
