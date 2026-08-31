@@ -17,7 +17,7 @@ See the [15-Minute Quickstart Tutorial](docs/tutorial.md) and [Why DES?](docs/wh
 
 ---
 
-## 📦 Installation
+## 🔮 Installation
 
 ```bash
 pip install "dreaming-electric-sheep[standard]"
@@ -27,7 +27,7 @@ pip install "dreaming-electric-sheep[standard]"
 
 ---
 
-## ⚡ The 3-Minute Hook: See the Compiled Request
+## 🌌 The 3-Minute Hook: See the Compiled Request
 
 ### 1. Scaffold and Run
 
@@ -78,7 +78,7 @@ Scalar UI is served automatically at `http://127.0.0.1:8000/docs` reading `/open
 
 ---
 
-## 👾 Quick Start
+## 💎 Quick Start
 
 ```python
 from des import Application, get, post
@@ -110,7 +110,7 @@ des dev
 
 ---
 
-## ⚓ Core Architecture & Serving Model
+## 🧊 Core Architecture & Serving Model
 
 Dreaming Electric Sheep focuses on stripping overhead between the Rust transport layer and Python application code:
 
@@ -122,7 +122,7 @@ Dreaming Electric Sheep focuses on stripping overhead between the Rust transport
 
 ---
 
-## 📙 OpenAPI 3.0 & Interactive UIs
+## 📗 OpenAPI 3.0 & Interactive UIs
 
 Dreaming Electric Sheep automatically generates OpenAPI 3.0 documentation from type annotations (`msgspec.Struct`, `dataclasses`, `Pydantic`, Python typing) and docstrings.
 
@@ -162,7 +162,7 @@ def get_sheep(id: int) -> Sheep:
 
 ---
 
-## 🛠️ Developer CLI (`des`)
+## ⚡ Developer CLI (`des`)
 
 The `des` CLI is the first-class toolchain for development, inspection, and operations:
 
@@ -178,7 +178,7 @@ des doctor                   # Inspect C-core, intern tables, and runtime enviro
 
 ---
 
-## 🎯 Dependency Injection & Controllers
+## 🧱 Dependency Injection & Controllers
 
 Dreaming Electric Sheep includes built-in dependency injection with pre-bound fast dispatching:
 
@@ -201,11 +201,11 @@ class StatusController(Controller):
 
 ---
 
-## 🛍️ Benchmarks & Framework Tax
+## 🏎️ Benchmarks & Framework Tax
 
 Overhead measured against a shared in-memory fixture on localhost (median of 5 independent runs, 5s duration each, 50 concurrent keep-alive connections via `oha`, 1 worker process on CPython 3.14 / Linux x86_64).
 
-### 🧠 Table A: Framework Tax vs. Raw Server Ceilings (msgspec Encoder)
+### Table A: Framework Tax vs. Raw Server Ceilings (msgspec Encoder)
 
 Measures framework tax against raw server ceilings when all targets encode JSON per request using `msgspec.json.encode` and run with `optimize_gc=False`. The ~20% gap represents the necessary cost of route matching, request abstraction, and parameter binding over raw protocol sockets.
 
@@ -217,7 +217,7 @@ Measures framework tax against raw server ceilings when all targets encode JSON 
 | Dreaming Electric Sheep (ASGI) | 73,348 | 66,781 | 64,345 | 28,635 | 20,869 | 25,841 | Granian (ASGI, 1 worker) |
 | Uvicorn (Raw ASGI) | 45,141 | 44,846 | 39,480 | 27,776 | 18,014 | 23,548 | Uvicorn (Raw ASGI, 1 worker) |
 
-### 🧶 Table B: Default Stack Comparison (Stock Helpers Out-of-the-Box)
+### Table B: Default Stack Comparison (Stock Helpers Out-of-the-Box)
 
 Measures out-of-the-box performance using each framework's stock response and serialization helpers:
 
@@ -237,7 +237,7 @@ Measures out-of-the-box performance using each framework's stock response and se
 
 ---
 
-## 📜 License & Credits
+## 📕 License & Credits
 
 Dreaming Electric Sheep is released under the [MIT License](LICENSE).
 Derived from [BlackSheep](https://github.com/Neoteroi/BlackSheep) (Copyright (C) Roberto Prevato and contributors). See [NOTICE](NOTICE) for attribution.
