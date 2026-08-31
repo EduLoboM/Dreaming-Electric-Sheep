@@ -1,10 +1,11 @@
 # cython: language_level=3, embedsignature=True
-# Copyright (C) 2018-present Roberto Prevato
+# Copyright (C) 2018-present Roberto Prevato and Dreaming Electric Sheep contributors
 #
-# This module is part of Dreaming Electric Sheep and is released under
-# the MIT License https://opensource.org/licenses/MIT
+# This module is part of Dreaming Electric Sheep (derived from BlackSheep)
+# and is released under the MIT License https://opensource.org/licenses/MIT
 
 from .exceptions cimport HTTPException
+from .messages cimport Request
 
 
 cdef class BaseApplication:
@@ -13,6 +14,7 @@ cdef class BaseApplication:
     cdef readonly object router
     cdef readonly object logger
     cdef public object exceptions_handlers
+    cpdef object handle(self, Request request)
     cpdef object get_http_exception_handler(self, HTTPException http_exception)
     cdef object get_exception_handler(self, Exception exception, type stop_at)
     cdef bint is_handled_exception(self, Exception exception)

@@ -20,6 +20,7 @@ cdef class Message:
     cdef list _raw_headers
     cdef public Headers _headers
     cdef public Content content
+    cdef public object scope_protocol
     cdef public object _form_data
     cdef public object context
     cdef object __weakref__
