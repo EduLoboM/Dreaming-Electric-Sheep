@@ -241,3 +241,9 @@ Measures out-of-the-box performance using each framework's stock response and se
 
 Dreaming Electric Sheep is released under the [MIT License](LICENSE).
 Derived from [BlackSheep](https://github.com/Neoteroi/BlackSheep) (Copyright (C) Roberto Prevato and contributors). See [NOTICE](NOTICE) for attribution.
+
+---
+
+<p align="center">
+  made with <img src="assets/love.png" width="25" alt="love.png" style="vertical-align: middle;"> by <b>EduLoboM</b>
+</p>
