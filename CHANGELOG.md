@@ -19,7 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Project scaffolding (`des new`) with automatic FastAPI-compatible structured `422` validation errors.
 
 ### Changed
-- Refactored framework tax and benchmarks to accurately document the ~20% serving tax on raw Granian RSGI.
+- Refactored framework tax and benchmarks to accurately document the ~10–15% serving tax on raw Granian RSGI.
 
 ## [1.1.1] - 2026-08-31
 

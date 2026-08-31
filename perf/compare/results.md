@@ -1,6 +1,6 @@
 # ASGI / Rust Runtime Framework Benchmark Results
 
-Generated with `perf/compare/run.sh` on 2026-08-31 17:55:43.
+Generated with `perf/compare/run.sh` on 2026-08-31 20:33:56.
 Test parameters: 5 runs of 5s per route (median reported), concurrency 50 keep-alive connections via `oha` on localhost.
 
 *Note: Localhost framework overhead + shared in-memory fixture. Not the TechEmpower Framework Benchmarks. No Postgres.*
@@ -10,96 +10,96 @@ Measures framework tax against raw server ceilings when all targets encode JSON 
 
 | Framework | Route | Server / Runtime | Tool | RPS (Median) | p50 ms | p99 ms | Errors |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| Granian (Raw RSGI) | Plaintext | Granian (Raw RSGI, 1 worker, msgspec) | oha | 101,573.42 | 0.47 | 0.846 | 0 |
-| Granian (Raw RSGI) | JSON | Granian (Raw RSGI, 1 worker, msgspec) | oha | 96,725.28 | 0.479 | 0.902 | 0 |
-| Granian (Raw RSGI) | Mem get | Granian (Raw RSGI, 1 worker, msgspec) | oha | 97,370.14 | 0.467 | 0.983 | 0 |
-| Granian (Raw RSGI) | Mem get ×20 | Granian (Raw RSGI, 1 worker, msgspec) | oha | 51,697.68 | 0.948 | 1.642 | 0 |
-| Granian (Raw RSGI) | HTML fortunes (in-memory) | Granian (Raw RSGI, 1 worker, msgspec) | oha | 25,862.2 | 1.791 | 4.022 | 0 |
-| Granian (Raw RSGI) | Mem update ×20 | Granian (Raw RSGI, 1 worker, msgspec) | oha | 36,320.9 | 1.317 | 2.552 | 0 |
-| Granian (Raw ASGI) | Plaintext | Granian (Raw ASGI, 1 worker, msgspec) | oha | 70,343.07 | 0.699 | 1.364 | 0 |
-| Granian (Raw ASGI) | JSON | Granian (Raw ASGI, 1 worker, msgspec) | oha | 72,068.69 | 0.633 | 1.325 | 0 |
-| Granian (Raw ASGI) | Mem get | Granian (Raw ASGI, 1 worker, msgspec) | oha | 66,651.79 | 0.669 | 1.474 | 0 |
-| Granian (Raw ASGI) | Mem get ×20 | Granian (Raw ASGI, 1 worker, msgspec) | oha | 40,248.96 | 1.179 | 2.477 | 0 |
-| Granian (Raw ASGI) | HTML fortunes (in-memory) | Granian (Raw ASGI, 1 worker, msgspec) | oha | 22,480.18 | 2.073 | 4.518 | 0 |
-| Granian (Raw ASGI) | Mem update ×20 | Granian (Raw ASGI, 1 worker, msgspec) | oha | 32,424.9 | 1.464 | 2.932 | 0 |
-| Dreaming Electric Sheep (RSGI) | Plaintext | Granian (RSGI, 1 worker, msgspec) | oha | 77,479.26 | 0.575 | 1.545 | 0 |
-| Dreaming Electric Sheep (RSGI) | JSON | Granian (RSGI, 1 worker, msgspec) | oha | 71,685.83 | 0.605 | 1.795 | 0 |
-| Dreaming Electric Sheep (RSGI) | Mem get | Granian (RSGI, 1 worker, msgspec) | oha | 69,456.09 | 0.636 | 1.859 | 0 |
-| Dreaming Electric Sheep (RSGI) | Mem get ×20 | Granian (RSGI, 1 worker, msgspec) | oha | 37,367.75 | 1.28 | 2.679 | 0 |
-| Dreaming Electric Sheep (RSGI) | HTML fortunes (in-memory) | Granian (RSGI, 1 worker, msgspec) | oha | 26,411.26 | 1.84 | 3.349 | 0 |
-| Dreaming Electric Sheep (RSGI) | Mem update ×20 | Granian (RSGI, 1 worker, msgspec) | oha | 33,479.1 | 1.443 | 2.576 | 0 |
-| Dreaming Electric Sheep (ASGI) | Plaintext | Granian (ASGI, 1 worker, msgspec) | oha | 73,347.98 | 0.608 | 1.718 | 0 |
-| Dreaming Electric Sheep (ASGI) | JSON | Granian (ASGI, 1 worker, msgspec) | oha | 66,781.43 | 0.667 | 1.827 | 0 |
-| Dreaming Electric Sheep (ASGI) | Mem get | Granian (ASGI, 1 worker, msgspec) | oha | 64,345.42 | 0.703 | 1.941 | 0 |
-| Dreaming Electric Sheep (ASGI) | Mem get ×20 | Granian (ASGI, 1 worker, msgspec) | oha | 28,634.86 | 1.564 | 4.219 | 0 |
-| Dreaming Electric Sheep (ASGI) | HTML fortunes (in-memory) | Granian (ASGI, 1 worker, msgspec) | oha | 20,869.36 | 2.242 | 5.222 | 0 |
-| Dreaming Electric Sheep (ASGI) | Mem update ×20 | Granian (ASGI, 1 worker, msgspec) | oha | 25,841.31 | 1.825 | 4.185 | 0 |
-| Uvicorn (Raw ASGI) | Plaintext | Uvicorn (Raw ASGI, 1 worker, msgspec) | oha | 45,141.17 | 1.028 | 2.208 | 0 |
-| Uvicorn (Raw ASGI) | JSON | Uvicorn (Raw ASGI, 1 worker, msgspec) | oha | 44,845.85 | 1.012 | 2.37 | 0 |
-| Uvicorn (Raw ASGI) | Mem get | Uvicorn (Raw ASGI, 1 worker, msgspec) | oha | 39,479.55 | 1.188 | 2.634 | 0 |
-| Uvicorn (Raw ASGI) | Mem get ×20 | Uvicorn (Raw ASGI, 1 worker, msgspec) | oha | 27,776.18 | 1.649 | 3.745 | 0 |
-| Uvicorn (Raw ASGI) | HTML fortunes (in-memory) | Uvicorn (Raw ASGI, 1 worker, msgspec) | oha | 18,013.58 | 2.558 | 6.556 | 0 |
-| Uvicorn (Raw ASGI) | Mem update ×20 | Uvicorn (Raw ASGI, 1 worker, msgspec) | oha | 23,548.14 | 1.953 | 4.349 | 0 |
+| Granian (Raw RSGI) | Plaintext | Granian (Raw RSGI, 1 worker, msgspec) | oha | 162,854.16 | 0.297 | 0.495 | 0 |
+| Granian (Raw RSGI) | JSON | Granian (Raw RSGI, 1 worker, msgspec) | oha | 154,488.9 | 0.303 | 0.542 | 0 |
+| Granian (Raw RSGI) | Mem get | Granian (Raw RSGI, 1 worker, msgspec) | oha | 150,451.79 | 0.304 | 0.609 | 0 |
+| Granian (Raw RSGI) | Mem get ×20 | Granian (Raw RSGI, 1 worker, msgspec) | oha | 75,434.51 | 0.66 | 0.867 | 0 |
+| Granian (Raw RSGI) | HTML fortunes (in-memory) | Granian (Raw RSGI, 1 worker, msgspec) | oha | 44,826.34 | 1.112 | 1.328 | 0 |
+| Granian (Raw RSGI) | Mem update ×20 | Granian (Raw RSGI, 1 worker, msgspec) | oha | 60,892.17 | 0.816 | 1.125 | 0 |
+| Granian (Raw ASGI) | Plaintext | Granian (Raw ASGI, 1 worker, msgspec) | oha | 114,973.35 | 0.369 | 0.836 | 0 |
+| Granian (Raw ASGI) | JSON | Granian (Raw ASGI, 1 worker, msgspec) | oha | 116,874.95 | 0.347 | 0.852 | 0 |
+| Granian (Raw ASGI) | Mem get | Granian (Raw ASGI, 1 worker, msgspec) | oha | 116,220.94 | 0.354 | 0.92 | 0 |
+| Granian (Raw ASGI) | Mem get ×20 | Granian (Raw ASGI, 1 worker, msgspec) | oha | 62,998.56 | 0.776 | 1.535 | 0 |
+| Granian (Raw ASGI) | HTML fortunes (in-memory) | Granian (Raw ASGI, 1 worker, msgspec) | oha | 39,309.61 | 1.267 | 1.68 | 0 |
+| Granian (Raw ASGI) | Mem update ×20 | Granian (Raw ASGI, 1 worker, msgspec) | oha | 51,301.57 | 0.962 | 1.71 | 0 |
+| Dreaming Electric Sheep (RSGI) | Plaintext | Granian (RSGI, 1 worker, msgspec) | oha | 134,822.13 | 0.341 | 0.941 | 0 |
+| Dreaming Electric Sheep (RSGI) | JSON | Granian (RSGI, 1 worker, msgspec) | oha | 130,906.7 | 0.354 | 0.991 | 0 |
+| Dreaming Electric Sheep (RSGI) | Mem get | Granian (RSGI, 1 worker, msgspec) | oha | 123,133.31 | 0.382 | 1.073 | 0 |
+| Dreaming Electric Sheep (RSGI) | Mem get ×20 | Granian (RSGI, 1 worker, msgspec) | oha | 60,568.59 | 0.824 | 1.062 | 0 |
+| Dreaming Electric Sheep (RSGI) | HTML fortunes (in-memory) | Granian (RSGI, 1 worker, msgspec) | oha | 39,400.84 | 1.27 | 1.518 | 0 |
+| Dreaming Electric Sheep (RSGI) | Mem update ×20 | Granian (RSGI, 1 worker, msgspec) | oha | 49,646.92 | 1.004 | 1.234 | 0 |
+| Dreaming Electric Sheep (ASGI) | Plaintext | Granian (ASGI, 1 worker, msgspec) | oha | 103,376.6 | 0.427 | 1.208 | 0 |
+| Dreaming Electric Sheep (ASGI) | JSON | Granian (ASGI, 1 worker, msgspec) | oha | 101,170.5 | 0.445 | 1.27 | 0 |
+| Dreaming Electric Sheep (ASGI) | Mem get | Granian (ASGI, 1 worker, msgspec) | oha | 98,055.97 | 0.472 | 1.333 | 0 |
+| Dreaming Electric Sheep (ASGI) | Mem get ×20 | Granian (ASGI, 1 worker, msgspec) | oha | 51,603.39 | 0.959 | 1.768 | 0 |
+| Dreaming Electric Sheep (ASGI) | HTML fortunes (in-memory) | Granian (ASGI, 1 worker, msgspec) | oha | 35,831.43 | 1.392 | 1.709 | 0 |
+| Dreaming Electric Sheep (ASGI) | Mem update ×20 | Granian (ASGI, 1 worker, msgspec) | oha | 43,700.27 | 1.131 | 1.664 | 0 |
+| Uvicorn (Raw ASGI) | Plaintext | Uvicorn (Raw ASGI, 1 worker, msgspec) | oha | 70,525.0 | 0.679 | 1.386 | 0 |
+| Uvicorn (Raw ASGI) | JSON | Uvicorn (Raw ASGI, 1 worker, msgspec) | oha | 68,867.73 | 0.682 | 1.393 | 0 |
+| Uvicorn (Raw ASGI) | Mem get | Uvicorn (Raw ASGI, 1 worker, msgspec) | oha | 66,041.94 | 0.723 | 1.473 | 0 |
+| Uvicorn (Raw ASGI) | Mem get ×20 | Uvicorn (Raw ASGI, 1 worker, msgspec) | oha | 43,252.35 | 1.114 | 2.219 | 0 |
+| Uvicorn (Raw ASGI) | HTML fortunes (in-memory) | Uvicorn (Raw ASGI, 1 worker, msgspec) | oha | 31,084.7 | 1.553 | 3.084 | 0 |
+| Uvicorn (Raw ASGI) | Mem update ×20 | Uvicorn (Raw ASGI, 1 worker, msgspec) | oha | 38,357.62 | 1.253 | 2.488 | 0 |
 
 ## Table B: Default Stack Comparison (Stock Helpers Out-of-the-Box)
 Measures out-of-the-box performance using each framework's stock response/serialization helpers.
 
 | Framework | Route | Server / Runtime | Tool | RPS (Median) | p50 ms | p99 ms | Errors |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| Dreaming Electric Sheep (RSGI) | Plaintext | Granian (RSGI, 1 worker, stock helpers) | oha | 54,610.44 | 0.719 | 2.238 | 0 |
-| Dreaming Electric Sheep (RSGI) | JSON | Granian (RSGI, 1 worker, stock helpers) | oha | 58,617.54 | 0.712 | 2.078 | 0 |
-| Dreaming Electric Sheep (RSGI) | Mem get | Granian (RSGI, 1 worker, stock helpers) | oha | 62,643.37 | 0.676 | 2.108 | 0 |
-| Dreaming Electric Sheep (RSGI) | Mem get ×20 | Granian (RSGI, 1 worker, stock helpers) | oha | 33,968.6 | 1.354 | 3.565 | 0 |
-| Dreaming Electric Sheep (RSGI) | HTML fortunes (in-memory) | Granian (RSGI, 1 worker, stock helpers) | oha | 26,208.06 | 1.845 | 3.246 | 0 |
-| Dreaming Electric Sheep (RSGI) | Mem update ×20 | Granian (RSGI, 1 worker, stock helpers) | oha | 27,064.48 | 1.69 | 4.352 | 0 |
-| Dreaming Electric Sheep (ASGI) | Plaintext | Granian (ASGI, 1 worker, stock helpers) | oha | 53,654.49 | 0.822 | 2.057 | 0 |
-| Dreaming Electric Sheep (ASGI) | JSON | Granian (ASGI, 1 worker, stock helpers) | oha | 56,336.6 | 0.778 | 2.052 | 0 |
-| Dreaming Electric Sheep (ASGI) | Mem get | Granian (ASGI, 1 worker, stock helpers) | oha | 56,362.63 | 0.766 | 2.192 | 0 |
-| Dreaming Electric Sheep (ASGI) | Mem get ×20 | Granian (ASGI, 1 worker, stock helpers) | oha | 31,565.85 | 1.471 | 3.424 | 0 |
-| Dreaming Electric Sheep (ASGI) | HTML fortunes (in-memory) | Granian (ASGI, 1 worker, stock helpers) | oha | 23,948.64 | 2.011 | 3.768 | 0 |
-| Dreaming Electric Sheep (ASGI) | Mem update ×20 | Granian (ASGI, 1 worker, stock helpers) | oha | 28,435.18 | 1.677 | 3.297 | 0 |
-| Emmett | Plaintext | Granian (RSGI/ASGI, 1 worker) | oha | 47,619.23 | 0.987 | 2.54 | 0 |
-| Emmett | JSON | Granian (RSGI/ASGI, 1 worker) | oha | 36,772.32 | 1.212 | 3.526 | 0 |
-| Emmett | Mem get | Granian (RSGI/ASGI, 1 worker) | oha | 41,197.44 | 1.134 | 2.921 | 0 |
-| Emmett | Mem get ×20 | Granian (RSGI/ASGI, 1 worker) | oha | 23,385.5 | 2.037 | 3.939 | 0 |
-| Emmett | HTML fortunes (in-memory) | Granian (RSGI/ASGI, 1 worker) | oha | 20,619.62 | 2.311 | 4.282 | 0 |
-| Emmett | Mem update ×20 | Granian (RSGI/ASGI, 1 worker) | oha | 19,202.82 | 2.475 | 4.498 | 0 |
-| Sanic | Plaintext | Sanic (1 worker) | oha | 37,436.67 | 1.237 | 2.727 | 0 |
-| Sanic | JSON | Sanic (1 worker) | oha | 34,246.25 | 1.343 | 2.876 | 0 |
-| Sanic | Mem get | Sanic (1 worker) | oha | 31,727.28 | 1.411 | 3.239 | 0 |
-| Sanic | Mem get ×20 | Sanic (1 worker) | oha | 19,446.25 | 2.343 | 5.021 | 0 |
-| Sanic | HTML fortunes (in-memory) | Sanic (1 worker) | oha | 16,008.46 | 2.992 | 6.589 | 0 |
-| Sanic | Mem update ×20 | Sanic (1 worker) | oha | 16,405.36 | 2.866 | 6.163 | 0 |
-| Robyn | Plaintext | Robyn Rust (1 worker process) | oha | 22,838.76 | 2.081 | 4.704 | 0 |
-| Robyn | JSON | Robyn Rust (1 worker process) | oha | 23,090.31 | 2.195 | 4.136 | 0 |
-| Robyn | Mem get | Robyn Rust (1 worker process) | oha | 21,441.45 | 2.333 | 4.618 | 0 |
-| Robyn | Mem get ×20 | Robyn Rust (1 worker process) | oha | 9,783.07 | 4.913 | 10.742 | 0 |
-| Robyn | HTML fortunes (in-memory) | Robyn Rust (1 worker process) | oha | 11,640.49 | 4.228 | 8.808 | 0 |
-| Robyn | Mem update ×20 | Robyn Rust (1 worker process) | oha | 13,419.87 | 3.858 | 6.64 | 0 |
-| Litestar | Plaintext | Granian (ASGI, 1 worker) | oha | 28,096.24 | 1.712 | 3.261 | 0 |
-| Litestar | JSON | Granian (ASGI, 1 worker) | oha | 23,168.58 | 1.988 | 4.887 | 0 |
-| Litestar | Mem get | Granian (ASGI, 1 worker) | oha | 26,139.98 | 1.859 | 3.442 | 0 |
-| Litestar | Mem get ×20 | Granian (ASGI, 1 worker) | oha | 14,544.22 | 3.296 | 5.814 | 0 |
-| Litestar | HTML fortunes (in-memory) | Granian (ASGI, 1 worker) | oha | 14,456.77 | 3.339 | 5.236 | 0 |
-| Litestar | Mem update ×20 | Granian (ASGI, 1 worker) | oha | 14,311.9 | 3.318 | 5.839 | 0 |
-| FastAPI | Plaintext | Granian (ASGI, 1 worker) | oha | 15,421.06 | 2.998 | 6.653 | 0 |
-| FastAPI | JSON | Granian (ASGI, 1 worker) | oha | 16,053.03 | 2.97 | 5.059 | 0 |
-| FastAPI | Mem get | Granian (ASGI, 1 worker) | oha | 13,352.51 | 3.471 | 6.606 | 0 |
-| FastAPI | Mem get ×20 | Granian (ASGI, 1 worker) | oha | 5,718.55 | 8.576 | 11.49 | 0 |
-| FastAPI | HTML fortunes (in-memory) | Granian (ASGI, 1 worker) | oha | 10,738.82 | 4.5 | 6.821 | 0 |
-| FastAPI | Mem update ×20 | Granian (ASGI, 1 worker) | oha | 5,745.86 | 8.533 | 11.054 | 0 |
-| Flask | Plaintext | Granian (WSGI, 1 worker) | oha | 19,936.06 | 2.392 | 4.24 | 0 |
-| Flask | JSON | Granian (WSGI, 1 worker) | oha | 17,730.4 | 2.724 | 4.188 | 0 |
-| Flask | Mem get | Granian (WSGI, 1 worker) | oha | 16,301.05 | 2.97 | 4.26 | 0 |
-| Flask | Mem get ×20 | Granian (WSGI, 1 worker) | oha | 5,395.47 | 8.825 | 13.239 | 0 |
-| Flask | HTML fortunes (in-memory) | Granian (WSGI, 1 worker) | oha | 9,890.72 | 4.871 | 8.645 | 0 |
-| Flask | Mem update ×20 | Granian (WSGI, 1 worker) | oha | 4,968.91 | 9.571 | 17.566 | 0 |
-| Django | Plaintext | Granian (WSGI, 1 worker, stripped middleware) | oha | 16,498.24 | 2.828 | 7.36 | 0 |
-| Django | JSON | Granian (WSGI, 1 worker, stripped middleware) | oha | 11,314.15 | 3.897 | 9.23 | 0 |
-| Django | Mem get | Granian (WSGI, 1 worker, stripped middleware) | oha | 12,482.07 | 3.807 | 6.751 | 0 |
-| Django | Mem get ×20 | Granian (WSGI, 1 worker, stripped middleware) | oha | 5,689.64 | 8.613 | 11.721 | 0 |
-| Django | HTML fortunes (in-memory) | Granian (WSGI, 1 worker, stripped middleware) | oha | 10,493.39 | 4.611 | 8.546 | 0 |
-| Django | Mem update ×20 | Granian (WSGI, 1 worker, stripped middleware) | oha | 5,407.22 | 9.098 | 11.818 | 0 |
+| Dreaming Electric Sheep (RSGI) | Plaintext | Granian (RSGI, 1 worker, stock helpers) | oha | 132,342.38 | 0.344 | 0.985 | 0 |
+| Dreaming Electric Sheep (RSGI) | JSON | Granian (RSGI, 1 worker, stock helpers) | oha | 130,247.14 | 0.351 | 1.013 | 0 |
+| Dreaming Electric Sheep (RSGI) | Mem get | Granian (RSGI, 1 worker, stock helpers) | oha | 122,823.63 | 0.378 | 1.089 | 0 |
+| Dreaming Electric Sheep (RSGI) | Mem get ×20 | Granian (RSGI, 1 worker, stock helpers) | oha | 60,728.96 | 0.821 | 1.076 | 0 |
+| Dreaming Electric Sheep (RSGI) | HTML fortunes (in-memory) | Granian (RSGI, 1 worker, stock helpers) | oha | 38,662.51 | 1.294 | 1.517 | 0 |
+| Dreaming Electric Sheep (RSGI) | Mem update ×20 | Granian (RSGI, 1 worker, stock helpers) | oha | 49,317.7 | 1.012 | 1.251 | 0 |
+| Dreaming Electric Sheep (ASGI) | Plaintext | Granian (ASGI, 1 worker, stock helpers) | oha | 103,770.31 | 0.441 | 1.245 | 0 |
+| Dreaming Electric Sheep (ASGI) | JSON | Granian (ASGI, 1 worker, stock helpers) | oha | 101,484.07 | 0.45 | 1.265 | 0 |
+| Dreaming Electric Sheep (ASGI) | Mem get | Granian (ASGI, 1 worker, stock helpers) | oha | 97,421.9 | 0.477 | 1.328 | 0 |
+| Dreaming Electric Sheep (ASGI) | Mem get ×20 | Granian (ASGI, 1 worker, stock helpers) | oha | 51,395.3 | 0.96 | 1.896 | 0 |
+| Dreaming Electric Sheep (ASGI) | HTML fortunes (in-memory) | Granian (ASGI, 1 worker, stock helpers) | oha | 35,874.54 | 1.389 | 1.885 | 0 |
+| Dreaming Electric Sheep (ASGI) | Mem update ×20 | Granian (ASGI, 1 worker, stock helpers) | oha | 43,688.72 | 1.13 | 1.903 | 0 |
+| Emmett | Plaintext | Granian (RSGI/ASGI, 1 worker) | oha | 74,941.25 | 0.642 | 1.535 | 0 |
+| Emmett | JSON | Granian (RSGI/ASGI, 1 worker) | oha | 67,591.27 | 0.72 | 1.434 | 0 |
+| Emmett | Mem get | Granian (RSGI/ASGI, 1 worker) | oha | 65,980.58 | 0.743 | 1.641 | 0 |
+| Emmett | Mem get ×20 | Granian (RSGI/ASGI, 1 worker) | oha | 34,893.38 | 1.429 | 2.027 | 0 |
+| Emmett | HTML fortunes (in-memory) | Granian (RSGI/ASGI, 1 worker) | oha | 31,430.25 | 1.578 | 2.506 | 0 |
+| Emmett | Mem update ×20 | Granian (RSGI/ASGI, 1 worker) | oha | 30,674.43 | 1.625 | 2.293 | 0 |
+| Sanic | Plaintext | Sanic (1 worker) | oha | 52,589.37 | 0.882 | 1.796 | 0 |
+| Sanic | JSON | Sanic (1 worker) | oha | 47,990.14 | 0.968 | 1.955 | 0 |
+| Sanic | Mem get | Sanic (1 worker) | oha | 45,088.44 | 1.038 | 2.066 | 0 |
+| Sanic | Mem get ×20 | Sanic (1 worker) | oha | 26,859.81 | 1.809 | 3.581 | 0 |
+| Sanic | HTML fortunes (in-memory) | Sanic (1 worker) | oha | 23,320.56 | 2.059 | 4.052 | 0 |
+| Sanic | Mem update ×20 | Sanic (1 worker) | oha | 24,572.77 | 1.959 | 3.832 | 0 |
+| Robyn | Plaintext | Robyn Rust (1 worker process) | oha | 39,177.61 | 1.352 | 2.122 | 0 |
+| Robyn | JSON | Robyn Rust (1 worker process) | oha | 35,054.64 | 1.504 | 2.48 | 0 |
+| Robyn | Mem get | Robyn Rust (1 worker process) | oha | 34,567.71 | 1.532 | 2.483 | 0 |
+| Robyn | Mem get ×20 | Robyn Rust (1 worker process) | oha | 23,197.21 | 2.319 | 3.368 | 0 |
+| Robyn | HTML fortunes (in-memory) | Robyn Rust (1 worker process) | oha | 21,531.24 | 2.475 | 3.866 | 0 |
+| Robyn | Mem update ×20 | Robyn Rust (1 worker process) | oha | 21,715.23 | 2.471 | 3.535 | 0 |
+| Litestar | Plaintext | Granian (ASGI, 1 worker) | oha | 40,451.89 | 1.232 | 1.649 | 0 |
+| Litestar | JSON | Granian (ASGI, 1 worker) | oha | 38,873.21 | 1.278 | 1.735 | 0 |
+| Litestar | Mem get | Granian (ASGI, 1 worker) | oha | 37,207.1 | 1.34 | 1.734 | 0 |
+| Litestar | Mem get ×20 | Granian (ASGI, 1 worker) | oha | 25,049.81 | 1.985 | 2.532 | 0 |
+| Litestar | HTML fortunes (in-memory) | Granian (ASGI, 1 worker) | oha | 20,142.13 | 2.484 | 3.303 | 0 |
+| Litestar | Mem update ×20 | Granian (ASGI, 1 worker) | oha | 22,989.65 | 2.165 | 2.513 | 0 |
+| FastAPI | Plaintext | Granian (ASGI, 1 worker) | oha | 29,253.05 | 1.697 | 2.159 | 0 |
+| FastAPI | JSON | Granian (ASGI, 1 worker) | oha | 24,622.01 | 2.026 | 2.404 | 0 |
+| FastAPI | Mem get | Granian (ASGI, 1 worker) | oha | 22,815.4 | 2.186 | 2.594 | 0 |
+| FastAPI | Mem get ×20 | Granian (ASGI, 1 worker) | oha | 8,514.95 | 5.869 | 6.388 | 0 |
+| FastAPI | HTML fortunes (in-memory) | Granian (ASGI, 1 worker) | oha | 16,375.71 | 3.052 | 3.504 | 0 |
+| FastAPI | Mem update ×20 | Granian (ASGI, 1 worker) | oha | 8,186.49 | 6.12 | 6.581 | 0 |
+| Flask | Plaintext | Granian (WSGI, 1 worker) | oha | 23,811.91 | 1.868 | 3.013 | 0 |
+| Flask | JSON | Granian (WSGI, 1 worker) | oha | 19,899.76 | 2.482 | 3.348 | 0 |
+| Flask | Mem get | Granian (WSGI, 1 worker) | oha | 18,230.7 | 2.695 | 4.263 | 0 |
+| Flask | Mem get ×20 | Granian (WSGI, 1 worker) | oha | 7,021.67 | 7.048 | 8.608 | 0 |
+| Flask | HTML fortunes (in-memory) | Granian (WSGI, 1 worker) | oha | 13,079.1 | 3.774 | 4.83 | 0 |
+| Flask | Mem update ×20 | Granian (WSGI, 1 worker) | oha | 6,768.89 | 7.346 | 10.536 | 0 |
+| Django | Plaintext | Granian (WSGI, 1 worker, stripped middleware) | oha | 23,477.62 | 2.09 | 3.087 | 0 |
+| Django | JSON | Granian (WSGI, 1 worker, stripped middleware) | oha | 19,954.98 | 2.466 | 3.627 | 0 |
+| Django | Mem get | Granian (WSGI, 1 worker, stripped middleware) | oha | 18,655.29 | 2.645 | 3.492 | 0 |
+| Django | Mem get ×20 | Granian (WSGI, 1 worker, stripped middleware) | oha | 6,771.52 | 7.22 | 10.36 | 0 |
+| Django | HTML fortunes (in-memory) | Granian (WSGI, 1 worker, stripped middleware) | oha | 12,292.82 | 3.999 | 5.847 | 0 |
+| Django | Mem update ×20 | Granian (WSGI, 1 worker, stripped middleware) | oha | 6,209.89 | 7.976 | 10.842 | 0 |
 
 ### Environment & System Specifications
 - Python: 3.14.7 (CPython)

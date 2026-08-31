@@ -4,7 +4,7 @@
 
 - **Product**: Dreaming Electric Sheep (`des`)
 - **Category**: High-performance CPython 3.13+ serving stack on Granian RSGI.
-- **Value Proposition**: A ~20% framework tax on raw Granian RSGI in exchange for startup-compiled `msgspec` binders, automated OpenAPI documentation, and a compiled-request inspection CLI (`des why`, `des routes`, `des doctor`).
+- **Value Proposition**: A ~10–15% framework tax on raw Granian RSGI in exchange for startup-compiled `msgspec` binders, automated OpenAPI documentation, and a compiled-request inspection CLI (`des why`, `des routes`, `des doctor`).
 
 ## 2. Installation
 

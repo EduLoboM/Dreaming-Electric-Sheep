@@ -403,10 +403,10 @@ def run_framework_benchmarks(
                 print(f"ERROR: Server {name} failed to become ready within timeout.", file=sys.stderr)
                 continue
 
-            print("  Warming up (2s)...")
+            print("  Warming up (3s, 50 concurrency)...")
             try:
                 subprocess.run(
-                    [oha_bin, "--no-tui", "-z", "2s", "-c", "20", f"http://{host}:{port}/plaintext"],
+                    [oha_bin, "--no-tui", "-z", "3s", "-c", "50", f"http://{host}:{port}/plaintext"],
                     stdout=subprocess.DEVNULL,
                     stderr=subprocess.DEVNULL,
                 )
@@ -524,7 +524,7 @@ def main():
         "",
     ]
 
-    # If running only rsgi mode, parse existing Table A and Table B from results.md if available
+    # If running only rsgi mode or ceiling mode, parse existing tables from results.md if available
     if args.mode == "rsgi" and results_file.exists():
         existing_text = results_file.read_text(encoding="utf8")
         if "## Table A: Ceiling Comparison" in existing_text:
@@ -539,6 +539,40 @@ def main():
             content_parts.extend([
                 "## Table B: Default Stack Comparison (Stock Helpers Out-of-the-Box)",
                 part_b,
+                "",
+            ])
+    elif args.mode == "ceiling" and results_file.exists():
+        if ceiling_results:
+            content_parts.extend([
+                "## Table A: Ceiling Comparison (Apples-to-Apples msgspec Encoder)",
+                "Measures framework tax against raw server ceilings when all targets encode JSON per request using msgspec.",
+                "",
+                format_table(ceiling_results),
+                "",
+            ])
+        existing_text = results_file.read_text(encoding="utf8")
+        if "## Table B: Default Stack Comparison" in existing_text:
+            part_b = existing_text.split("## Table B: Default Stack Comparison")[1].split("## Table")[0].split("### Environment")[0].strip()
+            content_parts.extend([
+                "## Table B: Default Stack Comparison (Stock Helpers Out-of-the-Box)",
+                part_b,
+                "",
+            ])
+    elif args.mode == "default" and results_file.exists():
+        existing_text = results_file.read_text(encoding="utf8")
+        if "## Table A: Ceiling Comparison" in existing_text:
+            part_a = existing_text.split("## Table A: Ceiling Comparison")[1].split("## Table")[0].strip()
+            content_parts.extend([
+                "## Table A: Ceiling Comparison (Apples-to-Apples msgspec Encoder)",
+                part_a,
+                "",
+            ])
+        if default_results:
+            content_parts.extend([
+                "## Table B: Default Stack Comparison (Stock Helpers Out-of-the-Box)",
+                "Measures out-of-the-box performance using each framework's stock response/serialization helpers.",
+                "",
+                format_table(default_results),
                 "",
             ])
     else:

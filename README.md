@@ -11,7 +11,7 @@
 
 <h1 align="center">Dreaming Electric Sheep (<code>des</code>)</h1>
 
-**Dreaming Electric Sheep (`des`)** is a high-performance CPython 3.13+ serving stack built on Granian RSGI. It is a ~20% tax you pay on raw Granian in exchange for startup-compiled `msgspec` binders, automated OpenAPI documentation, and a CLI that can inspect compiled requests (`des why`, `des doctor`, `des routes`).
+**Dreaming Electric Sheep (`des`)** is a high-performance CPython 3.13+ serving stack built on Granian RSGI. It is a ~10–15% tax you pay on raw Granian in exchange for startup-compiled `msgspec` binders, automated OpenAPI documentation, and a CLI that can inspect compiled requests (`des why`, `des doctor`, `des routes`).
 
 See the [15-Minute Quickstart Tutorial](docs/tutorial.md) and [Why DES?](docs/why-des.md) for architectural trade-offs and comparisons with raw Granian, Litestar, and FastAPI.
 
@@ -207,15 +207,15 @@ Overhead measured against a shared in-memory fixture on localhost (median of 5 i
 
 ### Table A: Framework Tax vs. Raw Server Ceilings (msgspec Encoder)
 
-Measures framework tax against raw server ceilings when all targets encode JSON per request using `msgspec.json.encode` and run with `optimize_gc=False`. The ~20% gap represents the necessary cost of route matching, request abstraction, and parameter binding over raw protocol sockets.
+Measures framework tax against raw server ceilings when all targets encode JSON per request using `msgspec.json.encode` and run with `optimize_gc=False`. The ~10–15% gap represents the necessary cost of route matching, request abstraction, and parameter binding over raw protocol sockets.
 
 | Framework / Layer | Plaintext (req/s) | JSON (req/s) | Mem get (req/s) | Mem get ×20 (req/s) | HTML fortunes (req/s) | Mem update ×20 (req/s) | Server / Runtime |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| Granian (Raw RSGI) | 101,573 | 96,725 | 97,370 | 51,698 | 25,862 | 36,321 | Raw Granian RSGI (ceiling) |
-| Granian (Raw ASGI) | 70,343 | 72,069 | 66,652 | 40,249 | 22,480 | 32,425 | Raw Granian ASGI (ceiling) |
-| **Dreaming Electric Sheep (RSGI)** | **77,479** | **71,686** | **69,456** | **37,368** | **26,411** | **33,479** | **Granian (RSGI, 1 worker)** |
-| Dreaming Electric Sheep (ASGI) | 73,348 | 66,781 | 64,345 | 28,635 | 20,869 | 25,841 | Granian (ASGI, 1 worker) |
-| Uvicorn (Raw ASGI) | 45,141 | 44,846 | 39,480 | 27,776 | 18,014 | 23,548 | Uvicorn (Raw ASGI, 1 worker) |
+| Granian (Raw RSGI) | 162,854 | 154,489 | 150,452 | 75,435 | 44,826 | 60,892 | Raw Granian RSGI (ceiling) |
+| **Dreaming Electric Sheep (RSGI)** | **134,822** | **130,907** | **123,133** | **60,569** | **39,401** | **49,647** | **Granian (RSGI, 1 worker)** |
+| Granian (Raw ASGI) | 114,973 | 116,875 | 116,221 | 62,999 | 39,310 | 51,302 | Raw Granian ASGI (ceiling) |
+| Dreaming Electric Sheep (ASGI) | 103,377 | 101,171 | 98,056 | 51,603 | 35,831 | 43,700 | Granian (ASGI, 1 worker) |
+| Uvicorn (Raw ASGI) | 70,525 | 68,868 | 66,042 | 43,252 | 31,085 | 38,358 | Uvicorn (Raw ASGI, 1 worker) |
 
 ### Table B: Default Stack Comparison (Stock Helpers Out-of-the-Box)
 
@@ -223,15 +223,15 @@ Measures out-of-the-box performance using each framework's stock response and se
 
 | Framework | Plaintext (req/s) | JSON (req/s) | Mem get (req/s) | Mem get ×20 (req/s) | HTML fortunes (req/s) | Mem update ×20 (req/s) | Server / Runtime |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **Dreaming Electric Sheep (RSGI)** | **54,610** | **58,618** | **62,643** | **33,969** | **26,208** | **27,064** | **Granian (RSGI, 1 worker)** |
-| Dreaming Electric Sheep (ASGI) | 53,654 | 56,337 | 56,363 | 31,566 | 23,949 | 28,435 | Granian (ASGI, 1 worker) |
-| Emmett | 47,619 | 36,772 | 41,197 | 23,386 | 20,620 | 19,203 | Granian (RSGI/ASGI, 1 worker) |
-| Sanic | 37,437 | 34,246 | 31,727 | 19,446 | 16,008 | 16,405 | Sanic (1 worker) |
-| Litestar | 28,096 | 23,169 | 26,140 | 14,544 | 14,457 | 14,312 | Granian (ASGI, 1 worker) |
-| Robyn | 22,839 | 23,090 | 21,441 | 9,783 | 11,640 | 13,420 | Robyn Rust (1 worker process) |
-| Flask | 19,936 | 17,730 | 16,301 | 5,395 | 9,891 | 4,969 | Granian (WSGI, 1 worker) |
-| Django | 16,498 | 11,314 | 12,482 | 5,690 | 10,493 | 5,407 | Granian (WSGI, 1 worker) |
-| FastAPI | 15,421 | 16,053 | 13,353 | 5,719 | 10,739 | 5,746 | Granian (ASGI, 1 worker) |
+| **Dreaming Electric Sheep (RSGI)** | **132,342** | **130,247** | **122,824** | **60,729** | **38,663** | **49,318** | **Granian (RSGI, 1 worker)** |
+| Dreaming Electric Sheep (ASGI) | 103,770 | 101,484 | 97,422 | 51,395 | 35,875 | 43,689 | Granian (ASGI, 1 worker) |
+| Emmett | 74,941 | 67,591 | 65,981 | 34,893 | 31,430 | 30,674 | Granian (RSGI/ASGI, 1 worker) |
+| Sanic | 52,589 | 47,990 | 45,088 | 26,860 | 23,321 | 24,573 | Sanic (1 worker) |
+| Litestar | 40,452 | 38,873 | 37,207 | 25,050 | 20,142 | 22,990 | Granian (ASGI, 1 worker) |
+| Robyn | 39,178 | 35,055 | 34,568 | 23,197 | 21,531 | 21,715 | Robyn Rust (1 worker process) |
+| FastAPI | 29,253 | 24,622 | 22,815 | 8,515 | 16,376 | 8,186 | Granian (ASGI, 1 worker) |
+| Flask | 23,812 | 19,900 | 18,231 | 7,022 | 13,079 | 6,769 | Granian (WSGI, 1 worker) |
+| Django | 23,478 | 19,955 | 18,655 | 6,772 | 12,293 | 6,210 | Granian (WSGI, 1 worker) |
 
 > **Environment**: x86_64 Linux, CPython 3.14 | Granian 2.8.2 | Uvicorn 0.34.2 | `oha 1.16.0`. See [perf/compare/](perf/compare/) for harness scripts.
 

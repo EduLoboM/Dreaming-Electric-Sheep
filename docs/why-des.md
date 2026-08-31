@@ -12,13 +12,13 @@ It does not claim a new computing paradigm. It is an honest, carefully engineere
 
 Raw Granian written in Rust is the performance ceiling for Python HTTP serving (~180k req/s plaintext). When you build an application directly against raw Granian, you write low-level protocol handlers with manual parsing, no automatic parameter binding, no validation pipeline, no route introspection, and no OpenAPI generation.
 
-**DES is a ~20% framework tax you pay on Granian** in exchange for:
+**DES is a ~10–15% framework tax you pay on Granian** in exchange for:
 
 1. **Startup-compiled binders**: Request body and parameters decoded into typed objects via pre-compiled `msgspec` decoders with zero runtime reflection.
 2. **First-class OpenAPI & UI**: Rich Scalar, Swagger, or ReDoc documentation derived from the exact same typed models.
 3. **Compiled-Request Inspection (`des why`)**: A CLI toolchain that inspects radix match routes, bound parameters, and middleware pipelines before sending a single byte.
 
-You will not beat raw Granian while remaining a web framework. The ~20% overhead is the price of the framework middle layer. Compared to generic Python frameworks, DES ensures that price is as low as CPython allows.
+You will not beat raw Granian while remaining a web framework. The ~10–15% overhead is the price of the framework middle layer. Compared to generic Python frameworks, DES ensures that price is as low as CPython allows.
 
 ### 2. DES vs. Litestar
 
