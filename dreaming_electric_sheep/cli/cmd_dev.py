@@ -47,6 +47,12 @@ def dev_command(
         "-i",
         help="Interface protocol: rsgi or asgi (default: rsgi for Granian, asgi for Uvicorn)",
     ),
+    debug: bool = typer.Option(
+        False,
+        "--debug",
+        "-d",
+        help="Enable debugpy on port 5678 for debugger attachment (VSCode / PyCharm)",
+    ),
 ) -> None:
     """
     Start development server with auto-reload.
@@ -54,6 +60,7 @@ def dev_command(
     Examples:
       des dev
       des dev app:app --port 8000
+      des dev --debug
       des dev -s granian -i asgi
     """
     app_target = resolve_app_target(app)
@@ -81,6 +88,16 @@ def dev_command(
         print("Error: Uvicorn is not installed.", file=sys.stderr)
         print("Next step: pip install uvicorn", file=sys.stderr)
         sys.exit(3)
+
+    if debug:
+        try:
+            import debugpy
+            debugpy.listen(("0.0.0.0", 5678))
+            print("debugpy listening on 0.0.0.0:5678 (ready for debugger attach)")
+        except ImportError:
+            print("Warning: debugpy is not installed. Run: pip install debugpy", file=sys.stderr)
+        except Exception as e:
+            print(f"Warning: could not start debugpy: {e}", file=sys.stderr)
 
     # Check for docs routes honestly
     docs_msg = ""
@@ -125,3 +142,4 @@ def dev_command(
         sys.exit(proc.returncode)
     except KeyboardInterrupt:
         sys.exit(0)
+

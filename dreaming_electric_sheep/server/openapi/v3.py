@@ -14,6 +14,8 @@ from typing import _AnnotatedAlias as AnnotatedAlias
 from typing import _GenericAlias, get_type_hints
 from uuid import UUID
 
+import msgspec
+
 from guardpost import AuthenticationHandler
 from guardpost.common import AuthenticatedRequirement
 from openapidocs.common import Format, Serializer
@@ -309,6 +311,30 @@ class DataClassTypeHandler(ObjectTypeHandler):
         return [FieldInfo(field.name, field.type) for field in fields(object_type)]
 
 
+class MsgspecStructTypeHandler(ObjectTypeHandler):
+    """
+    An ObjectTypeHandler that can handle subclasses of msgspec.Struct.
+    """
+
+    def handles_type(self, object_type) -> bool:
+        try:
+            return inspect.isclass(object_type) and issubclass(object_type, msgspec.Struct)
+        except TypeError:
+            return False
+
+    def set_type_schema(self, object_type, context: "OpenAPIHandler") -> None:
+        raise NotImplementedError()
+
+    def get_type_fields(self, object_type, register_type) -> list[FieldInfo]:
+        try:
+            return [
+                FieldInfo(f.name, f.type)
+                for f in msgspec.structs.fields(object_type)
+            ]
+        except Exception:
+            return []
+
+
 class PydanticModelTypeHandler(ObjectTypeHandler):
     """
     An ObjectTypeHandler that can handle subclasses of Pydantic BaseModel.
@@ -455,6 +481,7 @@ class OpenAPIHandler(APIDocsHandler[OpenAPI]):
             DataClassTypeHandler(),
             PydanticModelTypeHandler(),
             PydanticDataClassTypeHandler(),
+            MsgspecStructTypeHandler(),
         ]
         self._security_schemes_handlers: list[SecuritySchemeHandler] = [
             APIKeySecuritySchemeHandler(),

@@ -1,41 +1,60 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
   <head>
-    <title>Internal Server Error.</title>
+    <title>500 Internal Server Error &bull; Dreaming Electric Sheep</title>
     <meta charset="utf-8" />
-    <meta content='text/html; charset=utf-8' http-equiv='Content-Type'>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <style>
       /*STYLES*/
     </style>
   </head>
   <body>
     <header>
-      <h1>Internal Server Error.</h1>
-      <p>While handling request: {method} {path}</p>
+      <div class="header-content">
+        <div class="badge">500 &bull; Internal Server Error</div>
+        <h1>{exctype}</h1>
+        <p class="error-msg">{excmessage}</p>
+        <div class="meta-strip">
+          <span class="http-method">{method}</span>
+          <span class="http-path">{path}</span>
+        </div>
+      </div>
     </header>
-    <div id="content">
-      <div>
+    <main id="content">
+      <section class="cli-hint">
+        <span class="cli-title">&#9889; CLI Diagnostic:</span>
+        <code>des why {method} {path}</code>
+      </section>
+
+      <section class="details-section">
+        <h3>Request &amp; Exception Details</h3>
         <dl>
-            <dt>Exception type:</dt>
-            <dd>{exctype}</dd>
-            <dt>Exception message:</dt>
-            <dd>{excmessage}</dd>
-            <dt>Method:</dt>
-            <dd>{method}</dd>
-            <dt>URL:</dt>
-            <dd>{full_url}</dd>
+            <dt>Exception:</dt>
+            <dd><code>{exctype}</code>: {excmessage}</dd>
+            <dt>Route Target:</dt>
+            <dd><code>{method} {path}</code></dd>
+            <dt>Full URL:</dt>
+            <dd><code>{full_url}</code></dd>
         </dl>
-      </div>
-      <hr/>
-      <h3>Stack trace:</h3>
-      <ol class="stack-trace custom-counter">{info}</ol>
-      <hr/>
-      <div class="notes">
-        <span>
-          This error is displayed for diagnostic purpose. Error details
-          should be hidden during normal service operation.
-        </span>
-      </div>
-    </div>
+      </section>
+
+      <section class="stack-section">
+        <h3>Traceback &amp; Frame Locals</h3>
+        <ol class="stack-frames">
+          {info}
+        </ol>
+      </section>
+
+      <section class="traceback-section">
+        <h3>Full Traceback</h3>
+        <pre class="frame-code"><code>{raw_traceback}</code></pre>
+      </section>
+
+      <footer>
+        <div class="notes">
+          Dreaming Electric Sheep &bull; Diagnostic Mode (<code>show_error_details=True</code>). Frame locals sanitized.
+        </div>
+      </footer>
+    </main>
   </body>
 </html>

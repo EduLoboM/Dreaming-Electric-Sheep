@@ -1,89 +1,254 @@
+:root {
+  --bg-primary: #0f141c;
+  --bg-surface: #18202c;
+  --bg-surface-elevated: #222d3d;
+  --text-primary: #e6edf3;
+  --text-secondary: #8b949e;
+  --accent-red: #f85149;
+  --accent-amber: #d29922;
+  --accent-cyan: #38bdf8;
+  --accent-green: #3fb950;
+  --border-color: #30363d;
+  --code-bg: #0d1117;
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
 body {
-  font-family: sans-serif;
+  font-family: var(--font-sans);
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
   margin: 0;
   padding: 0;
-}
-
-dl {
-  display: flex;
-  flex-flow: row;
-  flex-wrap: wrap;
-  overflow: visible;
-}
-
-dt {
-  font-weight: bold;
-  flex: 0 0 20%;
-  text-overflow: ellipsis;
-  overflow: hidden;
-  border-bottom: 1px dotted #eee;
-  padding: 10px 0;
-}
-
-dd {
-  flex: 0 0 80%;
-  margin-left: auto;
-  text-align: left;
-  text-overflow: ellipsis;
-  overflow: hidden;
-  padding: 10px 0;
-  border-bottom: 1px dotted #eee;
-}
-
-dt, dd {
-  padding: .3rem 0;
+  line-height: 1.5;
 }
 
 header {
-  background-color: #1c6962;
-  color: white;
-  padding: .5rem 2rem;
-  border-bottom: 1px solid #0f5046;
+  background: linear-gradient(180deg, #241315 0%, var(--bg-surface) 100%);
+  border-bottom: 1px solid var(--border-color);
+  padding: 2rem 2.5rem;
+}
+
+.badge {
+  display: inline-block;
+  background: rgba(248, 81, 73, 0.15);
+  color: var(--accent-red);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 0.25rem 0.6rem;
+  border-radius: 9999px;
+  border: 1px solid rgba(248, 81, 73, 0.3);
+  margin-bottom: 0.75rem;
+}
+
+header h1 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.error-msg {
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 1rem;
+  margin: 0 0 1rem 0;
+}
+
+.meta-strip {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.http-method {
+  background: var(--bg-surface-elevated);
+  color: var(--accent-cyan);
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 0.85rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+}
+
+.http-path {
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  color: var(--text-primary);
 }
 
 #content {
-  padding: .5rem 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1.5rem 2.5rem;
 }
 
-.stack-trace {
-  font-family: monospace;
-  background: aliceblue;
-  padding: 1rem 3.5rem;
-  border: 1px dashed #366a62;
-  font-size: 14px;
+.cli-hint {
+  background: rgba(56, 189, 248, 0.08);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  border-radius: 6px;
+  padding: 0.75rem 1.25rem;
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
 }
 
-.stack-trace pre {
-  padding-left: 60px;
-  word-break: break-word;
-  white-space: break-spaces;
+.cli-title {
+  color: var(--accent-cyan);
+  font-weight: 600;
+  font-size: 0.9rem;
 }
 
-.custom-counter {
+.cli-hint code {
+  font-family: var(--font-mono);
+  background: var(--code-bg);
+  color: var(--text-primary);
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+.details-section, .stack-section {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+h3 {
+  margin-top: 0;
+  margin-bottom: 1rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+dl {
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  gap: 0.5rem 1rem;
   margin: 0;
-  padding: 0 1rem 0 0;
-  list-style-type: none;
 }
 
-.custom-counter li {
-  counter-increment: step-counter;
-  margin-bottom: 5px;
+dt {
+  color: var(--text-secondary);
+  font-weight: 500;
+  font-size: 0.9rem;
 }
 
-.custom-counter li::before {
-  content: counter(step-counter);
-  margin-right: 20px;
-  font-size: 80%;
-  background-color: rgb(54 106 98);
-  color: white;
-  font-weight: bold;
-  padding: 3px 8px;
-  float: left;
-  border-radius: 11px;
-  margin-left: 20px;
+dd {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 0.9rem;
 }
 
-.notes {
-  padding: 1rem 0;
-  font-size: small;
+dd code {
+  font-family: var(--font-mono);
+  background: var(--code-bg);
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+}
+
+.stack-frames {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.frame-item {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 0.75rem 1rem;
+}
+
+.frame-header {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  margin-bottom: 0.5rem;
+  color: var(--text-secondary);
+}
+
+.frame-file {
+  color: var(--accent-cyan);
+}
+
+.frame-line {
+  color: var(--accent-amber);
+}
+
+.frame-func {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.frame-code {
+  background: var(--code-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  padding: 0.5rem 0.75rem;
+  margin: 0.5rem 0;
+  overflow-x: auto;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  color: #58a6ff;
+}
+
+.frame-locals {
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+}
+
+.frame-locals summary {
+  cursor: pointer;
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  user-select: none;
+}
+
+.frame-locals summary:hover {
+  color: var(--text-primary);
+}
+
+.locals-body {
+  margin-top: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--code-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+}
+
+.local-var {
+  padding: 0.15rem 0;
+}
+
+.var-name {
+  color: #79c0ff;
+}
+
+.var-val {
+  color: #a5d6ff;
+}
+
+.local-var.none {
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+footer {
+  margin-top: 2rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  text-align: center;
 }
