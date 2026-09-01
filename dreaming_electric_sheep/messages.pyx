@@ -43,6 +43,7 @@ from .url cimport URL, build_absolute_url
 from cpython.object cimport PyObject
 from cpython.bytes cimport PyBytes_AS_STRING, PyBytes_GET_SIZE, PyBytes_CheckExact
 from cpython.unicode cimport PyUnicode_AsUTF8AndSize, PyUnicode_CheckExact
+from libc.string cimport memcmp
 
 cdef extern from "interning.h":
     PyObject *get_interned_method_str(const char *method_str, size_t len)
@@ -180,15 +181,47 @@ cdef inline object _msg_convert_val(object val, bint is_bytes):
             return (<bytes>val).decode("latin-1")
         return str(val)
 
+cdef list _extract_headers_from_scope(object raw_headers):
+    cdef list headers = []
+    if raw_headers is None:
+        return headers
+    cdef object items = getattr(raw_headers, "items", None)
+    cdef object iter_source = items() if items is not None else raw_headers
+    cdef object pair, name, value
+    cdef bytes name_bytes
+    if iter_source is None:
+        return headers
+    for pair in iter_source:
+        name = pair[0]
+        value = pair[1]
+        if PyBytes_CheckExact(name):
+            name_bytes = intern_header_name_bytes(<bytes>name)
+        elif PyUnicode_CheckExact(name):
+            name_bytes = intern_header_name_bytes((<str>name).encode("latin-1"))
+        else:
+            name_bytes = intern_header_name_bytes(str(name).encode("latin-1"))
+        headers.append((name_bytes, value))
+    return headers
+
+
 cdef class Message:
 
     def __init__(self, list headers):
-        self._raw_headers = [(intern_header_name_bytes(h[0]), h[1]) if isinstance(h, tuple) and len(h) == 2 and isinstance(h[0], bytes) else h for h in headers] if headers else []
+        self._raw_headers = [(intern_header_name_bytes(h[0]), h[1]) if isinstance(h, tuple) and len(h) == 2 and isinstance(h[0], bytes) else h for h in headers] if headers is not None else []
+
+    cdef void _ensure_raw_headers(self):
+        if self._raw_headers is None:
+            if hasattr(self, "scope") and getattr(self, "scope") is not None and hasattr(getattr(self, "scope"), "headers"):
+                self._raw_headers = _extract_headers_from_scope(getattr(self, "scope").headers)
+            else:
+                self._raw_headers = []
 
     @property
     def headers(self):
         if self._headers is not None:
             return self._headers
+        if self._raw_headers is None:
+            self._ensure_raw_headers()
         self._headers = Headers(self._raw_headers)
         return self._headers
 
@@ -197,6 +230,8 @@ cdef class Message:
         return self
 
     cpdef object get_first_header(self, object key):
+        if self._raw_headers is None:
+            self._ensure_raw_headers()
         cdef tuple header
         cdef bytes low_bkey
         cdef str low_skey
@@ -218,6 +253,8 @@ cdef class Message:
         return None
 
     cpdef list get_headers(self, object key):
+        if self._raw_headers is None:
+            self._ensure_raw_headers()
         cdef list results = []
         cdef tuple header
         cdef bytes low_bkey
@@ -254,6 +291,8 @@ cdef class Message:
             setattr(self, name, value)
 
     cdef list get_headers_tuples(self, object key):
+        if self._raw_headers is None:
+            self._ensure_raw_headers()
         cdef list results = []
         cdef tuple header
         cdef bytes low_bkey
@@ -283,6 +322,8 @@ cdef class Message:
         return results[0]
 
     cpdef void remove_header(self, object key):
+        if self._raw_headers is None:
+            self._ensure_raw_headers()
         cdef tuple header
         cdef list to_remove = []
         cdef bytes low_bkey
@@ -306,11 +347,15 @@ cdef class Message:
             self._raw_headers.remove(header)
 
     cdef void remove_headers(self, list headers):
+        if self._raw_headers is None:
+            self._ensure_raw_headers()
         cdef tuple header
         for header in headers:
             self._raw_headers.remove(header)
 
     cdef bint _has_header(self, object key):
+        if self._raw_headers is None:
+            self._ensure_raw_headers()
         cdef bytes low_bkey
         cdef str low_skey
 
@@ -333,6 +378,8 @@ cdef class Message:
         return self._has_header(key)
 
     cdef void _add_header(self, object key, object value):
+        if self._raw_headers is None:
+            self._ensure_raw_headers()
         if PyBytes_CheckExact(key):
             self._raw_headers.append((intern_header_name_bytes(<bytes>key), value))
         else:
@@ -875,6 +922,166 @@ cdef class Request(Message):
         self._raw_query = raw_query
         self.url = self.url.with_query(raw_query)
 
+    cpdef object get_query_param(self, object name, object default=None):
+        if not self._raw_query or name is None:
+            return default
+
+        cdef bytes raw_bytes
+        if PyBytes_CheckExact(self._raw_query):
+            raw_bytes = <bytes>self._raw_query
+        elif PyUnicode_CheckExact(self._raw_query):
+            raw_bytes = (<str>self._raw_query).encode("latin-1")
+        else:
+            return default
+
+        cdef bytes key_bytes
+        if PyBytes_CheckExact(name):
+            key_bytes = <bytes>name
+        elif PyUnicode_CheckExact(name):
+            key_bytes = (<str>name).encode("utf8")
+        else:
+            key_bytes = str(name).encode("utf8")
+
+        cdef const char *q = PyBytes_AS_STRING(raw_bytes)
+        cdef Py_ssize_t q_len = PyBytes_GET_SIZE(raw_bytes)
+        cdef const char *k = PyBytes_AS_STRING(key_bytes)
+        cdef Py_ssize_t k_len = PyBytes_GET_SIZE(key_bytes)
+
+        if q_len == 0 or k_len == 0:
+            return default
+
+        cdef Py_ssize_t i = 0
+        cdef Py_ssize_t val_start
+        cdef Py_ssize_t val_end
+        cdef bytes val_bytes
+        cdef str val_str
+        cdef bint has_pct_or_plus
+
+        while i < q_len:
+            if (i == 0 or q[i - 1] == c'&' or q[i - 1] == c';') and (i + k_len <= q_len) and (memcmp(q + i, k, k_len) == 0):
+                if i + k_len == q_len or q[i + k_len] == c'&' or q[i + k_len] == c';':
+                    return ""
+                elif q[i + k_len] == c'=':
+                    val_start = i + k_len + 1
+                    val_end = val_start
+                    has_pct_or_plus = False
+                    while val_end < q_len and q[val_end] != c'&' and q[val_end] != c';':
+                        if q[val_end] == c'%' or q[val_end] == c'+':
+                            has_pct_or_plus = True
+                        val_end += 1
+                    val_bytes = raw_bytes[val_start:val_end]
+                    if has_pct_or_plus:
+                        val_str = unquote(val_bytes.replace(b'+', b' ').decode("utf8", "replace"))
+                    else:
+                        val_str = val_bytes.decode("utf8", "replace")
+                    return val_str
+            while i < q_len and q[i] != c'&' and q[i] != c';':
+                i += 1
+            i += 1
+
+        return default
+
+    cpdef list get_query_params(self, object name):
+        cdef list results = []
+        if not self._raw_query or name is None:
+            return results
+
+        cdef bytes raw_bytes
+        if PyBytes_CheckExact(self._raw_query):
+            raw_bytes = <bytes>self._raw_query
+        elif PyUnicode_CheckExact(self._raw_query):
+            raw_bytes = (<str>self._raw_query).encode("latin-1")
+        else:
+            return results
+
+        cdef bytes key_bytes
+        if PyBytes_CheckExact(name):
+            key_bytes = <bytes>name
+        elif PyUnicode_CheckExact(name):
+            key_bytes = (<str>name).encode("utf8")
+        else:
+            key_bytes = str(name).encode("utf8")
+
+        cdef const char *q = PyBytes_AS_STRING(raw_bytes)
+        cdef Py_ssize_t q_len = PyBytes_GET_SIZE(raw_bytes)
+        cdef const char *k = PyBytes_AS_STRING(key_bytes)
+        cdef Py_ssize_t k_len = PyBytes_GET_SIZE(key_bytes)
+
+        if q_len == 0 or k_len == 0:
+            return results
+
+        cdef Py_ssize_t i = 0
+        cdef Py_ssize_t val_start
+        cdef Py_ssize_t val_end
+        cdef bytes val_bytes
+        cdef str val_str
+        cdef bint has_pct_or_plus
+
+        while i < q_len:
+            if (i == 0 or q[i - 1] == c'&' or q[i - 1] == c';') and (i + k_len <= q_len) and (memcmp(q + i, k, k_len) == 0):
+                if i + k_len == q_len or q[i + k_len] == c'&' or q[i + k_len] == c';':
+                    results.append("")
+                elif q[i + k_len] == c'=':
+                    val_start = i + k_len + 1
+                    val_end = val_start
+                    has_pct_or_plus = False
+                    while val_end < q_len and q[val_end] != c'&' and q[val_end] != c';':
+                        if q[val_end] == c'%' or q[val_end] == c'+':
+                            has_pct_or_plus = True
+                        val_end += 1
+                    val_bytes = raw_bytes[val_start:val_end]
+                    if has_pct_or_plus:
+                        val_str = unquote(val_bytes.replace(b'+', b' ').decode("utf8", "replace"))
+                    else:
+                        val_str = val_bytes.decode("utf8", "replace")
+                    results.append(val_str)
+            while i < q_len and q[i] != c'&' and q[i] != c';':
+                i += 1
+            i += 1
+
+        return results
+
+    @property
+    def is_htmx(self) -> bool:
+        return self._has_header(b"hx-request")
+
+    @property
+    def htmx_target(self):
+        cdef object val = self.get_first_header(b"hx-target")
+        if val is None:
+            return None
+        return val.decode("utf8") if isinstance(val, bytes) else str(val)
+
+    @property
+    def htmx_trigger(self):
+        cdef object val = self.get_first_header(b"hx-trigger")
+        if val is None:
+            return None
+        return val.decode("utf8") if isinstance(val, bytes) else str(val)
+
+    @property
+    def htmx_current_url(self):
+        cdef object val = self.get_first_header(b"hx-current-url")
+        if val is None:
+            return None
+        return val.decode("utf8") if isinstance(val, bytes) else str(val)
+
+    @property
+    def htmx_prompt(self):
+        cdef object val = self.get_first_header(b"hx-prompt")
+        if val is None:
+            return None
+        return val.decode("utf8") if isinstance(val, bytes) else str(val)
+
+    @property
+    def htmx_target_id(self):
+        cdef object target = self.htmx_target
+        if target is None:
+            return None
+        if target.startswith("#"):
+            return target[1:]
+        return target
+
     @property
     def url(self):
         if self._url:
@@ -1112,14 +1319,8 @@ cdef class Response(Message):
             raise FailedRequestError(self.status, await self.text())
 
 
-import threading
-
-class _ThreadLocalFreelist(threading.local):
-    def __init__(self):
-        self.requests = []
-        self.responses = []
-
-_TLS = _ThreadLocalFreelist()
+cdef list _REQ_FREELIST = []
+cdef list _RESP_FREELIST = []
 cdef int _MAX_FREELIST_CAPACITY = 512
 
 
@@ -1127,18 +1328,15 @@ cpdef Request acquire_request(str method, object path, object raw_query, list he
     cdef Request req
     cdef str interned_method = intern_method_str(method)
     cdef list processed_headers
-    if not headers:
+    if headers is None:
+        processed_headers = None
+    elif not headers:
         processed_headers = []
     else:
         processed_headers = [(intern_header_name_bytes(h[0]), h[1]) if isinstance(h, tuple) and len(h) == 2 and isinstance(h[0], bytes) else h for h in headers]
-    cdef list req_list = getattr(_TLS, "requests", None)
-    if req_list is None:
-        _TLS.requests = []
-        _TLS.responses = []
-        req_list = _TLS.requests
 
-    if req_list:
-        req = req_list.pop()
+    if _REQ_FREELIST:
+        req = <Request>_REQ_FREELIST.pop()
         req.method = interned_method
         req._path = path
         req._raw_query = raw_query
@@ -1163,27 +1361,17 @@ cpdef Request acquire_request(str method, object path, object raw_query, list he
 
 
 cpdef void release_request(Request request):
-    cdef list req_list = getattr(_TLS, "requests", None)
-    if req_list is None:
-        _TLS.requests = []
-        _TLS.responses = []
-        req_list = _TLS.requests
-
-    if len(req_list) < _MAX_FREELIST_CAPACITY:
+    if request is None:
+        return
+    if len(_REQ_FREELIST) < _MAX_FREELIST_CAPACITY:
         request.reset()
-        req_list.append(request)
+        _REQ_FREELIST.append(request)
 
 
 cpdef Response acquire_response(int status=200, list headers=None, Content content=None):
     cdef Response resp
-    cdef list resp_list = getattr(_TLS, "responses", None)
-    if resp_list is None:
-        _TLS.requests = []
-        _TLS.responses = []
-        resp_list = _TLS.responses
-
-    if resp_list:
-        resp = resp_list.pop()
+    if _RESP_FREELIST:
+        resp = <Response>_RESP_FREELIST.pop()
         resp.status = status
         resp._raw_headers = headers if headers is not None else []
         resp.content = content
@@ -1192,15 +1380,11 @@ cpdef Response acquire_response(int status=200, list headers=None, Content conte
 
 
 cpdef void release_response(Response response):
-    cdef list resp_list = getattr(_TLS, "responses", None)
-    if resp_list is None:
-        _TLS.requests = []
-        _TLS.responses = []
-        resp_list = _TLS.responses
-
-    if len(resp_list) < _MAX_FREELIST_CAPACITY:
+    if response is None:
+        return
+    if len(_RESP_FREELIST) < _MAX_FREELIST_CAPACITY:
         response.reset()
-        resp_list.append(response)
+        _RESP_FREELIST.append(response)
 
 
 cpdef bint is_cors_request(Request request):

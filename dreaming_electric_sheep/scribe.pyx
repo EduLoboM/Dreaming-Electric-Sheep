@@ -14,7 +14,7 @@ import re
 
 from .contents cimport Content, StreamedContent, RSGIContent, ServerSentEvent
 from .cookies cimport Cookie, write_cookie_for_response
-from .messages cimport Request, Response, acquire_request, release_request
+from .messages cimport Request, Response, acquire_request, release_request, release_response
 from .url cimport URL
 
 from cpython.object cimport PyObject
@@ -312,9 +312,8 @@ cpdef list extract_rsgi_headers(object raw_headers):
 cpdef Request instantiate_rsgi_request(object scope, object protocol):
     cdef str path_str = scope.path
     cdef str query_str = scope.query_string or ""
-    cdef list headers = extract_rsgi_headers(scope.headers)
     cdef str method = scope.method
-    cdef Request request = acquire_request(method, path_str, query_str, headers, scope)
+    cdef Request request = acquire_request(method, path_str, query_str, None, scope)
     # Lazy RSGIContent: do not allocate RSGIContent on GET/HEAD/OPTIONS
     if method != "GET" and method != "HEAD" and method != "OPTIONS":
         request.content = RSGIContent(protocol)
@@ -426,3 +425,48 @@ async def send_rsgi_response(Response response, object protocol):
     cdef object res = send_rsgi_response_sync(response, protocol)
     if res is not None:
         await res
+
+
+async def _dispatch_rsgi_async(object app, Request request, object res, object protocol):
+    cdef Response response
+    try:
+        response = await res
+        res_sync = send_rsgi_response_sync(response, protocol)
+        if res_sync is not None:
+            await res_sync
+        if isinstance(response, Response):
+            release_response(response)
+    finally:
+        request.scope = None
+        release_request(request)
+
+
+async def _await_res_sync(object res_sync, Response response, Request request):
+    try:
+        await res_sync
+        if isinstance(response, Response):
+            release_response(response)
+    finally:
+        request.scope = None
+        release_request(request)
+
+
+cpdef object dispatch_rsgi_http(object app, object scope, object protocol):
+    cdef Request request = instantiate_rsgi_request(scope, protocol)
+    cdef object res
+    cdef Response response
+    cdef object res_sync
+
+    res = app.handle(request)
+    if not isinstance(res, Response):
+        return _dispatch_rsgi_async(app, request, res, protocol)
+
+    response = <Response>res
+    res_sync = send_rsgi_response_sync(response, protocol)
+    if res_sync is not None:
+        return _await_res_sync(res_sync, response, request)
+
+    release_response(response)
+    request.scope = None
+    release_request(request)
+    return None

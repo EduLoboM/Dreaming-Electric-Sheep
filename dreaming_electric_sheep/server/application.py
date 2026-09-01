@@ -26,13 +26,19 @@ from dreaming_electric_sheep.common import extend
 from dreaming_electric_sheep.common.files.asyncfs import FilesHandler
 from dreaming_electric_sheep.contents import ASGIContent
 from dreaming_electric_sheep.exceptions import NotFound
-from dreaming_electric_sheep.messages import Request, Response, release_request
+from dreaming_electric_sheep.messages import (
+    Request,
+    Response,
+    release_request,
+    release_response,
+)
 from dreaming_electric_sheep.middlewares import (
     MiddlewareCategory,
     MiddlewareList,
     get_middlewares_chain,
 )
 from dreaming_electric_sheep.scribe import (
+    dispatch_rsgi_http,
     instantiate_rsgi_request,
     send_asgi_response,
     send_rsgi_response_sync,
@@ -970,19 +976,9 @@ class Application(BaseApplication):
 
         proto = getattr(scope, "proto", "http")
         if proto == "http":
-            request = instantiate_rsgi_request(scope, protocol)
-            try:
-                res = self.handle(request)
-                if not isinstance(res, Response):
-                    response = await res
-                else:
-                    response = res
-                res_sync = send_rsgi_response_sync(response, protocol)
-                if res_sync is not None:
-                    await res_sync
-            finally:
-                request.scope = None
-                release_request(request)
+            res = dispatch_rsgi_http(self, scope, protocol)
+            if res is not None:
+                await res
             return
 
         protocol.response_empty(400, [])

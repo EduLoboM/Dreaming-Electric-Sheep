@@ -1,43 +1,94 @@
 # Why Dreaming Electric Sheep (DES)?
 
-Dreaming Electric Sheep (`des`) is a high-performance CPython 3.13+ serving stack built on top of [Granian](https://github.com/emmett-framework/granian) RSGI.
+Dreaming Electric Sheep (`des`) is a high-performance CPython 3.13+ web stack built directly on top of [Granian](https://github.com/emmett-framework/granian) RSGI.
 
-It does not claim a new computing paradigm. It is an honest, carefully engineered serving stack with a clear operating model: **Granian RSGI + startup-compiled msgspec binders + automated OpenAPI from those types + a CLI that inspects the compiled request graph (`des why`, `des doctor`, `des routes`)**.
+It does not invent a new computing paradigm. Instead, it is an honest, carefully engineered serving stack built on a clear design philosophy: **combining the raw throughput of Rust/C transport layers with the developer experience of modern typed Python (pre-compiled `msgspec` models, native HTMX reactivity, and compile-time request introspection).**
+
+---
+
+## Core Architectural Pillars
+
+### 1. Granian RSGI Transport vs. ASGI Overhead
+
+Standard Python ASGI frameworks communicate with servers through an asynchronous message loop based on tuples and dictionaries (`receive()` and `send()` coroutines per chunk). This abstraction introduces measurable CPU overhead per request.
+
+DES runs natively on Granian's **RSGI (Rust Server-Gateway Interface)**:
+
+- HTTP requests and responses pass directly between the Rust runtime and Python via C-level function pointers.
+- Eliminates ASGI message-loop coroutine scheduling on the hot path.
+- Still maintains an ASGI fallback when running in legacy environments or ASGI middleware chains.
+
+### 2. Startup-Compiled Validation (`msgspec`)
+
+Dynamic runtime validation with reflection-heavy libraries can dominate request processing latency.
+
+DES compiles all route decoders and encoders **at application startup**:
+
+- Type annotations (`msgspec.Struct`, dataclasses, typing primitives) are analyzed during route registration.
+- Pre-compiled C-speed decoders parse incoming JSON directly into structs with zero dynamic inspection per request.
+- Automatic generation of FastAPI-compatible structured `422 Unprocessable Entity` JSON responses on validation errors.
+
+### 3. Cython C-Core & Object Recycling
+
+Every HTTP request creates allocations for request structures, headers, and routing matches:
+
+- Core primitives (`Request`, `Response`, `Header`, `RouteMatch`) are implemented as Cython `cdef` extension types with fixed C struct offsets, eliminating `__dict__` overhead.
+- Object freelists recycle request and response instances across HTTP lifecycles to minimize heap allocations and garbage collection pressure.
+
+### 4. Native Full-Stack Reactivity (HTMX + SSR + SSE)
+
+Modern web development increasingly favors server-driven UI over heavy Single Page Application (SPA) bundles.
+
+DES includes first-class primitives for hypermedia architectures:
+
+- HTMX request inspection (`request.is_htmx`, `request.htmx_target`, `request.htmx_trigger`).
+- HTMX response helpers (`fragment()`, `hx_trigger()`, `hx_redirect()`, `hx_refresh()`).
+- High-throughput Jinja2 rendering engine with a pluggable `Renderer` interface (Mako, Chameleon, MiniJinja).
+- Real-time Server-Sent Events (`sse_stream`) and NDJSON streaming (`ndjson_stream`) out of the box.
+
+### 5. Inspectable Runtime (`des why`)
+
+In large applications, understanding how a request reaches a handler and what transformations take place often requires setting breakpoints or digging through layers of decorators.
+
+DES provides startup introspection via the CLI:
+
+- `des why <METHOD> <PATH>`: Traces route matching in the radix tree, parameter binders, and handler dispatch pipeline.
+- `des routes`: Visualizes the compiled routing table.
+- `des doctor`: Inspects C extensions, intern tables, and runtime environment health.
+- `des check`: Validates configuration and routes before deployment.
 
 ---
 
 ## The Landscape: Where DES Sits
 
-### 1. DES vs. Raw Granian (RSGI)
+### DES vs. Raw Granian (RSGI)
 
-Raw Granian written in Rust is the performance ceiling for Python HTTP serving (~180k req/s plaintext). When you build an application directly against raw Granian, you write low-level protocol handlers with manual parsing, no automatic parameter binding, no validation pipeline, no route introspection, and no OpenAPI generation.
+Raw Granian written in Rust is the performance ceiling for Python HTTP serving (~180k req/s plaintext). However, writing directly against raw Granian requires writing low-level protocol handlers with manual parsing, manual parameter binding, no route tree, and no automated OpenAPI generation.
 
-**DES is a ~10–15% framework tax you pay on Granian** in exchange for:
+DES provides the middle layer with a minimal ~10–15% framework overhead in exchange for:
 
-1. **Startup-compiled binders**: Request body and parameters decoded into typed objects via pre-compiled `msgspec` decoders with zero runtime reflection.
-2. **First-class OpenAPI & UI**: Rich Scalar, Swagger, or ReDoc documentation derived from the exact same typed models.
-3. **Compiled-Request Inspection (`des why`)**: A CLI toolchain that inspects radix match routes, bound parameters, and middleware pipelines before sending a single byte.
+- Radix tree routing with path parameters.
+- Startup-compiled `msgspec` request body and query binding.
+- Automated OpenAPI 3.0 schemas and interactive UIs (Scalar, Swagger, ReDoc).
+- HTMX response helpers and templating integration.
 
-You will not beat raw Granian while remaining a web framework. The ~10–15% overhead is the price of the framework middle layer. Compared to generic Python frameworks, DES ensures that price is as low as CPython allows.
+### DES vs. Litestar
 
-### 2. DES vs. Litestar
+Litestar is a mature, feature-rich ASGI framework with built-in `msgspec` support and dependency injection.
 
-Litestar is a full-featured, mature ASGI framework that already includes `msgspec` integration, dependency injection, and OpenAPI generation.
+DES differs by:
 
-The distinction in DES is:
+- Operating natively on **Granian RSGI** rather than ASGI by default.
+- Using Cython `cdef` extension types with C object freelists for core HTTP objects.
+- Offering a compiled request inspection CLI (`des why`) to trace the request pipeline.
+- Providing a streamlined full-stack HTMX and SSE workflow built directly into the core library.
 
-- Native **Granian RSGI** first-class protocol integration (eliminating ASGI message ceremony).
-- Cython `cdef` core types (`Request`, `Response`, `RouteMatch`, `Header`) backed by C freelists.
-- CLI-level compiled request inspector (`des why`) that resolves handler routes, parameter binders, and request lifecycle pipelines at startup.
+### DES vs. FastAPI
 
-### 3. DES vs. FastAPI
+FastAPI relies on Pydantic validation over ASGI (typically Uvicorn). On high-throughput routes, JSON serialization, Pydantic model instantiations, and ASGI task dispatching accumulate overhead.
 
-FastAPI relies on Pydantic validation over standard ASGI (typically Uvicorn). On hot paths, JSON serialization, dictionary transformations, and ASGI task dispatching accumulate overhead.
+DES provides:
 
-DES replaces the Pydantic-on-ASGI model with:
-
-- Pre-compiled `msgspec` decoders compiled once during startup.
-- Granian RSGI transport by default.
-- Fast `cdef` request structures.
-
-This is a structural tax cut on per-request allocations while keeping the familiar FastAPI-shaped DX (identical `422` error shapes, interactive documentation, type-driven routes).
+- Pre-compiled `msgspec` decoding instead of dynamic Pydantic reflection.
+- Native Granian RSGI transport instead of Uvicorn ASGI.
+- Significantly higher out-of-the-box throughput (~4-5x) while retaining the familiar developer experience: identical structured `422` error shapes, automatic OpenAPI docs, and type-annotated routes.

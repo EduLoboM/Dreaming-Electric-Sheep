@@ -167,15 +167,25 @@ def test_cli_templates_docs_invalid_on_minimal():
 def test_cli_templates_full():
     with tempfile.TemporaryDirectory() as tmpdir:
         target = Path(tmpdir) / "test_full"
-        create_project("test_full", template="full", target_dir=target)
+        create_project("test_full", template="fullstack", target_dir=target)
         assert (target / "app.py").exists()
-        assert (target / "templates" / "index.jinja").exists()
         assert (target / "templates" / "index.html").exists()
+        assert (target / "templates" / "partials" / "item_row.html").exists()
         app_code = (target / "app.py").read_text()
-        assert "DataService" in app_code
+        assert "JinjaRenderer" in app_code
         assert "uvicorn.run" not in app_code
 
         # Run pytest inside scaffolded project
+        res = run_pytest_in_dir(target)
+        assert res.returncode == 0, res.stdout + res.stderr
+
+
+def test_cli_templates_htmx():
+    with tempfile.TemporaryDirectory() as tmpdir:
+        target = Path(tmpdir) / "test_htmx"
+        create_project("test_htmx", template="htmx", target_dir=target)
+        assert (target / "app.py").exists()
+        assert (target / "templates" / "index.html").exists()
         res = run_pytest_in_dir(target)
         assert res.returncode == 0, res.stdout + res.stderr
 

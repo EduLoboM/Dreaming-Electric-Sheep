@@ -13,6 +13,7 @@ from dreaming_electric_sheep import (
     StreamedContent,
     TextContent,
 )
+from dreaming_electric_sheep.messages import acquire_response
 from dreaming_electric_sheep.common.files.asyncfs import FilesHandler
 from dreaming_electric_sheep.settings.html import html_settings
 from dreaming_electric_sheep.settings.json import json_settings
@@ -185,7 +186,7 @@ def text(value: str | bytes, status: int = 200) -> Response:
     and given status (default HTTP 200 OK).
     """
     raw = value if isinstance(value, bytes) else value.encode("utf8")
-    return Response(status, None, Content(_TEXT_PLAIN_CT, raw))
+    return acquire_response(status, None, Content(_TEXT_PLAIN_CT, raw))
 
 
 def html(value: str | bytes, status: int = 200) -> Response:
@@ -194,7 +195,7 @@ def html(value: str | bytes, status: int = 200) -> Response:
     and given status (default HTTP 200 OK).
     """
     raw = value if isinstance(value, bytes) else value.encode("utf8")
-    return Response(status, None, Content(_TEXT_HTML_CT, raw))
+    return acquire_response(status, None, Content(_TEXT_HTML_CT, raw))
 
 
 def json(data: Any, status: int = 200) -> Response:
@@ -204,14 +205,14 @@ def json(data: Any, status: int = 200) -> Response:
     """
     if not json_settings.has_custom_dumps:
         try:
-            return Response(
+            return acquire_response(
                 status, None, Content(_APP_JSON_CT, msgspec.json.encode(data))
             )
         except (TypeError, msgspec.EncodeError):
             pass
     raw = json_settings.dumps(data)
     raw_bytes = raw if isinstance(raw, bytes) else raw.encode("utf8")
-    return Response(status, None, Content(_APP_JSON_CT, raw_bytes))
+    return acquire_response(status, None, Content(_APP_JSON_CT, raw_bytes))
 
 
 def pretty_json(
@@ -353,7 +354,7 @@ def _create_html_response(html: str, status: int = 200):
     )
 
 
-def view(name: str, model: Any = None, status: int = 200, **kwargs) -> Response:
+def view(_name: str, _model: Any = None, _status: int = 200, **_kwargs) -> Response:
     """
     Returns a Response object with HTML obtained using synchronous rendering.
 
@@ -362,12 +363,118 @@ def view(name: str, model: Any = None, status: int = 200, **kwargs) -> Response:
     and `dreaming_electric_sheep.server.rendering.abc.Renderer`.
     """
     renderer = html_settings.renderer
-    if model:
+    if _model:
         return _create_html_response(
-            renderer.render(name, html_settings.model_to_params(model), **kwargs),
-            status,
+            renderer.render(_name, html_settings.model_to_params(_model), **_kwargs),
+            _status,
         )
-    return _create_html_response(renderer.render(name, None, **kwargs), status)
+    return _create_html_response(renderer.render(_name, None, **_kwargs), _status)
+
+
+def render(_name: str, _model: Any = None, _status: int = 200, **_kwargs) -> Response:
+    """
+    Returns a Response object with HTML obtained using synchronous rendering.
+    Alias for `view(name, model, status, **kwargs)`.
+    """
+    return view(_name, _model, _status=_status, **_kwargs)
+
+
+def render_template(_name: str, _status: int = 200, **_context) -> Response:
+    """
+    Renders an HTML template with keyword context and returns a Response object.
+    """
+    return view(_name, None, _status=_status, **_context)
+
+
+def fragment(_template_or_html: str, _status: int = 200, **_context) -> Response:
+    """
+    Renders an HTML fragment or template for HTMX / micro-frontends with no-cache headers.
+    If `_template_or_html` contains HTML tags ('<' and '>'), it is treated as a raw HTML snippet.
+    Otherwise it is rendered via the configured template engine.
+    """
+    if "<" in _template_or_html and ">" in _template_or_html:
+        raw_bytes = (
+            _template_or_html.encode("utf8")
+            if isinstance(_template_or_html, str)
+            else _template_or_html
+        )
+        return Response(_status, [(b"Cache-Control", b"no-cache")]).with_content(
+            Content(b"text/html; charset=utf-8", raw_bytes)
+        )
+    return view(_template_or_html, None, _status=_status, **_context)
+
+
+def hx_trigger(
+    event_name: str | dict[str, Any],
+    data: Any = None,
+    response: Response | None = None,
+) -> Response:
+    """
+    Sets the `HX-Trigger` header on a Response (or returns a new HTTP 200 OK Response).
+    Supports event name strings, single event with payload dict, or multiple event dicts.
+    """
+    if response is None:
+        response = Response(200)
+
+    if isinstance(event_name, dict):
+        val = msgspec.json.encode(event_name)
+    elif data is not None:
+        val = msgspec.json.encode({event_name: data})
+    else:
+        val = event_name.encode("utf8") if isinstance(event_name, str) else event_name
+
+    response.set_header(b"HX-Trigger", val)
+    return response
+
+
+def hx_redirect(url: str) -> Response:
+    """
+    Returns an HTMX client-side redirect response via the `HX-Redirect` header (HTTP 200 OK).
+    """
+    return Response(200, [(b"HX-Redirect", _ensure_bytes(url))])
+
+
+def hx_refresh() -> Response:
+    """
+    Returns an HTMX page refresh response via `HX-Refresh: true` (HTTP 200 OK).
+    """
+    return Response(200, [(b"HX-Refresh", b"true")])
+
+
+def hx_reswap(strategy: str, response: Response | None = None) -> Response:
+    """
+    Sets the `HX-Reswap` header specifying the swap strategy (e.g., 'outerHTML', 'innerHTML', 'beforebegin').
+    """
+    if response is None:
+        response = Response(200)
+    response.set_header(b"HX-Reswap", _ensure_bytes(strategy))
+    return response
+
+
+def sse_stream(
+    generator: Any,
+    status: int = 200,
+    headers: list[tuple[bytes, bytes]] | None = None,
+) -> Response:
+    """
+    Creates a Server-Sent Events (SSE) streaming Response from an async generator, iterable, or callable.
+    """
+    from dreaming_electric_sheep.server.sse import sse_stream as _sse_stream
+
+    return _sse_stream(generator, status=status, headers=headers)
+
+
+def ndjson_stream(
+    generator: Any,
+    status: int = 200,
+    headers: list[tuple[bytes, bytes]] | None = None,
+) -> Response:
+    """
+    Creates a Newline-Delimited JSON (NDJSON) streaming Response from an async generator, iterable, or callable.
+    """
+    from dreaming_electric_sheep.server.sse import ndjson_stream as _ndjson_stream
+
+    return _ndjson_stream(generator, status=status, headers=headers)
 
 
 async def view_async(

@@ -22,13 +22,15 @@ from dreaming_electric_sheep.utils import truthy
 from .abc import Renderer
 
 _DEFAULT_TEMPLATES_EXTENSION = os.environ.get("APP_JINJA_EXTENSION", ".jinja")
+_KNOWN_EXTENSIONS = (".jinja", ".jinja2", ".html", ".htm", ".j2", ".xhtml")
 
 
 @lru_cache(1200)
 def get_template_name(name: str) -> str:
-    if not name.endswith(_DEFAULT_TEMPLATES_EXTENSION):
-        return name + _DEFAULT_TEMPLATES_EXTENSION
-    return name
+    for ext in _KNOWN_EXTENSIONS:
+        if name.endswith(ext):
+            return name
+    return name + _DEFAULT_TEMPLATES_EXTENSION
 
 
 def render_template(template: Template, *args, **kwargs):

@@ -1,15 +1,10 @@
 # Dreaming Electric Sheep: Practical Guide
 
-**Dreaming Electric Sheep (`des`)** is a high-performance CPython 3.13+ serving stack built on Granian RSGI. It pairs startup-compiled `msgspec.Struct` parameter binders and automated OpenAPI 3.0 documentation with a developer toolchain (`des why`, `des routes`, `des doctor`) to inspect the compiled request pipeline.
-
----
-
 ## 1. Quickstart & Environment Setup
 
 ### Installation
 
 ```bash
-# Standard installation with Granian RSGI and msgspec serialization
 pip install "dreaming-electric-sheep[standard]"
 ```
 
@@ -38,6 +33,7 @@ cd demo
 ```
 
 Project structure:
+
 ```text
 demo/
 ├── app.py              # Application definition, routes, and OpenAPI config
@@ -54,6 +50,7 @@ des dev
 ```
 
 Interactive OpenAPI documentation is live at:
+
 - **Interactive UI (Scalar)**: `http://127.0.0.1:8000/docs`
 - **OpenAPI 3.0 Specification**: `http://127.0.0.1:8000/openapi.json`
 

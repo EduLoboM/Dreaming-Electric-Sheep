@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > **Version Line Policy**: Release `2.6.3` was an upstream version leak from BlackSheep and has been yanked from PyPI. Dreaming Electric Sheep versions remain strictly in the independent `1.x` release line. Upstream BlackSheep version numbers will never be reused.
 
+## [1.2.0] - 2026-09-01
+
+### Added
+- **First-Class SSR & Pluggable Template Architecture**:
+  - `JinjaRenderer` as default SSR engine with auto-escaping, auto-reload, and extensible `Renderer` interface for Mako, Chameleon, and custom DSLs.
+  - Native CSRF/antiforgery integration via `csrf_token` / `csrf_input` global functions.
+  - Ergonomic response shortcuts: `render(name, **context)`, `render_template(name, **context)`, and `fragment(html_or_template, **context)`.
+- **First-Class HTMX Suite**:
+  - Request inspection properties: `request.is_htmx`, `request.htmx_target`, `request.htmx_trigger`, `request.htmx_current_url`, `request.htmx_prompt`, `request.htmx_target_id`.
+  - HTMX response helpers: `hx_trigger(event, data)`, `hx_redirect(url)`, `hx_refresh()`, `hx_reswap(strategy)`.
+- **Real-Time Event Streaming**:
+  - `sse_stream` and `ndjson_stream` supporting async generators, sync iterators, and callable providers with automatic client disconnect cleanup.
+- **C-Core Fast Query Parser & Scalar Binders**:
+  - Zero-allocation C-level query string parser in Cython (`messages.pyx`) via `Request.get_query_param` and `Request.get_query_params`.
+  - Direct scalar type conversion (`int`, `float`, `bool`, `str`, `UUID`) in `QueryBinder` and `RouteBinder` bypassing intermediate dict allocations.
+- **Modern Full-Stack CLI Scaffolding (`des new -t fullstack`)**:
+  - Scaffold interactive applications with Jinja2, HTMX, Tailwind CSS CDN, debounced search, click-to-edit table rows, and live SSE streaming banner.
+
 ## [1.1.2] - 2026-08-31
 
 ### Added

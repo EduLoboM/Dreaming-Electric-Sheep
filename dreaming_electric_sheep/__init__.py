@@ -55,6 +55,8 @@ from .headers import Headers as Headers
 from .messages import Message as Message
 from .messages import Request as Request
 from .messages import Response as Response
+from .messages import acquire_response as acquire_response
+from .messages import release_response as release_response
 from .url import URL as URL
 from .url import InvalidURL as InvalidURL
 
@@ -89,9 +91,15 @@ _LAZY_EXPORTS = {
     "created": ".server.responses",
     "file": ".server.responses",
     "forbidden": ".server.responses",
+    "fragment": ".server.responses",
     "html": ".server.responses",
+    "hx_redirect": ".server.responses",
+    "hx_refresh": ".server.responses",
+    "hx_reswap": ".server.responses",
+    "hx_trigger": ".server.responses",
     "json": ".server.responses",
     "moved_permanently": ".server.responses",
+    "ndjson_stream": ".server.responses",
     "no_content": ".server.responses",
     "not_found": ".server.responses",
     "not_modified": ".server.responses",
@@ -99,13 +107,24 @@ _LAZY_EXPORTS = {
     "permanent_redirect": ".server.responses",
     "pretty_json": ".server.responses",
     "redirect": ".server.responses",
+    "render": ".server.responses",
+    "render_template": ".server.responses",
     "see_other": ".server.responses",
+    "sse_stream": ".server.responses",
     "status_code": ".server.responses",
     "temporary_redirect": ".server.responses",
     "text": ".server.responses",
     "unauthorized": ".server.responses",
     "view": ".server.responses",
     "view_async": ".server.responses",
+    # settings
+    "html_settings": ".settings.html",
+    "json_settings": ".settings.json",
+    # server.rendering
+    "JinjaRenderer": ".server.rendering.jinja2",
+    # server.sse
+    "NDJSONResponse": ".server.sse",
+    "ServerSentEventsResponse": ".server.sse",
     # server.routing
     "Route": ".server.routing",
     "RouteException": ".server.routing",

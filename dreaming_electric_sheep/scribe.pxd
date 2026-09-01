@@ -20,3 +20,5 @@ cpdef list extract_rsgi_headers(object raw_headers)
 cpdef Request instantiate_rsgi_request(object scope, object protocol)
 
 cpdef object send_rsgi_response_sync(Response response, object protocol)
+
+cpdef object dispatch_rsgi_http(object app, object scope, object protocol)

@@ -131,7 +131,7 @@ try:
 except ImportError:
 
     class RouteMatch:
-        __slots__ = ("_values", "pattern", "handler", "route")
+        __slots__ = ("_values", "pattern", "route")
 
         def __init__(
             self,
@@ -139,7 +139,6 @@ except ImportError:
             values: dict[str, bytes | None] | dict[str, str | None] | None,
         ):
             self.route = route
-            self.handler = route.handler
             self.pattern = route.pattern
             self._values: dict[str, str | None] = (
                 {
@@ -149,6 +148,10 @@ except ImportError:
                 if values
                 else None
             )
+
+        @property
+        def handler(self):
+            return self.route.handler
 
         @property
         def values(self) -> dict[str, str | None]:
@@ -753,6 +756,7 @@ class Router(RouterBase):
         "_registered_routes",
         "_named_routes",
         "_radix_router",
+        "_static_matches",
     )
 
     def __init__(
@@ -783,6 +787,7 @@ class Router(RouterBase):
         self._registered_routes = []  # used during setup
         self._named_routes: dict[str, Route] = {}
         self._radix_router = CythonRadixRouter()
+        self._static_matches = getattr(self._radix_router, "static_matches", {})
 
         if self._filters:
             extend(self, RouterFiltersMixin)
@@ -801,6 +806,7 @@ class Router(RouterBase):
         self.routes = defaultdict(list)
         self._named_routes = {}
         self._radix_router = CythonRadixRouter()
+        self._static_matches = getattr(self._radix_router, "static_matches", {})
         self.controllers_routes.reset()
         if self._sub_routers:
             for sub_router in self._sub_routers:
@@ -813,6 +819,7 @@ class Router(RouterBase):
         """
         if hasattr(self._radix_router, "freeze"):
             self._radix_router.freeze()
+        self._static_matches = getattr(self._radix_router, "static_matches", {})
         if self._sub_routers:
             for sub_router in self._sub_routers:
                 sub_router.freeze()
@@ -1032,6 +1039,7 @@ class Router(RouterBase):
                     self._radix_router.add_route(
                         method, route.pattern, route, route.param_names
                     )
+        self._static_matches = getattr(self._radix_router, "static_matches", {})
 
         if self._sub_routers:
             for sub_router in self._sub_routers:
@@ -1040,7 +1048,11 @@ class Router(RouterBase):
     def get_match(self, request: Request) -> RouteMatch | None:
         """
         Gets a match for the given request, by method and request path.
+        O(1) fast-path on static routes.
         """
+        match = self._static_matches.get((request.method, request._path))
+        if match is not None:
+            return match
         return self.get_match_by_method_and_path(request.method, request._path)
 
     @lru_cache(maxsize=1200)
@@ -1048,6 +1060,11 @@ class Router(RouterBase):
         self, method: AnyStr, path: AnyStr
     ) -> RouteMatch | None:
         if self._radix_router is not None:
+            static_match = getattr(self._radix_router, "get_static_match", None)
+            if static_match is not None:
+                sm = static_match(method, path)
+                if sm is not None:
+                    return sm
             radix_res = self._radix_router.get_match(method, path)
             if radix_res is not None:
                 route, values = radix_res

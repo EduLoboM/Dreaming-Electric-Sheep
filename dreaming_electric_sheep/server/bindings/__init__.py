@@ -22,6 +22,7 @@ from typing import (
     Type,
     TypeVar,
 )
+from urllib.parse import unquote
 from uuid import UUID
 
 import msgspec
@@ -1210,12 +1211,122 @@ class HeaderBinder(SyncBinder):
 class QueryBinder(SyncBinder):
     handle = FromQuery
 
+    def __init__(
+        self,
+        expected_type: T = str,
+        name: str | None = None,
+        implicit: bool = False,
+        required: bool = True,
+        converter: Callable | None = None,
+    ):
+        super().__init__(expected_type, name, implicit, required, converter)
+        self._is_iterable = self.is_generic_iterable_annotation(
+            expected_type
+        ) or expected_type in {list, set, tuple}
+        self._scalar_type = expected_type if not self._is_iterable else None
+        if self._scalar_type is int:
+            self._fast_convert = self._convert_int
+        elif self._scalar_type is float:
+            self._fast_convert = self._convert_float
+        elif self._scalar_type is bool:
+            self._fast_convert = self._convert_bool
+        elif self._scalar_type is str or str(self._scalar_type) == "~T":
+            self._fast_convert = self._convert_str
+        else:
+            self._fast_convert = None
+
+    @staticmethod
+    def _convert_str(val: str) -> str:
+        if "%" in val:
+            return unquote(val)
+        return val
+
+    @staticmethod
+    def _convert_int(val: str) -> int:
+        return int(val)
+
+    @staticmethod
+    def _convert_float(val: str) -> float:
+        return float(val)
+
+    @staticmethod
+    def _convert_bool(val: str) -> bool:
+        low = val.lower()
+        if low in ("true", "1", "yes", "on"):
+            return True
+        if low in ("false", "0", "no", "off"):
+            return False
+        raise ValueError(f"Cannot convert {val!r} to bool")
+
     @property
     def source_name(self) -> str:
         return "query"
 
     def get_raw_value(self, request: Request) -> Sequence[str]:
-        return [value for value in request.query.get(self.parameter_name, [])]
+        if self._is_iterable:
+            return request.get_query_params(self.parameter_name)
+        val = request.get_query_param(self.parameter_name)
+        if val is not None:
+            return [val]
+        return []
+
+    def get_value_sync(self, request: Request) -> Any | None:
+        if self._is_iterable:
+            raw_values = request.get_query_params(self.parameter_name)
+            try:
+                value = self.converter(raw_values)
+            except ValueError as converter_error:
+                raise BadRequest(
+                    f"Invalid value {raw_values} for parameter `{self.parameter_name}`; "
+                    f"expected a valid {self.expected_type}."
+                ) from converter_error
+
+            if self.default is not empty and (
+                value is None or self._empty_iterable(value)
+            ):
+                return None
+            if value is None and self.required and self.root_required:
+                raise MissingParameterError(self.parameter_name, self.source_name)
+            if not self.required and self._empty_iterable(value):
+                return None
+            return value
+
+        # Fast scalar path
+        raw_val = request.get_query_param(self.parameter_name)
+        if raw_val is None or (raw_val == "" and (not self.required or not self.root_required) and self.expected_type is not str):
+            if self.default is not empty:
+                return None
+            if raw_val is None and self.required and self.root_required:
+                raise MissingParameterError(self.parameter_name, self.source_name)
+            return None
+
+        if self._fast_convert is not None:
+            try:
+                return self._fast_convert(raw_val)
+            except (ValueError, TypeError) as err:
+                type_name = (
+                    self.expected_type.__name__
+                    if hasattr(self.expected_type, "__name__")
+                    else str(self.expected_type)
+                )
+                raw_values = request.get_query_params(self.parameter_name)
+                raise BadRequest(
+                    f"Invalid value {raw_values} for parameter `{self.parameter_name}`; "
+                    f"expected a valid {type_name}."
+                ) from err
+
+        try:
+            return self.converter([raw_val])
+        except ValueError as converter_error:
+            type_name = (
+                self.expected_type.__name__
+                if hasattr(self.expected_type, "__name__")
+                else str(self.expected_type)
+            )
+            raise BadRequest(
+                f"Invalid value {[raw_val]} for parameter `{self.parameter_name}`; "
+                f"expected a valid {type_name}."
+            ) from converter_error
 
 
 class CookieBinder(SyncBinder):
@@ -1244,9 +1355,41 @@ class RouteBinder(SyncBinder):
         converter: Callable | None = None,
     ):
         super().__init__(expected_type, name or "route", implicit, required, converter)
+        if expected_type is int:
+            self._fast_convert = int
+        elif expected_type is float:
+            self._fast_convert = float
+        elif expected_type is str or str(expected_type) == "~T":
+            self._fast_convert = QueryBinder._convert_str
+        else:
+            self._fast_convert = None
 
     def get_raw_value(self, request: Request) -> Sequence[str]:
-        return [request.route_values.get(self.parameter_name, "")]
+        val = request.route_values.get(self.parameter_name, "")
+        return [val] if val is not None else []
+
+    def get_value_sync(self, request: Request) -> Any | None:
+        raw_val = request.route_values.get(self.parameter_name)
+        if raw_val is None or raw_val == "":
+            if self.default is not empty:
+                return None
+            if self.required and self.root_required:
+                raise MissingParameterError(self.parameter_name, self.source_name)
+            return None
+        if self._fast_convert is not None:
+            try:
+                return self._fast_convert(raw_val)
+            except (ValueError, TypeError) as err:
+                type_name = (
+                    self.expected_type.__name__
+                    if hasattr(self.expected_type, "__name__")
+                    else str(self.expected_type)
+                )
+                raise BadRequest(
+                    f"Invalid value {raw_val!r} for parameter `{self.parameter_name}`; "
+                    f"expected a valid {type_name}."
+                ) from err
+        return super().get_value_sync(request)
 
     @property
     def source_name(self) -> str:

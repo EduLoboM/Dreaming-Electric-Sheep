@@ -23,7 +23,6 @@ cdef extern from "simd_ops.h" nogil:
 cdef class RouteMatch:
     def __init__(self, object route, dict values=None):
         self.route = route
-        self.handler = route.handler
         self.pattern = route.pattern
         self._values = (
             {
@@ -33,6 +32,10 @@ cdef class RouteMatch:
             if values
             else None
         )
+
+    @property
+    def handler(self):
+        return self.route.handler
 
     @property
     def values(self) -> dict:
@@ -429,11 +432,15 @@ cdef class CythonRadixRouter:
 
     def __init__(self):
         self.trees = {}
+        self.static_matches = {}
 
     cpdef void add_route(self, object method, object pattern, object route, list param_names=None):
         cdef str m_str
         cdef bytes m_bytes
         cdef RadixTree tree
+        cdef str pat_str
+        cdef bytes pat_bytes
+        cdef RouteMatch match_obj
 
         if PyBytes_CheckExact(method):
             m_bytes = (<bytes>method).upper()
@@ -454,7 +461,57 @@ cdef class CythonRadixRouter:
 
         tree.insert(pattern, route, param_names)
 
+        if PyBytes_CheckExact(pattern):
+            pat_bytes = <bytes>pattern
+            pat_str = pat_bytes.decode("utf8")
+        elif PyUnicode_CheckExact(pattern):
+            pat_str = <str>pattern
+            pat_bytes = pat_str.encode("utf8")
+        else:
+            pat_str = str(pattern)
+            pat_bytes = pat_str.encode("utf8")
+
+        cdef str norm_str = pat_str
+        if norm_str == "":
+            norm_str = "/"
+        if len(norm_str) > 1 and norm_str.endswith("/") and not norm_str.endswith("*/"):
+            norm_str = norm_str.rstrip("/")
+        cdef bytes norm_bytes = norm_str.encode("utf8")
+
+        cdef bint has_params = (
+            "{" in norm_str
+            or ":" in norm_str
+            or "<" in norm_str
+            or "*" in norm_str
+        )
+        if not has_params:
+            match_obj = RouteMatch(route, None)
+            self.static_matches[(m_str, norm_str)] = match_obj
+            self.static_matches[(m_bytes, norm_bytes)] = match_obj
+            self.static_matches[(m_str, norm_bytes)] = match_obj
+            self.static_matches[(m_bytes, norm_str)] = match_obj
+            if norm_str != "/":
+                self.static_matches[(m_str, norm_str + "/")] = match_obj
+                self.static_matches[(m_bytes, norm_bytes + b"/")] = match_obj
+                self.static_matches[(m_str, norm_bytes + b"/")] = match_obj
+                self.static_matches[(m_bytes, norm_str + "/")] = match_obj
+            else:
+                self.static_matches[(m_str, "")] = match_obj
+                self.static_matches[(m_bytes, b"")] = match_obj
+                self.static_matches[(m_str, b"")] = match_obj
+                self.static_matches[(m_bytes, "")] = match_obj
+
+    cpdef RouteMatch get_static_match(self, object method, object path):
+        cdef object res = self.static_matches.get((method, path))
+        if res is not None:
+            return <RouteMatch>res
+        return None
+
     cpdef tuple get_match(self, object method, object path):
+        cdef object static_res = self.static_matches.get((method, path))
+        if static_res is not None:
+            return ((<RouteMatch>static_res).route, None)
+
         cdef object m
         if PyBytes_CheckExact(method):
             m = (<bytes>method).upper()

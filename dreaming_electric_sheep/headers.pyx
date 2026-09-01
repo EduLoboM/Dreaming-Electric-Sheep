@@ -325,3 +325,10 @@ cdef class Headers:
 
     def __repr__(self):
         return f'<Headers {self.values}>'
+
+
+# Pre-allocated static headers singletons for zero-allocation outbound dispatch
+STATIC_JSON_HEADERS = [(b"content-type", b"application/json")]
+STATIC_TEXT_HEADERS = [(b"content-type", b"text/plain; charset=utf-8")]
+STATIC_HTML_HEADERS = [(b"content-type", b"text/html; charset=utf-8")]
+STATIC_NOT_FOUND_HEADERS = [(b"content-type", b"text/plain")]

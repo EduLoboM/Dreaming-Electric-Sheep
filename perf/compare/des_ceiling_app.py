@@ -13,7 +13,7 @@ if str(_REPO_ROOT) not in sys.path:
 from typing import Optional
 from jinja2 import Template
 import msgspec.json
-from dreaming_electric_sheep import Application, Response, Content, get
+from dreaming_electric_sheep import Application, Response, Content, get, acquire_response
 from perf.compare.mock_db import (
     clamp_queries,
     get_single_world,
@@ -32,34 +32,34 @@ _HTML_CONTENT_TYPE = b"text/html; charset=utf-8"
 
 
 @get("/plaintext")
-async def plaintext():
-    return Response(200, None, _PLAINTEXT_CONTENT)
+def plaintext():
+    return acquire_response(200, None, _PLAINTEXT_CONTENT)
 
 
 @get("/json")
-async def handle_json():
-    return Response(200, None, Content(_JSON_CONTENT_TYPE, msgspec.json.encode({"message": "Hello, World!"})))
+def handle_json():
+    return acquire_response(200, None, Content(_JSON_CONTENT_TYPE, msgspec.json.encode({"message": "Hello, World!"})))
 
 
 @get("/db")
-async def single_query():
-    return Response(200, None, Content(_JSON_CONTENT_TYPE, msgspec.json.encode(get_single_world())))
+def single_query():
+    return acquire_response(200, None, Content(_JSON_CONTENT_TYPE, msgspec.json.encode(get_single_world())))
 
 
 @get("/queries")
-async def multiple_queries(queries: Optional[str] = None):
+def multiple_queries(queries: int = 1):
     n = clamp_queries(queries)
-    return Response(200, None, Content(_JSON_CONTENT_TYPE, msgspec.json.encode(get_multiple_worlds(n))))
+    return acquire_response(200, None, Content(_JSON_CONTENT_TYPE, msgspec.json.encode(get_multiple_worlds(n))))
 
 
 @get("/fortunes")
-async def fortunes():
+def fortunes():
     items = get_fortunes_sorted()
-    rendered = _JINJA_TEMPLATE.render(fortunes=items).encode("utf-8")
-    return Response(200, None, Content(_HTML_CONTENT_TYPE, rendered))
+    rendered = _JINJA_TEMPLATE.render(fortunes=items)
+    return acquire_response(200, None, Content(_HTML_CONTENT_TYPE, rendered))
 
 
 @get("/updates")
-async def data_updates(queries: Optional[str] = None):
+def data_updates(queries: int = 1):
     n = clamp_queries(queries)
-    return Response(200, None, Content(_JSON_CONTENT_TYPE, msgspec.json.encode(update_multiple_worlds(n))))
+    return acquire_response(200, None, Content(_JSON_CONTENT_TYPE, msgspec.json.encode(update_multiple_worlds(n))))

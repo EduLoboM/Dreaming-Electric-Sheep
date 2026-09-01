@@ -13,6 +13,8 @@ from typing import (
     Type,
     TypeVar,
     Union,
+    get_args,
+    get_origin,
     get_type_hints,
 )
 from uuid import UUID
@@ -21,7 +23,7 @@ from guardpost import Identity
 from rodi import ContainerProtocol
 
 from dreaming_electric_sheep.contents import Content
-from dreaming_electric_sheep.messages import Request, Response
+from dreaming_electric_sheep.messages import Request, Response, acquire_response
 from dreaming_electric_sheep.normalization import copy_special_attributes
 from dreaming_electric_sheep.server import responses
 from dreaming_electric_sheep.server.routing import Route
@@ -470,8 +472,11 @@ def _get_parameter_binder(
     if annotation in services:
         return ServiceBinder(annotation, annotation.__class__.__name__, True, services)
 
-    # 4. is simple type?
-    if annotation in _types_handled_with_query:
+    # 4. is simple type or collection of simple types?
+    if annotation in _types_handled_with_query or (
+        get_origin(annotation) in {list, set, tuple, Sequence, Set}
+        and (not get_args(annotation) or get_args(annotation)[0] in _types_handled_with_query)
+    ):
         return QueryBinder(annotation, name, True, required=not is_root_optional)
 
     # 5. is request user?
@@ -914,7 +919,7 @@ def _get_sync_wrapper_for_output(
         def text_output_handler(request: Request) -> Response:
             res = method(request)
             if res is None:
-                return Response(204)
+                return acquire_response(204)
             if isinstance(res, Response):
                 return res
             return responses.text(res)
@@ -928,14 +933,14 @@ def _get_sync_wrapper_for_output(
         def typed_output_handler(request: Request) -> Response:
             res = method(request)
             if res is None:
-                return Response(204)
+                return acquire_response(204)
             if isinstance(res, Response):
                 return res
             if json_settings.has_custom_dumps:
                 return responses.json(res)
             try:
                 raw = encoder.encode(res)
-                return Response(200, None, Content(b"application/json", raw))
+                return acquire_response(200, None, Content(b"application/json", raw))
             except Exception:
                 return responses.json(res)
 
@@ -943,7 +948,14 @@ def _get_sync_wrapper_for_output(
 
     @wraps(method)
     def handler(request: Request) -> Response:
-        return ensure_response(method(request))
+        res = method(request)
+        if isinstance(res, Response):
+            return res
+        if res is None:
+            return acquire_response(204)
+        if isinstance(res, str):
+            return responses.text(res)
+        return responses.json(res)
 
     return handler
 
@@ -959,7 +971,7 @@ def _get_async_wrapper_for_output(
         async def text_output_handler(request: Request) -> Response:
             res = await method(request)
             if res is None:
-                return Response(204)
+                return acquire_response(204)
             if isinstance(res, Response):
                 return res
             return responses.text(res)
@@ -973,14 +985,14 @@ def _get_async_wrapper_for_output(
         async def typed_output_handler(request: Request) -> Response:
             res = await method(request)
             if res is None:
-                return Response(204)
+                return acquire_response(204)
             if isinstance(res, Response):
                 return res
             if json_settings.has_custom_dumps:
                 return responses.json(res)
             try:
                 raw = encoder.encode(res)
-                return Response(200, None, Content(b"application/json", raw))
+                return acquire_response(200, None, Content(b"application/json", raw))
             except Exception:
                 return responses.json(res)
 
@@ -988,7 +1000,14 @@ def _get_async_wrapper_for_output(
 
     @wraps(method)
     async def handler(request: Request) -> Response:
-        return ensure_response(await method(request))
+        res = await method(request)
+        if isinstance(res, Response):
+            return res
+        if res is None:
+            return acquire_response(204)
+        if isinstance(res, str):
+            return responses.text(res)
+        return responses.json(res)
 
     return handler
 

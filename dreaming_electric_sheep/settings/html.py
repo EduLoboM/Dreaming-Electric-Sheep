@@ -4,6 +4,9 @@ from dreaming_electric_sheep.server.rendering.abc import ModelHandler, Renderer
 from dreaming_electric_sheep.server.rendering.models import DefaultModelHandler
 
 
+import os
+
+
 def default_renderer() -> Renderer:
     from dreaming_electric_sheep.server.rendering.jinja2 import JinjaRenderer
 

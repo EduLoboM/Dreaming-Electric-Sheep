@@ -70,8 +70,11 @@ cdef class Content:
         object data
     ):
         self.type = intern_content_type_bytes(content_type)
-        self.body = data
-        self.length = len(data) if data is not None else 0
+        if isinstance(data, str):
+            self.body = (<str>data).encode("utf8")
+        else:
+            self.body = data
+        self.length = len(self.body) if self.body is not None else 0
 
     async def read(self):
         return self.body if self.body is not None else b""

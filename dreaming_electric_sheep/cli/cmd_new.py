@@ -18,7 +18,7 @@ def new_command(
         "minimal",
         "--template",
         "-t",
-        help="Project template: minimal, api, or full (default: minimal)",
+        help="Project template: minimal, api, full, or fullstack/htmx (default: minimal)",
     ),
     docs: Optional[str] = typer.Option(
         None,

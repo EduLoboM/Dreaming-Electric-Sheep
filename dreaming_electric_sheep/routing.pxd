@@ -1,5 +1,4 @@
 cdef class RouteMatch:
-    cdef public object handler
     cdef public object pattern
     cdef public dict _values
     cdef public object route
@@ -38,6 +37,8 @@ cdef class RadixTree:
 
 cdef class CythonRadixRouter:
     cdef public dict trees
+    cdef public dict static_matches
     cpdef void add_route(self, object method, object pattern, object route, list param_names=*)
     cpdef tuple get_match(self, object method, object path)
+    cpdef RouteMatch get_static_match(self, object method, object path)
     cpdef void freeze(self)

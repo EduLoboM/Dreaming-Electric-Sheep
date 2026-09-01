@@ -36,7 +36,7 @@ cdef class Message:
     cpdef void add_header(self, object key, object value)
     cpdef void set_header(self, object key, object value)
     cpdef object content_type(self)
-
+    cdef void _ensure_raw_headers(self)
     cdef void remove_headers(self, list headers)
     cdef list get_headers_tuples(self, object key)
     cdef void init_prop(self, str name, object value)
@@ -88,6 +88,8 @@ cdef class Request(Message):
     cpdef bint expect_100_continue(self)
     cpdef void reset(self)
     cdef void *alloc_scratchpad(self, size_t size, size_t alignment=*)
+    cpdef object get_query_param(self, object name, object default=*)
+    cpdef list get_query_params(self, object name)
 
 
 cdef class Response(Message):

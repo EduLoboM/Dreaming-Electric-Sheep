@@ -27,34 +27,34 @@ _JINJA_TEMPLATE = Template(FORTUNES_HTML_TEMPLATE, autoescape=True)
 
 
 @get("/plaintext")
-async def plaintext():
+def plaintext():
     return text("Hello, World!")
 
 
 @get("/json")
-async def handle_json():
+def handle_json():
     return json({"message": "Hello, World!"})
 
 
 @get("/db")
-async def single_query():
+def single_query():
     return json(get_single_world())
 
 
 @get("/queries")
-async def multiple_queries(queries: Optional[str] = None):
+def multiple_queries(queries: int = 1):
     n = clamp_queries(queries)
     return json(get_multiple_worlds(n))
 
 
 @get("/fortunes")
-async def fortunes():
+def fortunes():
     items = get_fortunes_sorted()
     rendered = _JINJA_TEMPLATE.render(fortunes=items)
     return html(rendered)
 
 
 @get("/updates")
-async def data_updates(queries: Optional[str] = None):
+def data_updates(queries: int = 1):
     n = clamp_queries(queries)
     return json(update_multiple_worlds(n))
