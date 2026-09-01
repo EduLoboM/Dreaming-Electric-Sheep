@@ -507,14 +507,14 @@ async def test_search_live_debounce():
 async def test_click_to_edit_and_save():
     await app.start()
     client = TestClient(app)
-    
+
     # Get edit row
     res_edit = await client.get("/items/1/edit")
     assert res_edit.status == 200
     body_edit = await res_edit.text()
     assert 'name="name"' in body_edit
     assert 'value="Quantum Sheep"' in body_edit
-    
+
     # Save update
     res_save = await client.put("/items/1?name=Super+Quantum+Sheep&category=Robotics&price=1299.99")
     assert res_save.status == 200

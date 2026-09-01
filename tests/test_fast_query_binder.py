@@ -1,12 +1,19 @@
 from typing import List
+
 import pytest
+
 from des import Application, Request, json
 from dreaming_electric_sheep.testing import TestClient
 
 
 def test_request_get_query_param_direct():
-    req = Request.incoming("GET", b"/test", b"name=Alice&age=30&active=true&score=98.5&tags=python&tags=rust&empty=", [])
-    
+    req = Request.incoming(
+        "GET",
+        b"/test",
+        b"name=Alice&age=30&active=true&score=98.5&tags=python&tags=rust&empty=",
+        [],
+    )
+
     assert req.get_query_param("name") == "Alice"
     assert req.get_query_param("age") == "30"
     assert req.get_query_param("active") == "true"
@@ -14,13 +21,15 @@ def test_request_get_query_param_direct():
     assert req.get_query_param("empty") == ""
     assert req.get_query_param("missing") is None
     assert req.get_query_param("missing", "fallback") == "fallback"
-    
+
     # get_query_params list extraction
     tags = req.get_query_params("tags")
     assert tags == ["python", "rust"]
-    
+
     # URL encoded values
-    req_encoded = Request.incoming("GET", b"/test", b"q=hello%20world&special=%24100%2B200&plus=foo+bar", [])
+    req_encoded = Request.incoming(
+        "GET", b"/test", b"q=hello%20world&special=%24100%2B200&plus=foo+bar", []
+    )
     assert req_encoded.get_query_param("q") == "hello world"
     assert req_encoded.get_query_param("special") == "$100+200"
     assert req_encoded.get_query_param("plus") == "foo bar"
@@ -31,14 +40,22 @@ async def test_fast_query_binder_in_app():
     app = Application()
 
     @app.router.get("/search")
-    def search_endpoint(q: str, limit: int = 10, offset: int = 0, exact: bool = False, score: float = 0.0):
-        return json({
-            "q": q,
-            "limit": limit,
-            "offset": offset,
-            "exact": exact,
-            "score": score,
-        })
+    def search_endpoint(
+        q: str,
+        limit: int = 10,
+        offset: int = 0,
+        exact: bool = False,
+        score: float = 0.0,
+    ):
+        return json(
+            {
+                "q": q,
+                "limit": limit,
+                "offset": offset,
+                "exact": exact,
+                "score": score,
+            }
+        )
 
     @app.router.get("/tags")
     def tags_endpoint(tag: List[str]):

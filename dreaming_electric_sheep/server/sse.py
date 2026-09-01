@@ -45,7 +45,12 @@ class ServerSentEventsContent(StreamedContent):
         events_provider: EventsProvider,
     ) -> Callable[[], AsyncIterable[bytes]]:
         async def write_events():
-            gen = events_provider() if callable(events_provider) and not hasattr(events_provider, "__aiter__") else events_provider
+            gen = (
+                events_provider()
+                if callable(events_provider)
+                and not hasattr(events_provider, "__aiter__")
+                else events_provider
+            )
             try:
                 async for event in gen:
                     if isinstance(event, (ServerSentEvent, TextServerSentEvent)):
@@ -110,7 +115,11 @@ class JSONLinesContent(StreamedContent):
         data_provider: JSONLinesProvider,
     ) -> Callable[[], AsyncIterable[bytes]]:
         async def write_lines():
-            gen = data_provider() if callable(data_provider) and not hasattr(data_provider, "__aiter__") else data_provider
+            gen = (
+                data_provider()
+                if callable(data_provider) and not hasattr(data_provider, "__aiter__")
+                else data_provider
+            )
             try:
                 async for item in gen:
                     if isinstance(item, bytes):
@@ -172,14 +181,24 @@ def sse_stream(
     """
     Creates an SSE streaming Response from an async generator, sync iterable, or callable.
     """
-    if callable(generator) and not hasattr(generator, "__aiter__") and not hasattr(generator, "__iter__"):
+    if (
+        callable(generator)
+        and not hasattr(generator, "__aiter__")
+        and not hasattr(generator, "__iter__")
+    ):
         provider = generator
     elif hasattr(generator, "__aiter__"):
-        provider = lambda: generator
+
+        def _aiter_provider():
+            return generator
+
+        provider = _aiter_provider
     elif hasattr(generator, "__iter__"):
+
         async def _sync_to_async():
             for item in generator:
                 yield item
+
         provider = _sync_to_async
     else:
         provider = generator
@@ -195,14 +214,24 @@ def ndjson_stream(
     """
     Creates an NDJSON streaming Response from an async generator, sync iterable, or callable.
     """
-    if callable(generator) and not hasattr(generator, "__aiter__") and not hasattr(generator, "__iter__"):
+    if (
+        callable(generator)
+        and not hasattr(generator, "__aiter__")
+        and not hasattr(generator, "__iter__")
+    ):
         provider = generator
     elif hasattr(generator, "__aiter__"):
-        provider = lambda: generator
+
+        def _aiter_provider():
+            return generator
+
+        provider = _aiter_provider
     elif hasattr(generator, "__iter__"):
+
         async def _sync_to_async():
             for item in generator:
                 yield item
+
         provider = _sync_to_async
     else:
         provider = generator

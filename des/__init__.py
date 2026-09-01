@@ -1,19 +1,21 @@
 """
 Top-level package alias `des` for Dreaming Electric Sheep (`dreaming_electric_sheep`).
 """
-import sys
+
+# flake8: noqa
 import dreaming_electric_sheep as _des
 from dreaming_electric_sheep import *  # noqa: F401, F403
 from dreaming_electric_sheep import (
+    URL,
     Application,
     Content,
     Cookie,
     FileBuffer,
     FormContent,
-    HTMLContent,
-    HTTPException,
     Header,
     Headers,
+    HTMLContent,
+    HTTPException,
     JinjaRenderer,
     JSONContent,
     Message,
@@ -25,14 +27,12 @@ from dreaming_electric_sheep import (
     StreamedContent,
     Struct,
     TextContent,
-    URL,
     UnprocessableEntity,
     WebSocket,
     __author__,
     __version__,
     accepted,
     acquire_response,
-    release_response,
     bad_request,
     connect,
     created,
@@ -63,6 +63,7 @@ from dreaming_electric_sheep import (
     pretty_json,
     put,
     redirect,
+    release_response,
     render,
     render_template,
     route,

@@ -26,12 +26,7 @@ from dreaming_electric_sheep.common import extend
 from dreaming_electric_sheep.common.files.asyncfs import FilesHandler
 from dreaming_electric_sheep.contents import ASGIContent
 from dreaming_electric_sheep.exceptions import NotFound
-from dreaming_electric_sheep.messages import (
-    Request,
-    Response,
-    release_request,
-    release_response,
-)
+from dreaming_electric_sheep.messages import Request, Response
 from dreaming_electric_sheep.middlewares import (
     MiddlewareCategory,
     MiddlewareList,
@@ -39,9 +34,7 @@ from dreaming_electric_sheep.middlewares import (
 )
 from dreaming_electric_sheep.scribe import (
     dispatch_rsgi_http,
-    instantiate_rsgi_request,
     send_asgi_response,
-    send_rsgi_response_sync,
 )
 from dreaming_electric_sheep.server.asgi import get_request_url_from_scope
 from dreaming_electric_sheep.server.authentication import (

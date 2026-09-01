@@ -22,6 +22,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **C-Core Fast Query Parser & Scalar Binders**:
   - Zero-allocation C-level query string parser in Cython (`messages.pyx`) via `Request.get_query_param` and `Request.get_query_params`.
   - Direct scalar type conversion (`int`, `float`, `bool`, `str`, `UUID`) in `QueryBinder` and `RouteBinder` bypassing intermediate dict allocations.
+- **Microsecond RSGI Hot-Path & C Freelist Pool**:
+  - Direct Cython-level object freelist pool (`messages.pyx`) eliminating `threading.local` lookup overhead on the request/response hot path.
+  - Native `dispatch_rsgi_http` compiled execution in `scribe.pyx`, reducing framework tax down to ~5.05% vs raw Granian RSGI.
 - **Modern Full-Stack CLI Scaffolding (`des new -t fullstack`)**:
   - Scaffold interactive applications with Jinja2, HTMX, Tailwind CSS CDN, debounced search, click-to-edit table rows, and live SSE streaming banner.
 

@@ -4499,7 +4499,7 @@ async def test_save_spec_writes_both_formats(tmp_path):
     data = _json.loads(json_path.read_bytes())
     assert "/hello" in data["paths"]
 
-    yaml_text = yaml_path.read_text()
+    yaml_text = yaml_path.read_text(encoding="utf-8")
     assert "/hello" in yaml_text
 
 

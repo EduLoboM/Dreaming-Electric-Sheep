@@ -104,7 +104,7 @@ def test_cli_templates_minimal():
         assert (target / "app.py").exists()
         assert (target / "pyproject.toml").exists()
         assert (target / ".env.example").exists()
-        content = (target / "app.py").read_text()
+        content = (target / "app.py").read_text(encoding="utf-8")
         assert "Application()" in content
         assert "uvicorn.run" not in content
 
@@ -119,7 +119,7 @@ def test_cli_templates_api_docs_scalar():
         create_project(
             "test_api_scalar", template="api", docs="scalar", target_dir=target
         )
-        app_code = (target / "app.py").read_text()
+        app_code = (target / "app.py").read_text(encoding="utf-8")
         assert 'ScalarUIProvider("/docs")' in app_code
         assert 'docs.ui_providers = [ScalarUIProvider("/docs")]' in app_code
 
@@ -132,7 +132,7 @@ def test_cli_templates_api_docs_swagger():
     with tempfile.TemporaryDirectory() as tmpdir:
         target = Path(tmpdir) / "test_api_sw"
         create_project("test_api_sw", template="api", docs="swagger", target_dir=target)
-        app_code = (target / "app.py").read_text()
+        app_code = (target / "app.py").read_text(encoding="utf-8")
         assert 'SwaggerUIProvider("/docs")' in app_code
         assert 'docs.ui_providers = [SwaggerUIProvider("/docs")]' in app_code
 
@@ -145,7 +145,7 @@ def test_cli_templates_api_docs_redoc():
     with tempfile.TemporaryDirectory() as tmpdir:
         target = Path(tmpdir) / "test_api_rd"
         create_project("test_api_rd", template="api", docs="redoc", target_dir=target)
-        app_code = (target / "app.py").read_text()
+        app_code = (target / "app.py").read_text(encoding="utf-8")
         assert 'ReDocUIProvider("/docs")' in app_code
         assert 'docs.ui_providers = [ReDocUIProvider("/docs")]' in app_code
 
@@ -171,7 +171,7 @@ def test_cli_templates_full():
         assert (target / "app.py").exists()
         assert (target / "templates" / "index.html").exists()
         assert (target / "templates" / "partials" / "item_row.html").exists()
-        app_code = (target / "app.py").read_text()
+        app_code = (target / "app.py").read_text(encoding="utf-8")
         assert "JinjaRenderer" in app_code
         assert "uvicorn.run" not in app_code
 

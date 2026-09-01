@@ -475,7 +475,10 @@ def _get_parameter_binder(
     # 4. is simple type or collection of simple types?
     if annotation in _types_handled_with_query or (
         get_origin(annotation) in {list, set, tuple, Sequence, Set}
-        and (not get_args(annotation) or get_args(annotation)[0] in _types_handled_with_query)
+        and (
+            not get_args(annotation)
+            or get_args(annotation)[0] in _types_handled_with_query
+        )
     ):
         return QueryBinder(annotation, name, True, required=not is_root_optional)
 

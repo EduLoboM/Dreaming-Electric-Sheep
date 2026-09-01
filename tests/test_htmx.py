@@ -1,14 +1,15 @@
 import pytest
+
 from des import (
     Application,
     Request,
     fragment,
-    hx_trigger,
     hx_redirect,
     hx_refresh,
     hx_reswap,
-    sse_stream,
+    hx_trigger,
     ndjson_stream,
+    sse_stream,
 )
 from dreaming_electric_sheep.contents import TextServerSentEvent
 from dreaming_electric_sheep.testing import TestClient
@@ -63,7 +64,9 @@ def test_htmx_response_helpers():
 
     # hx_trigger with payload
     res_trig2 = hx_trigger("itemAdded", {"id": 123, "status": "success"})
-    assert b'{"itemAdded":{"id":123,"status":"success"}}' in res_trig2.get_first_header(b"hx-trigger")
+    assert b'{"itemAdded":{"id":123,"status":"success"}}' in res_trig2.get_first_header(
+        b"hx-trigger"
+    )
 
     # hx_trigger with dict
     res_trig3 = hx_trigger({"itemAdded": 123, "notify": "Saved"})
@@ -103,7 +106,9 @@ async def test_htmx_endpoints_in_app():
     assert (await res.text()) == "<table><tr><td>Item 1</td></tr></table>"
 
     # HTMX request
-    res_htmx = await client.get("/items", headers={"HX-Request": "true", "HX-Target": "#items-table"})
+    res_htmx = await client.get(
+        "/items", headers={"HX-Request": "true", "HX-Target": "#items-table"}
+    )
     assert res_htmx.status == 200
     assert (await res_htmx.text()) == "<tr><td>Item 1</td></tr>"
 

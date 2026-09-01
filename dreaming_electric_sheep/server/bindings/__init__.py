@@ -1293,7 +1293,11 @@ class QueryBinder(SyncBinder):
 
         # Fast scalar path
         raw_val = request.get_query_param(self.parameter_name)
-        if raw_val is None or (raw_val == "" and (not self.required or not self.root_required) and self.expected_type is not str):
+        if raw_val is None or (
+            raw_val == ""
+            and (not self.required or not self.root_required)
+            and self.expected_type is not str
+        ):
             if self.default is not empty:
                 return None
             if raw_val is None and self.required and self.root_required:
