@@ -63,9 +63,9 @@ DES provides startup introspection via the CLI:
 
 ### DES vs. Raw Granian (RSGI)
 
-Raw Granian written in Rust is the performance ceiling for Python HTTP serving (~180k req/s plaintext). However, writing directly against raw Granian requires writing low-level protocol handlers with manual parsing, manual parameter binding, no route tree, and no automated OpenAPI generation.
+Raw Granian written in Rust is the performance ceiling for Python HTTP serving. However, writing directly against raw Granian requires writing low-level protocol handlers with manual parsing, manual parameter binding, no route tree, and no automated OpenAPI generation.
 
-DES provides the middle layer with a minimal ~10–15% framework overhead in exchange for:
+DES provides the middle layer with minimal framework overhead in exchange for:
 
 - Radix tree routing with path parameters.
 - Startup-compiled `msgspec` request body and query binding.

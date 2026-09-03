@@ -34,3 +34,7 @@ cdef class Headers:
     cpdef void merge(self, list values)
 
     cpdef bint contains(self, object key)
+
+
+cpdef str intern_header_name_str(object name)
+cpdef bytes intern_header_name_bytes(bytes name)

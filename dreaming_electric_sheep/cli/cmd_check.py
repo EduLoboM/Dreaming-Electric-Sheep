@@ -109,7 +109,7 @@ def check_command(
         loaded_app, "_mount_registry", None
     )
     if mount_reg is not None:
-        mounts_list = list(getattr(mount_reg, "mounts", []) or [])
+        mounts_list = list(getattr(mount_reg, "mounted_apps", []) or getattr(mount_reg, "mounts", []) or [])
     mounts_info = (
         f"{len(mounts_list)} mounted apps (ASGI-only)"
         if mounts_list

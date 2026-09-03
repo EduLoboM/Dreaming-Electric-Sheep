@@ -5,7 +5,7 @@
 <h1 align="center">Dreaming Electric Sheep (<code>des</code>)</h1>
 
 <p align="center">
-  High-performance CPython 3.13+ web stack built directly on Granian RSGI with startup-compiled <code>msgspec</code> validation, native HTMX support, and interactive route inspection.
+  Dreaming Electric Sheep (<code>des</code>) is a Granian RSGI serving stack you pay a framework tax for startup-compiled <code>msgspec</code> binders, automated OpenAPI documentation from those types, and compile-time request pipeline inspection (<code>des why</code>).
 </p>
 
 <p align="center">
@@ -74,10 +74,10 @@ OpenAPI:    Documented in /openapi.json (schema: CreateItemInput)
 
 ## Example
 
-Here is a standard `app.py` combining schema validation, HTMX fragment responses, and real-time SSE streaming:
+Here is a standard `app.py` combining schema validation, automated OpenAPI documentation, and clean route handling:
 
 ```python
-from des import Application, get, post, fragment, sse_stream
+from des import Application, get, post
 from msgspec import Struct
 
 app = Application()
@@ -87,23 +87,14 @@ class Item(Struct):
     name: str
     price: float
 
+@get("/hello")
+def hello():
+    return {"message": "Hello from DES!"}
+
 # Pre-compiled msgspec validation with structured 422 errors
 @post("/api/items")
 def create_item(data: Item):
     return {"status": "created", "item": data}
-
-# First-class HTMX fragment response
-@get("/items/{item_id}/row")
-def item_row(item_id: int):
-    return fragment(f"<tr id='item-{item_id}'><td>Item #{item_id}</td></tr>")
-
-# Native Server-Sent Events (SSE) streaming
-@get("/events")
-def stream_events():
-    async def feed():
-        for count in range(10):
-            yield {"event": "tick", "count": count}
-    return sse_stream(feed)
 ```
 
 ---
@@ -138,7 +129,7 @@ Overhead measured against an in-memory fixture on localhost using `oha` (50 conc
 
 ### Framework Tax vs. Raw Server Ceilings (msgspec Encoder)
 
-Measures framework overhead against raw server ceilings when all targets encode JSON per request using `msgspec.json.encode` with `optimize_gc=False`. The ~10–15% gap we aim to close represents the unavoidable cost of route matching, request abstraction, and parameter binding over raw protocol sockets:
+Measures framework overhead against raw server ceilings when all targets encode JSON per request using `msgspec.json.encode` with `optimize_gc=False`. The measured overhead represents the framework cost of route matching, request abstraction, and parameter binding over raw protocol sockets:
 
 | Framework / Layer | Server / Runtime | Plaintext (req/s) | JSON (req/s) | Mem get (req/s) | Mem get ×20 (req/s) | HTML fortunes (req/s) | Mem update ×20 (req/s) |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |

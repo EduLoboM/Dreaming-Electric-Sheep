@@ -82,6 +82,11 @@ cdef dict _STATIC_HEADERS_BY_CT_BYTES = {
     b"text/plain": _PREBUILT_TEXT_PLAIN_HEADERS,
     b"text/html; charset=utf-8": _PREBUILT_TEXT_HTML_UTF8_HEADERS,
     b"text/html": _PREBUILT_TEXT_HTML_HEADERS,
+    "application/json": _PREBUILT_JSON_HEADERS,
+    "text/plain; charset=utf-8": _PREBUILT_TEXT_PLAIN_UTF8_HEADERS,
+    "text/plain": _PREBUILT_TEXT_PLAIN_HEADERS,
+    "text/html; charset=utf-8": _PREBUILT_TEXT_HTML_UTF8_HEADERS,
+    "text/html": _PREBUILT_TEXT_HTML_HEADERS,
 }
 
 cdef dict _KNOWN_OUTBOUND_HEADER_NAME_STR = {
@@ -130,6 +135,11 @@ cdef dict _CT_STR_CACHE = {
     b"application/json": "application/json",
     b"text/plain": "text/plain",
     b"text/plain; charset=utf-8": "text/plain; charset=utf-8",
+    "text/html; charset=utf-8": "text/html; charset=utf-8",
+    "text/html": "text/html",
+    "application/json": "application/json",
+    "text/plain": "text/plain",
+    "text/plain; charset=utf-8": "text/plain; charset=utf-8",
 }
 
 cdef extern from "interning.h":
@@ -336,7 +346,12 @@ cpdef object send_rsgi_response_sync(Response response, object protocol):
             if headers is None:
                 ct_str = _CT_STR_CACHE.get(content.type)
                 if ct_str is None:
-                    ct_str = content.type.decode("latin-1") if PyBytes_CheckExact(content.type) else str(content.type)
+                    if PyUnicode_CheckExact(content.type) or isinstance(content.type, str):
+                        ct_str = str(content.type)
+                    elif PyBytes_CheckExact(content.type):
+                        ct_str = (<bytes>content.type).decode("latin-1")
+                    else:
+                        ct_str = str(content.type)
                 headers = [("content-type", ct_str)]
         else:
             headers = _EMPTY_HEADERS
@@ -346,8 +361,8 @@ cpdef object send_rsgi_response_sync(Response response, object protocol):
         for h in raw_headers:
             name = h[0]
             val = h[1]
-            if PyUnicode_CheckExact(name):
-                name_str = <str>name
+            if PyUnicode_CheckExact(name) or isinstance(name, str):
+                name_str = <str>name if PyUnicode_CheckExact(name) else str(name)
             elif PyBytes_CheckExact(name):
                 name_str = _KNOWN_OUTBOUND_HEADER_NAME_STR.get(name)
                 if name_str is None:
@@ -355,8 +370,8 @@ cpdef object send_rsgi_response_sync(Response response, object protocol):
             else:
                 name_str = str(name)
 
-            if PyUnicode_CheckExact(val):
-                val_str = <str>val
+            if PyUnicode_CheckExact(val) or isinstance(val, str):
+                val_str = <str>val if PyUnicode_CheckExact(val) else str(val)
             elif PyBytes_CheckExact(val):
                 val_str = _KNOWN_OUTBOUND_HEADER_VAL_STR.get(val)
                 if val_str is None:
@@ -371,7 +386,12 @@ cpdef object send_rsgi_response_sync(Response response, object protocol):
         if not has_ct and content is not None and content.type is not None:
             ct_str = _CT_STR_CACHE.get(content.type)
             if ct_str is None:
-                ct_str = content.type.decode("latin-1") if PyBytes_CheckExact(content.type) else str(content.type)
+                if PyUnicode_CheckExact(content.type) or isinstance(content.type, str):
+                    ct_str = str(content.type)
+                elif PyBytes_CheckExact(content.type):
+                    ct_str = (<bytes>content.type).decode("latin-1")
+                else:
+                    ct_str = str(content.type)
             headers.append(("content-type", ct_str))
 
     if content is not None:

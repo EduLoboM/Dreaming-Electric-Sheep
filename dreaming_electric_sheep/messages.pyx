@@ -37,7 +37,7 @@ from .exceptions cimport (
     FailedRequestError,
     MessageAborted,
 )
-from .headers cimport Headers
+from .headers cimport Headers, intern_header_name_bytes, intern_header_name_str
 from .url cimport URL, build_absolute_url
 
 from cpython.object cimport PyObject
@@ -56,22 +56,30 @@ cdef inline str intern_method_str(str method):
         return None
     cdef Py_ssize_t size = 0
     cdef const char *raw = PyUnicode_AsUTF8AndSize(method, &size)
-    if raw == NULL or size == 0:
+    if raw or raw == NULL or size == 0:
         return method
     cdef PyObject *interned = get_interned_method_str(raw, <size_t>size)
     if interned != NULL:
         return <str><object>interned
     return method
 
-cdef inline bytes intern_header_name_bytes(bytes name):
-    if name is None:
+cdef inline bytes intern_method_bytes(bytes method):
+    if method is None:
         return None
-    cdef char *raw = PyBytes_AS_STRING(name)
-    cdef Py_ssize_t size = PyBytes_GET_SIZE(name)
-    cdef PyObject *interned = get_interned_header_name_bytes(raw, <size_t>size)
+    cdef char *raw = PyBytes_AS_STRING(method)
+    cdef Py_ssize_t size = PyBytes_GET_SIZE(method)
+    cdef PyObject *interned = get_interned_method_bytes(raw, <size_t>size)
     if interned != NULL:
         return <bytes><object>interned
-    return name
+    return method
+
+
+cdef class FormData:
+    cdef public dict values
+
+    def __init__(self, dict values):
+        self.values = values
+
 
 _charset_rx = re.compile(rb"charset=([\w\-]+)", re.I)
 
@@ -105,48 +113,27 @@ def _encode(value):
     return value.encode("utf8") if value else None
 
 
-async def _multipart_to_dict_streaming(
-    stream_iter,
-    spool_max_size=1024 * 1024,
-):
+async def _multipart_to_dict_streaming(multipart_stream):
     """
-    Convert streaming multipart parts to dictionary with memory-efficient file handling.
-
-    Files are wrapped in FileBuffer with SpooledTemporaryFile:
-    - Small files (<1MB): Kept in memory for performance
-    - Large files (>1MB): Automatically spooled to temporary disk files
-    - Form fields: Buffered in memory with size limits
-
-    Args:
-        stream_iter: Async iterator of StreamedFormPart objects
-        spool_max_size: Threshold for spooling files to disk (default: 1MB)
-
-    Returns:
-        Dictionary with form data and FileBuffer instances for files
+    Consumes a multipart_stream and parses form fields and file uploads into a dictionary.
+    File uploads are wrapped in FileBuffer objects (relying on SpooledTemporaryFile).
     """
     from collections import defaultdict
-    from tempfile import SpooledTemporaryFile
-
-    from .contents import FormPart
+    from .contents import FileBuffer, FormPart
 
     data = defaultdict(list)
 
-    async for part in stream_iter:
-        key = part.name
+    def _encode(val):
+        if val is None:
+            return None
+        return val.encode("utf-8") if isinstance(val, str) else val
 
-        spooled_file = SpooledTemporaryFile(max_size=spool_max_size, mode="w+b")
-        total_size = 0
-
-        async for chunk in part.stream():
-            spooled_file.write(chunk)
-            total_size += len(chunk)
-        spooled_file.seek(0)
-
-        # TODO: encoding below is for backward compatibility
-        # TODO: remove in v3
+    async for part in multipart_stream:
+        key = _encode(part.name)
+        total_size = len(part.data)
         item = FormPart(
-            name=_encode(part.name),
-            data=spooled_file,
+            name=key,
+            data=part.data,
             file_name=_encode(part.file_name),
             content_type=_encode(part.content_type),
             size=total_size,
@@ -158,12 +145,15 @@ async def _multipart_to_dict_streaming(
 
 
 cdef inline bint _msg_header_key_matches(object h_name, bytes low_bkey, str low_skey):
-    if PyBytes_CheckExact(h_name):
-        return (<bytes>h_name).lower() == low_bkey
-    elif PyUnicode_CheckExact(h_name):
-        return (<str>h_name).lower() == low_skey
-    else:
-        return str(h_name).lower() == low_skey
+    if low_skey is not None and (PyUnicode_CheckExact(h_name) or isinstance(h_name, str)):
+        return h_name is low_skey or (<str>h_name).lower() == low_skey
+    elif low_bkey is not None and PyBytes_CheckExact(h_name):
+        return h_name is low_bkey or (<bytes>h_name).lower() == low_bkey
+    elif low_skey is not None and PyBytes_CheckExact(h_name):
+        return (<bytes>h_name).lower() == (<str>low_skey).encode("latin-1")
+    elif low_bkey is not None and (PyUnicode_CheckExact(h_name) or isinstance(h_name, str)):
+        return (<str>h_name).lower() == (<bytes>low_bkey).decode("latin-1")
+    return False
 
 cdef inline object _msg_convert_val(object val, bint is_bytes):
     if val is None:
@@ -188,31 +178,52 @@ cdef list _extract_headers_from_scope(object raw_headers):
     cdef object items = getattr(raw_headers, "items", None)
     cdef object iter_source = items() if items is not None else raw_headers
     cdef object pair, name, value
-    cdef bytes name_bytes
+    cdef str name_str, val_str
     if iter_source is None:
         return headers
     for pair in iter_source:
         name = pair[0]
         value = pair[1]
-        if PyBytes_CheckExact(name):
-            name_bytes = intern_header_name_bytes(<bytes>name)
-        elif PyUnicode_CheckExact(name):
-            name_bytes = intern_header_name_bytes((<str>name).encode("latin-1"))
+        if PyUnicode_CheckExact(name):
+            name_str = intern_header_name_str(<str>name)
+        elif isinstance(name, str):
+            name_str = intern_header_name_str(str(name))
+        elif PyBytes_CheckExact(name):
+            name_str = intern_header_name_str((<bytes>name).decode("latin-1"))
         else:
-            name_bytes = intern_header_name_bytes(str(name).encode("latin-1"))
-        headers.append((name_bytes, value))
+            name_str = intern_header_name_str(str(name))
+
+        if PyUnicode_CheckExact(value):
+            val_str = <str>value
+        elif isinstance(value, str):
+            val_str = str(value)
+        elif PyBytes_CheckExact(value):
+            val_str = (<bytes>value).decode("latin-1")
+        else:
+            val_str = str(value)
+        headers.append((name_str, val_str))
     return headers
 
 
 cdef class Message:
 
     def __init__(self, list headers):
-        self._raw_headers = [(intern_header_name_bytes(h[0]), h[1]) if isinstance(h, tuple) and len(h) == 2 and isinstance(h[0], bytes) else h for h in headers] if headers is not None else []
+        if headers is not None:
+            self._raw_headers = [
+                (intern_header_name_bytes(h[0]), h[1]) if isinstance(h, tuple) and len(h) == 2 and isinstance(h[0], bytes)
+                else ((intern_header_name_str(h[0]), h[1]) if isinstance(h, tuple) and len(h) == 2 and (isinstance(h[0], str) or PyUnicode_CheckExact(h[0])) else h)
+                for h in headers
+            ]
+            if self._raw_headers and (PyUnicode_CheckExact(self._raw_headers[0][0]) or isinstance(self._raw_headers[0][0], str)):
+                self._has_str_headers = True
+        else:
+            self._raw_headers = []
 
     cdef void _ensure_raw_headers(self):
         if self._raw_headers is None:
             if hasattr(self, "scope") and getattr(self, "scope") is not None and hasattr(getattr(self, "scope"), "headers"):
                 self._raw_headers = _extract_headers_from_scope(getattr(self, "scope").headers)
+                self._has_str_headers = True
             else:
                 self._raw_headers = []
 
@@ -233,19 +244,16 @@ cdef class Message:
         if self._raw_headers is None:
             self._ensure_raw_headers()
         cdef tuple header
-        cdef bytes low_bkey
-        cdef str low_skey
+        cdef bytes low_bkey = None
+        cdef str low_skey = None
         cdef bint is_bytes = PyBytes_CheckExact(key)
 
         if is_bytes:
             low_bkey = intern_header_name_bytes((<bytes>key).lower())
-            low_skey = low_bkey.decode("latin-1")
-        elif PyUnicode_CheckExact(key):
-            low_skey = (<str>key).lower()
-            low_bkey = low_skey.encode("latin-1")
+        elif PyUnicode_CheckExact(key) or isinstance(key, str):
+            low_skey = intern_header_name_str(key)
         else:
-            low_skey = str(key).lower()
-            low_bkey = low_skey.encode("latin-1")
+            low_skey = intern_header_name_str(str(key))
 
         for header in self._raw_headers:
             if _msg_header_key_matches(header[0], low_bkey, low_skey):
@@ -257,19 +265,16 @@ cdef class Message:
             self._ensure_raw_headers()
         cdef list results = []
         cdef tuple header
-        cdef bytes low_bkey
-        cdef str low_skey
+        cdef bytes low_bkey = None
+        cdef str low_skey = None
         cdef bint is_bytes = PyBytes_CheckExact(key)
 
         if is_bytes:
             low_bkey = intern_header_name_bytes((<bytes>key).lower())
-            low_skey = low_bkey.decode("latin-1")
-        elif PyUnicode_CheckExact(key):
-            low_skey = (<str>key).lower()
-            low_bkey = low_skey.encode("latin-1")
+        elif PyUnicode_CheckExact(key) or isinstance(key, str):
+            low_skey = intern_header_name_str(key)
         else:
-            low_skey = str(key).lower()
-            low_bkey = low_skey.encode("latin-1")
+            low_skey = intern_header_name_str(str(key))
 
         for header in self._raw_headers:
             if _msg_header_key_matches(header[0], low_bkey, low_skey):
@@ -295,18 +300,15 @@ cdef class Message:
             self._ensure_raw_headers()
         cdef list results = []
         cdef tuple header
-        cdef bytes low_bkey
-        cdef str low_skey
+        cdef bytes low_bkey = None
+        cdef str low_skey = None
 
         if PyBytes_CheckExact(key):
             low_bkey = intern_header_name_bytes((<bytes>key).lower())
-            low_skey = low_bkey.decode("latin-1")
-        elif PyUnicode_CheckExact(key):
-            low_skey = (<str>key).lower()
-            low_bkey = low_skey.encode("latin-1")
+        elif PyUnicode_CheckExact(key) or isinstance(key, str):
+            low_skey = intern_header_name_str(key)
         else:
-            low_skey = str(key).lower()
-            low_bkey = low_skey.encode("latin-1")
+            low_skey = intern_header_name_str(str(key))
 
         for header in self._raw_headers:
             if _msg_header_key_matches(header[0], low_bkey, low_skey):
@@ -326,18 +328,15 @@ cdef class Message:
             self._ensure_raw_headers()
         cdef tuple header
         cdef list to_remove = []
-        cdef bytes low_bkey
-        cdef str low_skey
+        cdef bytes low_bkey = None
+        cdef str low_skey = None
 
         if PyBytes_CheckExact(key):
             low_bkey = intern_header_name_bytes((<bytes>key).lower())
-            low_skey = low_bkey.decode("latin-1")
-        elif PyUnicode_CheckExact(key):
-            low_skey = (<str>key).lower()
-            low_bkey = low_skey.encode("latin-1")
+        elif PyUnicode_CheckExact(key) or isinstance(key, str):
+            low_skey = intern_header_name_str(key)
         else:
-            low_skey = str(key).lower()
-            low_bkey = low_skey.encode("latin-1")
+            low_skey = intern_header_name_str(str(key))
 
         for header in self._raw_headers:
             if _msg_header_key_matches(header[0], low_bkey, low_skey):
@@ -356,18 +355,15 @@ cdef class Message:
     cdef bint _has_header(self, object key):
         if self._raw_headers is None:
             self._ensure_raw_headers()
-        cdef bytes low_bkey
-        cdef str low_skey
+        cdef bytes low_bkey = None
+        cdef str low_skey = None
 
         if PyBytes_CheckExact(key):
             low_bkey = intern_header_name_bytes((<bytes>key).lower())
-            low_skey = low_bkey.decode("latin-1")
-        elif PyUnicode_CheckExact(key):
-            low_skey = (<str>key).lower()
-            low_bkey = low_skey.encode("latin-1")
+        elif PyUnicode_CheckExact(key) or isinstance(key, str):
+            low_skey = intern_header_name_str(key)
         else:
-            low_skey = str(key).lower()
-            low_bkey = low_skey.encode("latin-1")
+            low_skey = intern_header_name_str(str(key))
 
         for existing_key, existing_value in self._raw_headers:
             if _msg_header_key_matches(existing_key, low_bkey, low_skey):
@@ -382,6 +378,8 @@ cdef class Message:
             self._ensure_raw_headers()
         if PyBytes_CheckExact(key):
             self._raw_headers.append((intern_header_name_bytes(<bytes>key), value))
+        elif PyUnicode_CheckExact(key) or isinstance(key, str):
+            self._raw_headers.append((intern_header_name_str(key), value))
         else:
             self._raw_headers.append((key, value))
 
@@ -399,6 +397,8 @@ cdef class Message:
     cpdef object content_type(self):
         if self.content and self.content.type:
             return self.content.type
+        if self._has_str_headers:
+            return self.get_first_header("content-type")
         return self.get_first_header(b'content-type')
 
     async def read(self):
@@ -526,10 +526,16 @@ cdef class Message:
             ```
         """
         cdef str text
-        cdef bytes content_type_value = self.content_type()
-
-        if not content_type_value:
+        cdef object ct_raw = self.content_type()
+        cdef bytes content_type_value
+        if not ct_raw:
             return None
+        if PyBytes_CheckExact(ct_raw):
+            content_type_value = <bytes>ct_raw
+        elif PyUnicode_CheckExact(ct_raw):
+            content_type_value = (<str>ct_raw).encode("latin-1")
+        else:
+            content_type_value = str(ct_raw).encode("latin-1")
 
         if self._form_data is not None:
             if b'multipart/form-data;' in content_type_value and simplify_fields:
@@ -604,9 +610,16 @@ cdef class Message:
                         value = part.data.decode('utf-8')
             ```
         """
-        cdef bytes content_type_value = self.content_type()
-        if not content_type_value:
+        cdef object ct_raw = self.content_type()
+        cdef bytes content_type_value
+        if not ct_raw:
             return
+        if PyBytes_CheckExact(ct_raw):
+            content_type_value = <bytes>ct_raw
+        elif PyUnicode_CheckExact(ct_raw):
+            content_type_value = (<str>ct_raw).encode("latin-1")
+        else:
+            content_type_value = str(ct_raw).encode("latin-1")
 
         if b'multipart/form-data;' not in content_type_value:
             return
@@ -668,11 +681,13 @@ cdef class Message:
                 return msgspec.json.decode(raw)
             except msgspec.DecodeError as decode_error:
                 content_type = self.content_type()
-                if content_type and b'json' in content_type:
-                    raise BadRequestFormat(
-                        f'Declared Content-Type is {content_type.decode()} but '
-                        f'the content cannot be parsed as JSON.', decode_error
-                    )
+                if content_type:
+                    ct_display = content_type if isinstance(content_type, str) else content_type.decode("latin-1", "replace")
+                    if 'json' in ct_display.lower():
+                        raise BadRequestFormat(
+                            f'Declared Content-Type is {ct_display} but '
+                            f'the content cannot be parsed as JSON.', decode_error
+                        )
                 raise BadRequestFormat(
                     f'Cannot parse content as JSON',
                     decode_error
@@ -683,11 +698,13 @@ cdef class Message:
                 return loads(text)
             except (JSONDecodeError, UnicodeDecodeError, ValueError) as decode_error:
                 content_type = self.content_type()
-                if content_type and b'json' in content_type:
-                    raise BadRequestFormat(
-                        f'Declared Content-Type is {content_type.decode()} but '
-                        f'the content cannot be parsed as JSON.', decode_error
-                    )
+                if content_type:
+                    ct_display = content_type if isinstance(content_type, str) else content_type.decode("latin-1", "replace")
+                    if 'json' in ct_display.lower():
+                        raise BadRequestFormat(
+                            f'Declared Content-Type is {ct_display} but '
+                            f'the content cannot be parsed as JSON.', decode_error
+                        )
                 raise BadRequestFormat(
                     f'Cannot parse content as JSON',
                     decode_error
@@ -706,6 +723,8 @@ cdef class Message:
     def charset(self):
         content_type = self.content_type()
         if content_type:
+            if isinstance(content_type, str):
+                return parse_charset((<str>content_type).encode("latin-1")) or 'utf8'
             return parse_charset(content_type) or 'utf8'
         return 'utf8'
 
@@ -794,9 +813,13 @@ cdef class Request(Message):
         if self._url is not None and self._url.is_absolute:
             self._host = self._url.host.decode() if self._url.host is not None else ""
             return self._host
-        host_header = self.get_first_header(b'host')
+        cdef object host_header
+        if self._has_str_headers:
+            host_header = self.get_first_header("host")
+        else:
+            host_header = self.get_first_header(b'host')
         if host_header is not None:
-            self._host = host_header.decode()
+            self._host = host_header if isinstance(host_header, str) else host_header.decode()
             return self._host
         raise BadRequest("Missing Host header")
 
@@ -823,11 +846,13 @@ cdef class Request(Message):
     def client_ip(self) -> str:
         if self.scope is None:
             return ""
-        try:
-            client_ip, client_port = self.scope.get("client", ("", 0))
-            return client_ip
-        except Exception:
-            return ""
+        if self._original_client_ip is not None:
+            return self._original_client_ip
+        client = self.scope.get("client")
+        if client:
+            self._original_client_ip = client[0]
+            return self._original_client_ip
+        return ""
 
     @property
     def original_client_ip(self) -> str:
@@ -840,12 +865,7 @@ cdef class Request(Message):
         self._original_client_ip = value
 
     @property
-    def session(self):
-        if self._session is None:
-            raise TypeError(
-                "A session is not configured for this request, activate "
-                "sessions using `app.use_sessions` method."
-            )
+    def session(self) -> Session:
         return self._session
 
     @session.setter
@@ -874,6 +894,7 @@ cdef class Request(Message):
         self._form_data = None
         self._headers = None
         self._raw_headers = []
+        self._has_str_headers = False
         self._is_disconnected = None
         if self.content is not None:
             self.content.dispose()
@@ -921,6 +942,14 @@ cdef class Request(Message):
         raw_query = urlencode(value, True).encode("utf8")
         self._raw_query = raw_query
         self.url = self.url.with_query(raw_query)
+
+    @property
+    def query_string(self) -> str:
+        if self._raw_query is None:
+            return ""
+        if isinstance(self._raw_query, str):
+            return self._raw_query
+        return self._raw_query.decode("latin-1")
 
     cpdef object get_query_param(self, object name, object default=None):
         if not self._raw_query or name is None:
@@ -1043,32 +1072,50 @@ cdef class Request(Message):
 
     @property
     def is_htmx(self) -> bool:
+        if self._has_str_headers:
+            return self._has_header("hx-request")
         return self._has_header(b"hx-request")
 
     @property
     def htmx_target(self):
-        cdef object val = self.get_first_header(b"hx-target")
+        cdef object val
+        if self._has_str_headers:
+            val = self.get_first_header("hx-target")
+        else:
+            val = self.get_first_header(b"hx-target")
         if val is None:
             return None
         return val.decode("utf8") if isinstance(val, bytes) else str(val)
 
     @property
     def htmx_trigger(self):
-        cdef object val = self.get_first_header(b"hx-trigger")
+        cdef object val
+        if self._has_str_headers:
+            val = self.get_first_header("hx-trigger")
+        else:
+            val = self.get_first_header(b"hx-trigger")
         if val is None:
             return None
         return val.decode("utf8") if isinstance(val, bytes) else str(val)
 
     @property
     def htmx_current_url(self):
-        cdef object val = self.get_first_header(b"hx-current-url")
+        cdef object val
+        if self._has_str_headers:
+            val = self.get_first_header("hx-current-url")
+        else:
+            val = self.get_first_header(b"hx-current-url")
         if val is None:
             return None
         return val.decode("utf8") if isinstance(val, bytes) else str(val)
 
     @property
     def htmx_prompt(self):
-        cdef object val = self.get_first_header(b"hx-prompt")
+        cdef object val
+        if self._has_str_headers:
+            val = self.get_first_header("hx-prompt")
+        else:
+            val = self.get_first_header(b"hx-prompt")
         if val is None:
             return None
         return val.decode("utf8") if isinstance(val, bytes) else str(val)
@@ -1134,26 +1181,35 @@ cdef class Request(Message):
 
     @property
     def cookies(self):
-        cdef bytes header
+        cdef object header
         cdef list cookies_headers
         cdef dict cookies = {}
 
-        cookies_headers = self.get_headers(b'cookie')
+        if self._has_str_headers:
+            cookies_headers = self.get_headers("cookie")
+        else:
+            cookies_headers = self.get_headers(b'cookie')
+
         if cookies_headers:
             for header in cookies_headers:
-                # a single cookie header is expected from the client, but anyway here
-                # multiple headers are handled:
-                pairs = header.split(b'; ')
-
-                for fragment in pairs:
-                    try:
-                        name, value = split_value(fragment, b"=")
-                    except ValueError as unpack_error:
-                        # discard cookie: in this case it's better to eat the exception
-                        # than blocking a request just because a cookie is malformed
-                        pass
-                    else:
-                        cookies[unquote(name.decode())] = unquote(value.rstrip(b'; ').decode())
+                if isinstance(header, str):
+                    pairs = (<str>header).split('; ')
+                    for fragment in pairs:
+                        try:
+                            name, value = fragment.split('=', 1)
+                        except ValueError:
+                            pass
+                        else:
+                            cookies[unquote(name)] = unquote(value.rstrip('; '))
+                else:
+                    pairs = (<bytes>header).split(b'; ')
+                    for fragment in pairs:
+                        try:
+                            name, value = split_value(fragment, b"=")
+                        except ValueError:
+                            pass
+                        else:
+                            cookies[unquote(name.decode())] = unquote(value.rstrip(b'; ').decode())
         return cookies
 
     def get_cookie(self, str name):
@@ -1164,30 +1220,46 @@ cdef class Request(Message):
         Sets a cookie in the request. This method also ensures that a single
         `cookie` header is set on the request.
         """
-        cdef bytes new_value
-        cdef bytes existing_cookie
+        cdef object new_value
+        cdef object existing_cookie
 
-        new_value = (quote(name) + "=" + quote(value)).encode()
-        existing_cookie = self.get_first_header(b"cookie")
-
-        if existing_cookie:
-            self.set_header(b"cookie", existing_cookie + b";" + new_value)
+        if self._has_str_headers:
+            new_value = quote(name) + "=" + quote(value)
+            existing_cookie = self.get_first_header("cookie")
+            if existing_cookie:
+                self.set_header("cookie", f"{existing_cookie};{new_value}")
+            else:
+                self._raw_headers.append(("cookie", new_value))
         else:
-            self._raw_headers.append((b"cookie", new_value))
+            new_value = (quote(name) + "=" + quote(value)).encode()
+            existing_cookie = self.get_first_header(b"cookie")
+            if existing_cookie:
+                self.set_header(b"cookie", existing_cookie + b";" + new_value)
+            else:
+                self._raw_headers.append((b"cookie", new_value))
 
     @property
     def etag(self):
+        if self._has_str_headers:
+            return self.get_first_header("etag")
         return self.get_first_header(b"etag")
 
     @property
     def if_none_match(self):
+        if self._has_str_headers:
+            return self.get_first_header("if-none-match")
         return self.get_first_header(b"if-none-match")
 
     cpdef bint expect_100_continue(self):
-        cdef bytes value
-        value = self.get_first_header(b'expect')
-        if value and value.lower() == b'100-continue':
-            return True
+        cdef object value
+        if self._has_str_headers:
+            value = self.get_first_header("expect")
+            if value and str(value).lower() == '100-continue':
+                return True
+        else:
+            value = self.get_first_header(b'expect')
+            if value and value.lower() == b'100-continue':
+                return True
         return False
 
     async def is_disconnected(self):
@@ -1310,6 +1382,7 @@ cdef class Response(Message):
         self._form_data = None
         self._headers = None
         self._raw_headers = []
+        self._has_str_headers = False
         if self.content is not None:
             self.content.dispose()
             self.content = None
@@ -1328,12 +1401,19 @@ cpdef Request acquire_request(str method, object path, object raw_query, list he
     cdef Request req
     cdef str interned_method = intern_method_str(method)
     cdef list processed_headers
+    cdef bint has_str = False
     if headers is None:
         processed_headers = None
     elif not headers:
         processed_headers = []
     else:
-        processed_headers = [(intern_header_name_bytes(h[0]), h[1]) if isinstance(h, tuple) and len(h) == 2 and isinstance(h[0], bytes) else h for h in headers]
+        processed_headers = [
+            (intern_header_name_bytes(h[0]), h[1]) if isinstance(h, tuple) and len(h) == 2 and isinstance(h[0], bytes)
+            else ((intern_header_name_str(h[0]), h[1]) if isinstance(h, tuple) and len(h) == 2 and (isinstance(h[0], str) or PyUnicode_CheckExact(h[0])) else h)
+            for h in headers
+        ]
+        if processed_headers and (PyUnicode_CheckExact(processed_headers[0][0]) or isinstance(processed_headers[0][0], str)):
+            has_str = True
 
     if _REQ_FREELIST:
         req = <Request>_REQ_FREELIST.pop()
@@ -1341,6 +1421,7 @@ cpdef Request acquire_request(str method, object path, object raw_query, list he
         req._path = path
         req._raw_query = raw_query
         req._raw_headers = processed_headers
+        req._has_str_headers = has_str
         req.scope = scope
         req.scope_protocol = None
         req.content = None
@@ -1352,6 +1433,7 @@ cpdef Request acquire_request(str method, object path, object raw_query, list he
     req._path = path
     req._raw_query = raw_query
     req._raw_headers = processed_headers
+    req._has_str_headers = has_str
     req.scope = scope
     req.scope_protocol = None
     req.content = None
@@ -1374,6 +1456,7 @@ cpdef Response acquire_response(int status=200, list headers=None, Content conte
         resp = <Response>_RESP_FREELIST.pop()
         resp.status = status
         resp._raw_headers = headers if headers is not None else []
+        resp._has_str_headers = bool(headers and (PyUnicode_CheckExact(headers[0][0]) or isinstance(headers[0][0], str)))
         resp.content = content
         return resp
     return Response(status, headers, content)
@@ -1388,7 +1471,9 @@ cpdef void release_response(Response response):
 
 
 cpdef bint is_cors_request(Request request):
-    return bool(request.get_first_header(b"Origin"))
+    if request._has_str_headers:
+        return bool(request.get_first_header("origin"))
+    return bool(request.get_first_header(b"origin"))
 
 
 cpdef bint is_cors_preflight_request(Request request):
@@ -1396,7 +1481,7 @@ cpdef bint is_cors_preflight_request(Request request):
         return False
 
     next_request_method = request.get_first_header(
-        b"Access-Control-Request-Method"
+        "access-control-request-method" if request._has_str_headers else b"access-control-request-method"
     )
 
     return bool(next_request_method)

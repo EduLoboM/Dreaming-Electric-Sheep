@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > **Version Line Policy**: Release `2.6.3` was an upstream version leak from BlackSheep and has been yanked from PyPI. Dreaming Electric Sheep versions remain strictly in the independent `1.x` release line. Upstream BlackSheep version numbers will never be reused.
 
+## [1.2.1] - 2026-09-03
+
+### Fixed
+- **Native-str RSGI Headers End-to-End**:
+  - Inbound RSGI scope headers and lookups consume and maintain Python `str` without latin-1 bytes conversion or decoding tax.
+  - Added Unicode intern table entries in `interning.c` and zero-encoding lookups in `headers.pyx` and `messages.pyx`.
+  - Direct pass-through of `str` headers in `send_rsgi_response_sync` outbound.
+- **RSGI Mount Dispatching (`MountMixin`)**:
+  - Implemented native `__rsgi__` dispatching on `MountMixin` to route requests to mounted child applications.
+  - Enhanced `des check` to detect and report mounted applications via `mounted_apps`.
+
 ## [1.2.0] - 2026-09-01
 
 ### Added

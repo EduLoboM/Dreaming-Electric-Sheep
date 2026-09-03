@@ -60,6 +60,28 @@ typedef struct DES_CACHE_ALIGNED {
     PyObject *header_cors_allow_origin;
     PyObject *header_cors_request_method;
 
+    // Common Unicode Headers (lowercase str)
+    PyObject *header_content_type_str;
+    PyObject *header_content_length_str;
+    PyObject *header_host_str;
+    PyObject *header_cookie_str;
+    PyObject *header_set_cookie_str;
+    PyObject *header_accept_str;
+    PyObject *header_accept_encoding_str;
+    PyObject *header_accept_language_str;
+    PyObject *header_user_agent_str;
+    PyObject *header_server_str;
+    PyObject *header_date_str;
+    PyObject *header_connection_str;
+    PyObject *header_transfer_encoding_str;
+    PyObject *header_authorization_str;
+    PyObject *header_location_str;
+    PyObject *header_etag_str;
+    PyObject *header_if_none_match_str;
+    PyObject *header_origin_str;
+    PyObject *header_cors_allow_origin_str;
+    PyObject *header_cors_request_method_str;
+
     // Common Content-Types / Transfer values (bytes)
     PyObject *ct_application_json;
     PyObject *ct_text_plain;
@@ -95,6 +117,11 @@ DES_API PyObject *get_interned_method_bytes(const char * __restrict__ method_str
  * Returns a BORROWED reference to interned Bytes header name or NULL if not in static table.
  */
 DES_API PyObject *get_interned_header_name_bytes(const char * __restrict__ name_str, size_t len);
+
+/*
+ * Returns a BORROWED reference to interned Unicode header name or NULL if not in static table.
+ */
+DES_API PyObject *get_interned_header_name_str(const char * __restrict__ name_str, size_t len);
 
 /*
  * Returns a BORROWED reference to interned Bytes content type or NULL if not in static table.

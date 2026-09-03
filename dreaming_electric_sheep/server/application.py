@@ -1074,6 +1074,47 @@ class MountMixin:
 
         return await super().__call__(scope, receive, send)  # type: ignore
 
+    async def __rsgi__(self, scope, protocol):
+        if not self.started:
+            raise RuntimeError(
+                "Application has not been started. Ensure __rsgi_init__ was called or call app.start()."
+            )
+
+        path = getattr(scope, "path", "")
+        raw_path = path.encode("latin-1") if isinstance(path, str) else path
+
+        for route in self.mount_registry.mounted_apps:  # type: ignore
+            route_match = route.match_by_path(raw_path)
+            if route_match:
+                child_app = route.handler
+                if hasattr(child_app, "__rsgi__"):
+                    tail = route_match.values.get("tail", "") if route_match.values else ""
+                    if not tail.startswith("/"):
+                        tail = "/" + tail
+                    mount_prefix = (
+                        path[: -len(tail)] if tail != "/" else path.rstrip("/")
+                    )
+                    orig_path = getattr(scope, "path", None)
+                    orig_root = getattr(scope, "root_path", "")
+                    try:
+                        scope.root_path = orig_root + mount_prefix
+                        scope.path = tail
+                        return await child_app.__rsgi__(scope, protocol)
+                    finally:
+                        if orig_path is not None:
+                            scope.path = orig_path
+                        if orig_root:
+                            scope.root_path = orig_root
+                        elif hasattr(scope, "root_path"):
+                            delattr(scope, "root_path")
+                else:
+                    raise RuntimeError(
+                        f"Mounted application {child_app} does not support RSGI (__rsgi__ not found). "
+                        "Mounts with ASGI-only applications are only supported under ASGI."
+                    )
+
+        return await super().__rsgi__(scope, protocol)  # type: ignore
+
 
 def _auto_import(parent_file: str, folder_name):
     parent_folder = Path(parent_file).parent

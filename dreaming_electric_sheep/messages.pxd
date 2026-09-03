@@ -17,12 +17,13 @@ from .url cimport URL
 
 
 cdef class Message:
-    cdef list _raw_headers
+    cdef public list _raw_headers
     cdef public Headers _headers
     cdef public Content content
     cdef public object scope_protocol
     cdef public object _form_data
     cdef public object context
+    cdef public bint _has_str_headers
     cdef object __weakref__
 
     cpdef list get_headers(self, object key)

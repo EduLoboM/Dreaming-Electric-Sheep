@@ -73,6 +73,28 @@ int init_static_interning(void) {
     g_des_intern_table.header_cors_allow_origin  = create_bytes("access-control-allow-origin");
     g_des_intern_table.header_cors_request_method = create_bytes("access-control-request-method");
 
+    // Common Headers (Unicode, lowercase)
+    g_des_intern_table.header_content_type_str       = create_interned_str("content-type");
+    g_des_intern_table.header_content_length_str     = create_interned_str("content-length");
+    g_des_intern_table.header_host_str               = create_interned_str("host");
+    g_des_intern_table.header_cookie_str             = create_interned_str("cookie");
+    g_des_intern_table.header_set_cookie_str         = create_interned_str("set-cookie");
+    g_des_intern_table.header_accept_str             = create_interned_str("accept");
+    g_des_intern_table.header_accept_encoding_str    = create_interned_str("accept-encoding");
+    g_des_intern_table.header_accept_language_str    = create_interned_str("accept-language");
+    g_des_intern_table.header_user_agent_str         = create_interned_str("user-agent");
+    g_des_intern_table.header_server_str             = create_interned_str("server");
+    g_des_intern_table.header_date_str               = create_interned_str("date");
+    g_des_intern_table.header_connection_str         = create_interned_str("connection");
+    g_des_intern_table.header_transfer_encoding_str  = create_interned_str("transfer-encoding");
+    g_des_intern_table.header_authorization_str      = create_interned_str("authorization");
+    g_des_intern_table.header_location_str           = create_interned_str("location");
+    g_des_intern_table.header_etag_str               = create_interned_str("etag");
+    g_des_intern_table.header_if_none_match_str      = create_interned_str("if-none-match");
+    g_des_intern_table.header_origin_str             = create_interned_str("origin");
+    g_des_intern_table.header_cors_allow_origin_str  = create_interned_str("access-control-allow-origin");
+    g_des_intern_table.header_cors_request_method_str = create_interned_str("access-control-request-method");
+
     // Content types and common values (Bytes)
     g_des_intern_table.ct_application_json         = create_bytes("application/json");
     g_des_intern_table.ct_text_plain               = create_bytes("text/plain");
@@ -239,6 +261,63 @@ PyObject *get_interned_content_type_bytes(const char * __restrict__ type_str, si
             break;
         case 33:
             if (memcmp(type_str, "application/x-www-form-urlencoded", 33) == 0) return g_des_intern_table.ct_form_urlencoded;
+            break;
+        default:
+            break;
+    }
+    return NULL;
+}
+
+PyObject *get_interned_header_name_str(const char * __restrict__ name_str, size_t len) {
+    if (DES_UNLIKELY(!g_interning_initialized)) {
+        init_static_interning();
+    }
+    if (DES_UNLIKELY(name_str == NULL)) {
+        return NULL;
+    }
+
+    switch (len) {
+        case 4:
+            if (memcmp(name_str, "host", 4) == 0) return g_des_intern_table.header_host_str;
+            if (memcmp(name_str, "date", 4) == 0) return g_des_intern_table.header_date_str;
+            if (memcmp(name_str, "etag", 4) == 0) return g_des_intern_table.header_etag_str;
+            break;
+        case 6:
+            if (memcmp(name_str, "accept", 6) == 0) return g_des_intern_table.header_accept_str;
+            if (memcmp(name_str, "cookie", 6) == 0) return g_des_intern_table.header_cookie_str;
+            if (memcmp(name_str, "server", 6) == 0) return g_des_intern_table.header_server_str;
+            if (memcmp(name_str, "origin", 6) == 0) return g_des_intern_table.header_origin_str;
+            break;
+        case 8:
+            if (memcmp(name_str, "location", 8) == 0) return g_des_intern_table.header_location_str;
+            break;
+        case 10:
+            if (memcmp(name_str, "set-cookie", 10) == 0) return g_des_intern_table.header_set_cookie_str;
+            if (memcmp(name_str, "user-agent", 10) == 0) return g_des_intern_table.header_user_agent_str;
+            if (memcmp(name_str, "connection", 10) == 0) return g_des_intern_table.header_connection_str;
+            break;
+        case 12:
+            if (memcmp(name_str, "content-type", 12) == 0) return g_des_intern_table.header_content_type_str;
+            break;
+        case 13:
+            if (memcmp(name_str, "authorization", 13) == 0) return g_des_intern_table.header_authorization_str;
+            if (memcmp(name_str, "if-none-match", 13) == 0) return g_des_intern_table.header_if_none_match_str;
+            break;
+        case 14:
+            if (memcmp(name_str, "content-length", 14) == 0) return g_des_intern_table.header_content_length_str;
+            break;
+        case 15:
+            if (memcmp(name_str, "accept-encoding", 15) == 0) return g_des_intern_table.header_accept_encoding_str;
+            if (memcmp(name_str, "accept-language", 15) == 0) return g_des_intern_table.header_accept_language_str;
+            break;
+        case 17:
+            if (memcmp(name_str, "transfer-encoding", 17) == 0) return g_des_intern_table.header_transfer_encoding_str;
+            break;
+        case 27:
+            if (memcmp(name_str, "access-control-allow-origin", 27) == 0) return g_des_intern_table.header_cors_allow_origin_str;
+            break;
+        case 28:
+            if (memcmp(name_str, "access-control-request-method", 28) == 0) return g_des_intern_table.header_cors_request_method_str;
             break;
         default:
             break;

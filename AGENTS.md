@@ -4,7 +4,7 @@
 
 - **Product**: Dreaming Electric Sheep (`des`)
 - **Category**: High-performance CPython 3.13+ serving stack on Granian RSGI.
-- **Value Proposition**: A ~10–15% framework tax on raw Granian RSGI in exchange for startup-compiled `msgspec` binders, automated OpenAPI documentation, high-throughput SSR, first-class HTMX & SSE streaming, and a compiled-request inspection CLI (`des why`, `des routes`, `des doctor`).
+- **Value Proposition**: A minimal framework serving tax on raw Granian RSGI in exchange for startup-compiled `msgspec` binders, automated OpenAPI documentation, high-throughput SSR, first-class HTMX & SSE streaming, and a compiled-request inspection CLI (`des why`, `des routes`, `des doctor`).
 
 ## 2. Installation
 
@@ -33,8 +33,8 @@ from msgspec import Struct
 
 ## 4. CLI Toolchain
 
-- `des new <name> -t fullstack`: Scaffold Full-Stack project with Jinja2, HTMX, Tailwind CDN, live search, click-to-edit table, and real-time SSE streaming.
 - `des new <name> -t api`: Scaffold REST API project with Scalar docs and `msgspec` Struct endpoint.
+- `des new <name> -t fullstack`: Scaffold Full-Stack project with Jinja2, HTMX, Tailwind CDN, live search, click-to-edit table, and real-time SSE streaming.
 - `des new <name> -t minimal`: Scaffold minimal single-file microservice.
 - `des dev`: Start development server with auto-reload (Granian RSGI).
 - `des run app:app --workers 4`: Start production server (Granian RSGI).
