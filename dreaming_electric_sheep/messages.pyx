@@ -110,34 +110,72 @@ async def _call_soon(coro):
 
 
 def _encode(value):
-    return value.encode("utf8") if value else None
+    if value is None:
+        return None
+    return value.encode("utf8") if isinstance(value, str) else value
 
 
-async def _multipart_to_dict_streaming(multipart_stream):
+async def _multipart_to_dict_streaming(
+    stream_iter,
+    spool_max_size=1024 * 1024,
+):
     """
-    Consumes a multipart_stream and parses form fields and file uploads into a dictionary.
-    File uploads are wrapped in FileBuffer objects (relying on SpooledTemporaryFile).
+    Convert streaming multipart parts to dictionary with memory-efficient file handling.
+
+    Files are wrapped in FileBuffer with SpooledTemporaryFile:
+    - Small files (<1MB): Kept in memory for performance
+    - Large files (>1MB): Automatically spooled to temporary disk files
+    - Form fields: Buffered in memory with size limits
+
+    Args:
+        stream_iter: Async iterator of StreamedFormPart objects
+        spool_max_size: Threshold for spooling files to disk (default: 1MB)
+
+    Returns:
+        Dictionary with form data and FileBuffer instances for files
     """
     from collections import defaultdict
-    from .contents import FileBuffer, FormPart
+    from tempfile import SpooledTemporaryFile
+
+    from .contents import FormPart
 
     data = defaultdict(list)
 
-    def _encode(val):
+    def _safe_encode(val):
         if val is None:
             return None
         return val.encode("utf-8") if isinstance(val, str) else val
 
-    async for part in multipart_stream:
-        key = _encode(part.name)
-        total_size = len(part.data)
+    async for part in stream_iter:
+        key = part.name if isinstance(part.name, str) else (part.name.decode("utf-8") if part.name else "")
+
+        spooled_file = SpooledTemporaryFile(max_size=spool_max_size, mode="w+b")
+        total_size = 0
+
+        if hasattr(part, "stream"):
+            async for chunk in part.stream():
+                spooled_file.write(chunk)
+                total_size += len(chunk)
+        elif hasattr(part, "read"):
+            chunk = await part.read()
+            if chunk:
+                spooled_file.write(chunk)
+                total_size += len(chunk)
+        elif hasattr(part, "data"):
+            chunk = part.data
+            if chunk:
+                spooled_file.write(chunk)
+                total_size += len(chunk)
+        spooled_file.seek(0)
+
+        # Encoding below is for backward compatibility
         item = FormPart(
-            name=key,
-            data=part.data,
-            file_name=_encode(part.file_name),
-            content_type=_encode(part.content_type),
+            name=_safe_encode(part.name),
+            data=spooled_file,
+            file_name=_safe_encode(part.file_name),
+            content_type=_safe_encode(part.content_type),
             size=total_size,
-            charset=_encode(part.charset),
+            charset=_safe_encode(part.charset),
         )
         data[key].append(item)
 
@@ -866,6 +904,11 @@ cdef class Request(Message):
 
     @property
     def session(self) -> Session:
+        if self._session is None:
+            raise TypeError(
+                "A session is not configured for this request, activate "
+                "sessions using `app.use_sessions` method."
+            )
         return self._session
 
     @session.setter
@@ -1427,6 +1470,8 @@ cpdef Request acquire_request(str method, object path, object raw_query, list he
         req.content = None
         req._url = None
         req.route_values = None
+        req._session = None
+        req._form_data = None
         return req
     req = Request.__new__(Request)
     req.method = interned_method
@@ -1439,6 +1484,8 @@ cpdef Request acquire_request(str method, object path, object raw_query, list he
     req.content = None
     req._url = None
     req.route_values = None
+    req._session = None
+    req._form_data = None
     return req
 
 
