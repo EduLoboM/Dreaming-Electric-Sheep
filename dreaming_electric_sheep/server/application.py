@@ -1088,7 +1088,9 @@ class MountMixin:
             if route_match:
                 child_app = route.handler
                 if hasattr(child_app, "__rsgi__"):
-                    tail = route_match.values.get("tail", "") if route_match.values else ""
+                    tail = (
+                        route_match.values.get("tail", "") if route_match.values else ""
+                    )
                     if not tail.startswith("/"):
                         tail = "/" + tail
                     mount_prefix = (
