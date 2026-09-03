@@ -4,6 +4,7 @@ Ticket M (MountMixin RSGI dispatching), and Ticket D (documentation gates).
 """
 
 import re
+
 import pytest
 
 from dreaming_electric_sheep import Application, Content, Response, get, text
@@ -274,7 +275,16 @@ child = Application(router=Router())
 app.mount('/sub', child)
 """)
         res = subprocess.run(
-            [sys.executable, "-m", "dreaming_electric_sheep.cli", "-C", tmpdir, "check", "app:app", "--json"],
+            [
+                sys.executable,
+                "-m",
+                "dreaming_electric_sheep.cli",
+                "-C",
+                tmpdir,
+                "check",
+                "app:app",
+                "--json",
+            ],
             capture_output=True,
             text=True,
         )
