@@ -267,13 +267,15 @@ async def test_mount_rsgi_or_check_fails():
     # Also verify des check detects mounts
     with tempfile.TemporaryDirectory() as tmpdir:
         app_file = Path(tmpdir) / "app.py"
-        app_file.write_text("""
+        app_file.write_text(
+            """
 from des import Application
 from dreaming_electric_sheep.server.routing import Router
 app = Application()
 child = Application(router=Router())
 app.mount('/sub', child)
-""")
+"""
+        )
         res = subprocess.run(
             [
                 sys.executable,
